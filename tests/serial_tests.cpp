@@ -103,6 +103,23 @@ void queuedEvents() {
     loop.exec();
 }
 
+template <typename Predicate> void awaitEventResult(Predicate complete) {
+    if (complete()) return;
+    QEventLoop loop;
+    QTimer observe;
+    observe.setInterval(1);
+    QObject::connect(&observe, &QTimer::timeout, &loop, [&] {
+        if (complete()) loop.quit();
+    });
+    // This is an OS event-loop integration check. A loaded Windows runner may
+    // dispatch the old 10ms quit timer before a chain of zero-timer RX callbacks.
+    // Await the actual outcome with a bounded guard; protocol deadlines above
+    // still use the controlled clock and exact equality assertions.
+    QTimer::singleShot(2000, &loop, &QEventLoop::quit);
+    observe.start();
+    loop.exec();
+}
+
 void partialWritesAndBounds() {
     Fixture f; f.start();
     require(f.opened == 1 && f.transport.isOpen(), "device opens once");
@@ -241,7 +258,7 @@ void boundedRxAndCancellation() {
     for (std::size_t i = 0; i < bytes.size(); ++i) bytes[i] = static_cast<std::uint8_t>(i);
     f.device->inject(bytes);
     require(f.rx.size() == 1024, "one readyRead callback has 1024-byte work budget");
-    queuedEvents();
+    awaitEventResult([&] { return f.decoded.size() == bytes.size() || f.errors; });
     require(f.rx == bytes && f.decoded == bytes && f.largestRx <= 256, "RX continuations preserve all bytes in bounded chunks");
     for (std::size_t i = 0; i < f.order.size(); i += 2)
         require(f.order[i] == 'R' && f.order[i + 1] == 'D', "raw RX is logged before parsing each fragment");
