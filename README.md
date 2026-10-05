@@ -38,13 +38,17 @@ Windows SDK та Qt `msvc2022_64`. Python використовується ли�
 Відкрийте PowerShell у корені репозиторію:
 
 ```powershell
-./scripts/build-windows.ps1 -QtPath 'C:/Qt/6.8.3/msvc2022_64'
+$qtRoot = 'C:/Qt/6.8.3/msvc2022_64'
+./scripts/build-windows.ps1 -QtPath $qtRoot
+$env:PATH = "$qtRoot/bin;$env:PATH"
 ./build/windows/Release/HondaDash.exe
 ```
 
 Шлях наведено як приклад: передайте власний `-QtPath` або задайте
 `QT_ROOT_DIR`. Скрипт конфігурує preset `windows`, складає Debug і Release,
 запускає CTest для обох конфігурацій та зупиняється на будь-якій помилці.
+Запуск із build tree потребує Qt `bin` у PATH, як у прикладі вище;
+розпакований ZIP уже містить DLL й цього налаштування не потребує.
 Точну версію MSVC конкретної збірки видно в журналі CMake/CI.
 
 Еквівалентні команди:
