@@ -1,0 +1,19 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {"major": 3, "minor": 25, "patch": 0},
+  "configurePresets": [
+    {"name": "windows", "generator": "Visual Studio 17 2022", "architecture": "x64", "binaryDir": "${sourceDir}/build/windows", "cacheVariables": {"CMAKE_PREFIX_PATH": "$env{QT_ROOT_DIR}"}},
+    {"name": "linux", "generator": "Ninja", "binaryDir": "${sourceDir}/build/linux", "cacheVariables": {"CMAKE_BUILD_TYPE": "Release", "CMAKE_PREFIX_PATH": "$env{QT_ROOT_DIR}"}},
+    {"name": "core-windows", "inherits": "windows", "binaryDir": "${sourceDir}/build/core-windows", "cacheVariables": {"HONDADASH_BUILD_GUI": "OFF"}}
+  ],
+  "buildPresets": [
+    {"name": "windows-debug", "configurePreset": "windows", "configuration": "Debug"},
+    {"name": "windows-release", "configurePreset": "windows", "configuration": "Release"},
+    {"name": "linux", "configurePreset": "linux"}
+  ],
+  "testPresets": [
+    {"name": "windows-debug", "configurePreset": "windows", "configuration": "Debug", "output": {"outputOnFailure": true}},
+    {"name": "windows-release", "configurePreset": "windows", "configuration": "Release", "output": {"outputOnFailure": true}},
+    {"name": "linux", "configurePreset": "linux", "output": {"outputOnFailure": true}}
+  ]
+}

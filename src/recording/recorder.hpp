@@ -1,0 +1,47 @@
+#pragma once
+
+#include "application/session.hpp"
+#include "core/model.hpp"
+#include <cstddef>
+#include <cstdint>
+#include <filesystem>
+#include <functional>
+#include <memory>
+#include <string>
+
+namespace hd {
+
+struct RecordingMetadata {
+    std::string scenario;
+    std::uint32_t seed{};
+};
+
+// Disk work runs on one bounded worker. A failed enqueue stops recording and
+// preserves an error for the dashboard; callers must never silently ignore it.
+class Recorder {
+public:
+    // Optional hook is a deterministic test seam: false simulates a disk failure.
+    // It runs on the writer thread, immediately before each queued record.
+    using WriteHook = std::function<bool()>;
+    explicit Recorder(std::size_t capacity = 256, WriteHook beforeWrite = {});
+    ~Recorder();
+    Recorder(const Recorder&) = delete;
+    Recorder& operator=(const Recorder&) = delete;
+
+    // Returns whether asynchronous start was accepted. The UI polls status/error
+    // to observe directory/open errors without blocking its event loop.
+    bool start(std::filesystem::path directory, RecordingMetadata metadata);
+    void stop(); // drains accepted records, flushes both files, and joins
+    bool enqueueRaw(const RawEvent& event);
+    bool enqueueSample(const Sample& sample);
+    std::string status() const;
+    std::string error() const;
+    bool active() const;
+    std::filesystem::path directory() const;
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+};
+
+} // namespace hd

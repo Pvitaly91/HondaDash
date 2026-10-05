@@ -1,0 +1,88 @@
+name: Build and test M0
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.10'
+      - name: Pinned build tooling
+        run: python -m pip install cmake==3.31.6
+      - uses: jurplel/install-qt-action@v4.3.0
+        with:
+          version: '6.8.3'
+          arch: win64_msvc2022_64
+          aqtversion: '==3.3.0'
+          py7zrversion: '==1.0.0'
+          setup-python: false
+          cache: true
+      - name: Build Debug and Release, run all tests
+        shell: pwsh
+        run: ./scripts/build-windows.ps1 -QtPath $env:QT_ROOT_DIR
+      - name: Deploy and verify extracted Windows package
+        shell: pwsh
+        run: ./scripts/package-windows.ps1 -QtPath $env:QT_ROOT_DIR
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: HondaDash-windows-x64
+          if-no-files-found: error
+          path: |
+            dist/HondaDash-windows-x64.zip
+            dist/reports/
+            build/windows/reports/
+            build/windows/Testing/Temporary/LastTest.log
+            build/windows/smoke*.json
+            build/windows/smoke*.png
+            build/windows/dashboard*.png
+
+  linux:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.10'
+      - name: Pinned build tooling
+        run: python -m pip install cmake==3.31.6 ninja==1.11.1.3
+      - uses: jurplel/install-qt-action@v4.3.0
+        with:
+          version: '6.8.3'
+          aqtversion: '==3.3.0'
+          py7zrversion: '==1.0.0'
+          setup-python: false
+          cache: true
+      - name: Build the same libraries and GUI
+        run: |
+          cmake --version
+          g++ --version
+          cmake --preset linux -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
+          cmake --build build/linux --parallel 2
+      - name: Logic and offscreen GUI tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          ctest --test-dir build/linux --output-on-failure --output-junit "$PWD/build/linux/ctest-linux.xml"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: HondaDash-linux-test-reports
+          if-no-files-found: error
+          path: |
+            build/linux/ctest-linux.xml
+            build/linux/Testing/Temporary/LastTest.log
+            build/linux/*smoke*.json
+            build/linux/smoke*.png
+            build/linux/*offscreen*.png

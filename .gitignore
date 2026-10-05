@@ -1,0 +1,14 @@
+/build/
+/dist/
+/.tools/
+/logs/
+recording-*/
+*.user
+*.exe
+*.dll
+*.zip
+*.pdb
+*.ilk
+*.obj
+*.log
+__pycache__/
