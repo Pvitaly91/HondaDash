@@ -1,4 +1,46 @@
-# Перевірки M1
+# Перевірки M0/M1 та M2a
+
+M2a додає `honda_dlc` CTest і нові assertions до GUI smoke, зберігаючи всі
+M0/M1 групи нижче. Незалежні байтові/math fixtures, recovery, partial ages,
+наскрізний production session/responder/parser/model/recording та обмеження
+доказів описано у [HONDA_DLC_OFFLINE_TESTING.md](HONDA_DLC_OFFLINE_TESTING.md).
+Baseline M1 `856c6e8eda9dbfa4b33a1170b0b4192ffaf5bd93`: Windows Release
+8/8 PASS до змін (`build/windows/m2a-baseline.xml`).
+
+## Фактичний прогін M2a — 6 жовтня 2026
+
+| Середовище | Результат |
+| --- | --- |
+| Windows x64, MSVC 19.34.31948.0, Debug | CTest 9/9 PASS, GUI 59/59, 40.68 с весь CTest |
+| Windows x64, Release | CTest 9/9 PASS, GUI 59/59 |
+| Windows Release без SerialPort | CTest 8/8 PASS, GUI 52/52 |
+| WSL Ubuntu 24.04.3, GCC 13.3.0, Release | CTest 10/10 PASS, включно з Linux PTY; 4.59 с |
+| Linux Release без SerialPort | CTest 8/8 PASS, GUI 52/52; 2.51 с; Qt6SerialPort відсутній у ldd |
+| Розпакований Windows ZIP | Native platform=windows, offscreen=false; GUI 59/59 при 100% і 150%, без developer Qt paths |
+| Nano atmega328 та atmega328old, Windows і Linux | Обидва PASS: Flash5736, .data108+.bss711=819≤1536; без upload |
+
+Усі desktop-перевірки використовували Qt/SerialPort6.8.3 і CMake3.31.6;
+Linux Ninja1.11.1. Firmware: CLI1.2.2, AVR Boards1.8.6,
+avr-g++7.3.0-atmel3.6.1-arduino7. Перший необмежено паралельний Windows
+Debug build отримав MSVC C1060 (out of heap); повтор із двома build jobs
+пройшов. Скрипт тепер явно задає default Parallel=2, доступний параметр override.
+
+Переглянуто фактичні PNG1024×600/1280×720, включно з масштабом150%:
+попередження, три канали, чотири причини недоступності та повний HEX/джерело
+формули видимі. Графік ECT допускає1250мс між точками як rendering tolerance;
+RPM/TPS250мс. Це не змінює1000/3000мс model freshness.
+
+Звіти: `build/windows/reports/ctest-{Debug,Release}.xml`,
+`build/windows-simulation/m2a-test-results.xml`,
+`build/linux-local/m2a-test-results.xml`,
+`build/linux-simulation/m2a-test-results.xml`, `dist/reports/package-smoke.json`,
+`dist/reports/package-scale-150.json`; PNG поруч. CI для опублікованого commit
+потрібно перевіряти окремо; workflow не підміняє виконання.
+
+M0/M1 regression — PASS. Honda DLC offline implementation — PASS у цьому
+обсязі. Реальні captures — відсутні. **Фізична Nano/USB, електричний DLC,
+реальний ECU — NOT VERIFIED.** Чиста незалежна Windows VM не тестувалася;
+очищений PATH перевіряє пакет на локальній Windows, а не іншу ОС.
 
 ## Команди
 

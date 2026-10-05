@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <numbers>
+#include <vector>
 
 namespace hd::ui {
 namespace {
@@ -23,6 +24,11 @@ QFont painterFont(double size, bool bold = false) {
     result.setPointSizeF(size);
     result.setBold(bold);
     return result;
+}
+QString readingStatus(const Measurement& reading) {
+    if (reading.reason == "Не визначено для цього профілю")
+        return QStringLiteral("Не визначено для цього профілю");
+    return ui::qualityName(reading.quality);
 }
 }
 QString channelName(Channel channel) {
@@ -68,7 +74,7 @@ ChannelCard::ChannelCard(Channel channel, QWidget* parent) : QWidget(parent), ch
     setMinimumSize(channel == Channel::Speed ? QSize(180, 90) : QSize(110, 64));
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 }
-void ChannelCard::setReading(const Measurement& reading) { reading_ = reading; update(); }
+void ChannelCard::setReading(const Measurement& reading) { reading_ = reading; setToolTip(QString::fromStdString(reading.reason + "\n" + reading.source)); update(); }
 void ChannelCard::paintEvent(QPaintEvent*) {
     QPainter p(this); p.setRenderHint(QPainter::Antialiasing); card(p, rect());
     const bool speed = channel_ == Channel::Speed;
@@ -80,13 +86,14 @@ void ChannelCard::paintEvent(QPaintEvent*) {
     p.setFont(painterFont(8)); p.setPen(muted);
     p.drawText(QRectF(13, 23, width() - 26, height() - 42), Qt::AlignRight | Qt::AlignVCenter, channelUnit(channel_));
     p.setFont(painterFont(7)); p.setPen(reading_.quality == Quality::Stale ? amber : muted);
-    p.drawText(QRectF(13, height() - 19, width() - 26, 15), Qt::AlignLeft | Qt::AlignVCenter, ui::qualityName(reading_.quality));
+    p.drawText(QRectF(13, height() - 19, width() - 26, 15), Qt::AlignLeft | Qt::AlignVCenter, readingStatus(reading_));
 }
 Tachometer::Tachometer(QWidget* parent) : QWidget(parent) {
     setMinimumSize(240, 245); setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 }
 void Tachometer::setReading(const Measurement& reading, double elapsedMs) {
     reading_ = reading;
+    setToolTip(QString::fromStdString(reading.reason + "\n" + reading.source));
     if (reading.quality == Quality::Valid && reading.value) {
         const double target = std::clamp(*reading.value, 0.0, channelInfo(Channel::Rpm).max);
         if (!initialized_) { needle_ = target; initialized_ = true; }
@@ -124,18 +131,24 @@ void Tachometer::paintEvent(QPaintEvent*) {
     p.setPen(readingColor(reading_)); p.setFont(painterFont(std::clamp(height() * .09, 24.0, 37.0), true));
     p.drawText(QRectF(10, height() - 72, width() - 20, 43), Qt::AlignCenter, readingText(reading_, Channel::Rpm));
     p.setPen(reading_.quality == Quality::Stale ? amber : muted); p.setFont(painterFont(8));
-    p.drawText(QRectF(10, height() - 28, width() - 20, 19), Qt::AlignCenter, ui::qualityName(reading_.quality));
+    p.drawText(QRectF(10, height() - 28, width() - 20, 19), Qt::AlignCenter, readingStatus(reading_));
 }
 HistoryChart::HistoryChart(QWidget* parent) : QWidget(parent) { setMinimumHeight(118); }
 void HistoryChart::pushSample(const Sample& sample) {
-    const std::size_t index = (start_ + count_) % Capacity;
-    samples_[index] = sample;
-    if (count_ < Capacity) ++count_; else start_ = (start_ + 1) % Capacity;
+    for (std::size_t channel = 0; channel < ChannelCount; ++channel) {
+        if ((sample.updatedMask & (1u << channel)) == 0) continue;
+        const std::size_t index = (starts_[channel] + counts_[channel]) % Capacity;
+        // Plot continuity tolerates the slow ECT polling interval plus GUI
+        // scheduling jitter; this never alters per-channel model freshness.
+        const Time gap = sample.source != "synthetic-demo-v1" && channel == channelIndex(Channel::Coolant) ? 1250 : 250;
+        samples_[channel][index] = Point{sample.time, sample.values[channel], sample.qualities[channel], gap};
+        if (counts_[channel] < Capacity) ++counts_[channel]; else starts_[channel] = (starts_[channel] + 1) % Capacity;
+    }
     update();
 }
 void HistoryChart::setNow(Time now) { now_ = now; update(); }
 void HistoryChart::setChannel(Channel channel) { channel_ = channel; update(); }
-void HistoryChart::clear() { start_ = count_ = 0; update(); }
+void HistoryChart::clear() { starts_.fill(0); counts_.fill(0); update(); }
 void HistoryChart::paintEvent(QPaintEvent*) {
     QPainter p(this); p.setRenderHint(QPainter::Antialiasing); card(p, rect());
     const QRectF plot(49, 22, width() - 64, height() - 48);
@@ -143,7 +156,13 @@ void HistoryChart::paintEvent(QPaintEvent*) {
     const Time firstTime = now_ > 60000 ? now_ - 60000 : 0;
     const double right = static_cast<double>(now_), left = right - 60000.0;
     const auto& limits = channelInfo(channel_);
-    const double low = limits.min, high = limits.max;
+    double low = limits.min, high = limits.max;
+    for (std::size_t i = 0; i < counts_[channel]; ++i) {
+        const auto& point = samples_[channel][(starts_[channel] + i) % Capacity];
+        if (point.time >= firstTime && point.time <= now_ && point.quality == Quality::Valid && point.value) {
+            low = std::min(low, *point.value); high = std::max(high, *point.value);
+        }
+    }
     for (int i = 0; i < 5; ++i) {
         const double y = plot.top() + plot.height() * i / 4;
         p.setPen(QPen(border, 1)); p.drawLine(QPointF(plot.left(), y), QPointF(plot.right(), y));
@@ -156,17 +175,21 @@ void HistoryChart::paintEvent(QPaintEvent*) {
     p.drawText(QRectF(plot.left(), 4, plot.width(), 16), Qt::AlignCenter,
         channelUnit(channel_) + QStringLiteral(" · пропуски даних показано розривами"));
     QPainterPath path; bool connected = false; Time previous{};
-    for (std::size_t i = 0; i < count_; ++i) {
-        const auto& sample = samples_[(start_ + i) % Capacity];
+    std::vector<QPointF> points;
+    for (std::size_t i = 0; i < counts_[channel]; ++i) {
+        const auto& sample = samples_[channel][(starts_[channel] + i) % Capacity];
         if (sample.time < firstTime || sample.time > now_) continue;
-        if (sample.qualities[channel] != Quality::Valid || !sample.values[channel]) { connected = false; continue; }
+        if (sample.quality != Quality::Valid || !sample.value) { connected = false; continue; }
         const QPointF position(plot.left() + (static_cast<double>(sample.time) - left) / 60000.0 * plot.width(),
-            plot.bottom() - (std::clamp(*sample.values[channel], low, high) - low) / (high - low) * plot.height());
-        if (!connected || sample.time - previous > 250) path.moveTo(position); else path.lineTo(position);
+            plot.bottom() - (std::clamp(*sample.value, low, high) - low) / (high - low) * plot.height());
+        if (!connected || sample.time - previous > sample.gapMs) path.moveTo(position); else path.lineTo(position);
+        points.push_back(position);
         previous = sample.time; connected = true;
     }
-    p.save(); p.setClipRect(plot); p.setPen(QPen(accent, 2)); p.drawPath(path); p.restore();
-    if (count_ == 0) {
+    p.save(); p.setClipRect(plot); p.setPen(QPen(accent, 2)); p.drawPath(path);
+    for (const auto& point : points) p.drawPoint(point);
+    p.restore();
+    if (counts_[channel] == 0) {
         p.setPen(muted); p.setFont(painterFont(10)); p.drawText(plot, Qt::AlignCenter, QStringLiteral("Очікування вимірювань"));
     }
 }

@@ -232,6 +232,71 @@ void freshness() {
     CHECK(threw);
 }
 
+void partialUpdatesAndDomains() {
+    hd::Model model;
+    hd::Sample coolant;
+    coolant.time = 100;
+    coolant.session = 7;
+    coolant.request = 1;
+    coolant.updatedMask = 1u << hd::channelIndex(hd::Channel::Coolant);
+    coolant.source = "reference-profile";
+    coolant.rangePolicy = hd::RangePolicy::DecoderValidated;
+    coolant.values[2] = 155; // Reference arithmetic, outside the demo gauge range.
+    coolant.qualities[2] = hd::Quality::Valid;
+    coolant.reasons[2] = "reference formula; hardware not verified";
+    model.apply(coolant);
+    CHECK(model.current(hd::Channel::Coolant, 100) == 155);
+    CHECK(model.channels()[0].quality == hd::Quality::NoData);
+    hd::Sample rpm;
+    rpm.time = 1500;
+    rpm.session = 7;
+    rpm.request = 2;
+    rpm.updatedMask = 1;
+    rpm.source = "reference-profile";
+    rpm.rangePolicy = hd::RangePolicy::DecoderValidated;
+    rpm.values[0] = 1875000; // Raw zero is not silently changed to stopped RPM.
+    rpm.qualities[0] = hd::Quality::Valid;
+    model.apply(rpm);
+    model.refresh(1500);
+    CHECK(model.current(hd::Channel::Rpm, 1500) == 1875000);
+    CHECK(model.channels()[2].quality == hd::Quality::Stale);
+    CHECK(model.channels()[2].lastValid == 100 && model.channels()[2].request == 1);
+    CHECK(model.channels()[2].source == "reference-profile");
+    CHECK(model.channels()[2].reason == "reference formula; hardware not verified");
+    CHECK(!model.current(hd::Channel::Coolant, 3101));
+    CHECK(model.channels()[0].lastValid == 1500);
+
+    rpm.time = 1600;
+    rpm.request = 3;
+    rpm.values[0] = 0;
+    model.apply(rpm);
+    CHECK(model.current(hd::Channel::Rpm, 1600) == 0);
+    rpm.updatedMask = 0; // Even hostile placeholder entries cannot renew a channel.
+    rpm.values[2] = 90;
+    rpm.qualities[2] = hd::Quality::Valid;
+    model.apply(rpm);
+    CHECK(model.channels()[2].lastValid == 100 && model.channels()[2].request == 1);
+    rpm.updatedMask = 1;
+    rpm.time = 1700;
+    rpm.values[0] = std::numeric_limits<double>::infinity();
+    model.apply(rpm);
+    CHECK(model.channels()[0].quality == hd::Quality::Invalid);
+    CHECK(!model.current(hd::Channel::Rpm, 1700) && model.channels()[0].lastValid == 1600);
+    rpm.values[0].reset();
+    rpm.qualities[0] = hd::Quality::NoData;
+    rpm.reasons[0] = "Conversion undefined for this profile";
+    model.apply(rpm);
+    CHECK(model.channels()[0].quality == hd::Quality::NoData);
+    CHECK(model.channels()[0].reason == "Conversion undefined for this profile");
+
+    // Existing demo callers still get their established domain checks.
+    coolant.rangePolicy = hd::RangePolicy::DemoLimits;
+    model.apply(coolant);
+    CHECK(model.channels()[2].quality == hd::Quality::Invalid);
+    model.reset();
+    CHECK(model.channels()[2].reason.empty() && !model.channels()[2].lastValid);
+}
+
 hd::Sample read(hd::Emulator& emulator, hd::Time time) {
     const auto request = hd::encode({hd::ReadSnapshot, 55, 66, {}});
     const auto replies = emulator.consume(request, time);
@@ -339,7 +404,8 @@ void emulatorPath() {
 int main() {
     struct Test { const char* name; void (*run)(); };
     const std::array tests{Test{"golden/scales", goldenAndScaling}, Test{"stream/recovery/bounds", streamingAndRecovery},
-        Test{"freshness", freshness}, Test{"emulator/byte-path/determinism", emulatorPath}};
+        Test{"freshness", freshness}, Test{"partial updates/domains", partialUpdatesAndDomains},
+        Test{"emulator/byte-path/determinism", emulatorPath}};
     for (const auto& test : tests) {
         try {
             test.run();

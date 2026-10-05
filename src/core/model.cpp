@@ -37,12 +37,16 @@ Model::Model(FreshnessSettings settings) : settings_(settings) {
 
 void Model::apply(const Sample& sample) {
     for (std::size_t i = 0; i < ChannelCount; ++i) {
+        if ((sample.updatedMask & (1u << i)) == 0) continue;
         auto& measurement = channels_[i];
         measurement.session = sample.session;
         measurement.request = sample.request;
+        measurement.source = sample.source;
+        measurement.reason = sample.reasons[i];
         const auto quality = sample.qualities[i];
         if (quality == Quality::Valid && sample.values[i] && std::isfinite(*sample.values[i]) &&
-            *sample.values[i] >= info[i].min && *sample.values[i] <= info[i].max) {
+            (sample.rangePolicy == RangePolicy::DecoderValidated ||
+             (*sample.values[i] >= info[i].min && *sample.values[i] <= info[i].max))) {
             measurement.value = sample.values[i];
             measurement.quality = Quality::Valid;
             measurement.lastValid = sample.time;

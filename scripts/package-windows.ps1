@@ -96,10 +96,12 @@ $runtimeStatement = if ($missingRuntime.Count -eq 0) {
     'Перед запуском потрібен Microsoft Visual C++ Redistributable 2015–2022 x64 (версія не старіша за використаний MSVC 2022). Відсутні app-local DLL: ' + ($missingRuntime -join ', ') + '. Інсталятор vc_redist.x64.exe, якщо доданий windeployqt, треба встановити окремо.'
 }
 @"
-HondaDash M1 — запуск під Windows x64
+HondaDash M2a — запуск під Windows x64
 
 M1: вбудована емуляція або синтетична Nano через USB.
-Фізичний Nano/USB тест: NOT VERIFIED. Сумісність із Honda ECU не реалізована.
+M2a: окремий Honda DLC reference-профіль, тільки програмний відповідач.
+Фізичні Nano/USB, електричний DLC та реальний ECU: NOT VERIFIED.
+Реальних captures немає; Valid у лабораторії не підтверджує сумісність ECU.
 
 Розпакуйте весь ZIP в одну папку та запустіть HondaDash.exe.
 Не переносіть EXE окремо від DLL і папки platforms.
@@ -114,6 +116,14 @@ F11 — повний екран; Esc — вихід із повного екра
 USB: окремо завантажте firmware, виберіть джерело USB та конкретний порт.
 Інструкція і hardware-чекліст: NANO_USB_TESTING.md. Build і GUI не роблять auto-upload.
 
+Honda DLC: оберіть «Honda DLC — лабораторна емуляція», натисніть «Старт».
+Набір A: 750 RPM, 61 °C, 32 %. Набір B: 1500 RPM, 89 °C, 75 %.
+HEX-інспектор показує справжні байти reference-формату й джерело формули.
+Інші чотири канали не визначені для цього профілю. Пошкодження/тайм-аут
+зупиняє опитування; повторний «Старт» створює новий offline-експеримент.
+Recording v3 зберігає часткові оновлення, давність і всі пошкоджені RX.
+Докази, профіль, невизначеності й чекліст: HONDA_DLC_*.md поруч із програмою.
+
 Автоматична перевірка з PowerShell:
 .\HondaDash.exe --smoke-test --report smoke.json --screenshot dashboard.png
 Успіх підтверджує report із passed=true і код завершення 0.
@@ -125,6 +135,9 @@ THIRD_PARTY_NOTICES.md і папка licenses. Ліцензію HondaDash вла
 Copy-Item -LiteralPath (Join-Path $repository 'docs/THIRD_PARTY_NOTICES.md') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $repository 'docs/NANO_USB_TESTING.md') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $repository 'docs/SYNTHETIC_DEVICE_EXTENSION.md') -Destination $stage
+foreach ($document in @('HONDA_DLC_EVIDENCE.md', 'HONDA_DLC_PROTOCOL.md', 'HONDA_DLC_REFERENCE_PROFILE.md', 'HONDA_DLC_OFFLINE_TESTING.md')) {
+    Copy-Item -LiteralPath (Join-Path $repository "docs/$document") -Destination $stage
+}
 $licenses = Join-Path $repository 'docs/licenses'
 if (-not (Test-Path -LiteralPath $licenses)) { throw 'Third-party license texts are missing from docs/licenses.' }
 Copy-Item -LiteralPath $licenses -Destination (Join-Path $stage 'licenses') -Recurse
@@ -135,7 +148,7 @@ Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $archive -Force
 Expand-Archive -LiteralPath $archive -DestinationPath $clean
 
 # Test the extracted archive, with every Qt/developer path removed.
-$environmentNames = @('PATH', 'QT_PLUGIN_PATH', 'QT_QPA_PLATFORM_PLUGIN_PATH', 'QT_QPA_PLATFORM', 'QT_ROOT_DIR', 'QTDIR', 'QML2_IMPORT_PATH', 'QML_IMPORT_PATH')
+$environmentNames = @('PATH', 'QT_PLUGIN_PATH', 'QT_QPA_PLATFORM_PLUGIN_PATH', 'QT_QPA_PLATFORM', 'QT_ROOT_DIR', 'QTDIR', 'QML2_IMPORT_PATH', 'QML_IMPORT_PATH', 'QT_SCALE_FACTOR')
 $savedEnvironment = @{}
 foreach ($name in $environmentNames) { $savedEnvironment[$name] = [Environment]::GetEnvironmentVariable($name, 'Process') }
 try {
@@ -151,6 +164,17 @@ try {
     $result = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
     if ($result.passed -ne $true) { throw 'Extracted package smoke report did not indicate passed=true.' }
     if (-not (Test-Path -LiteralPath $screenshot)) { throw 'Extracted package did not save a dashboard screenshot.' }
+    if ($result.platform -ne 'windows' -or $result.offscreen -ne $false) { throw 'Package smoke must use native Windows platform.' }
+    $env:QT_SCALE_FACTOR = '1.5'
+    $scaleReport = Join-Path $reports 'package-scale-150.json'
+    $scaleScreenshot = Join-Path $reports 'package-scale-150.png'
+    $scaleArguments = @('--smoke-test', '--report', "`"$scaleReport`"", '--screenshot', "`"$scaleScreenshot`"")
+    $scaledProcess = Start-Process -FilePath (Join-Path $clean 'HondaDash.exe') -ArgumentList $scaleArguments -WorkingDirectory $clean -WindowStyle Hidden -PassThru
+    if (-not $scaledProcess.WaitForExit(30000)) { $scaledProcess.Kill(); throw '150% package smoke timed out.' }
+    if ($scaledProcess.ExitCode -ne 0) { throw "150% package smoke failed with exit code $($scaledProcess.ExitCode)." }
+    $scaled = Get-Content -LiteralPath $scaleReport -Raw | ConvertFrom-Json
+    if ($scaled.passed -ne $true -or $scaled.platform -ne 'windows' -or $scaled.offscreen -ne $false) { throw '150% package smoke failed.' }
+    if (-not (Test-Path -LiteralPath $scaleScreenshot)) { throw '150% package screenshot missing.' }
 } finally {
     foreach ($name in $environmentNames) { [Environment]::SetEnvironmentVariable($name, $savedEnvironment[$name], 'Process') }
 }

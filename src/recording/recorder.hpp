@@ -16,6 +16,14 @@ struct RecordingMetadata {
     std::uint32_t seed{};
     std::string transport{"in-memory"}, endpoint{"desktop-emulator"}, firmware{"0.2.0"}, port;
     std::uint32_t baud{};
+    // Version 2 preserves the M1 snapshot format. Version 3 explicitly records
+    // partial updates, provenance and host-only transaction metadata.
+    std::string wireProtocol{"synthetic-demo-v1"}, profile{"synthetic-demo-v1"};
+    std::uint32_t profileVersion{1};
+    std::string evidenceStatus{"synthetic"}, fixtureClass{"synthetic"}, fixtureId;
+    bool hardwareVerified{}, liveEnabled{};
+    std::uint32_t formatVersion{2};
+    FreshnessSettings freshness{};
 };
 
 // Disk work runs on one bounded worker. A failed enqueue stops recording and

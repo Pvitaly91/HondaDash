@@ -21,20 +21,29 @@ SerialPort та синтетичну firmware класичної Nano. Host firm
 reset/disconnect/reconnect та журнал. Лише фактичний тест тим самим
 Windows пакетом може підтвердити ПК ↔ USB ↔ Nano. Honda сумісності M1
 не заявляє. Windows COM end-to-end без обладнання не підтверджено.
-## M2 — підтверджений протокол Honda
+## M2a — досліджений протокол і offline implementation
 
-Зібрати перевірювані джерела або виміряні traces для конкретного ECU.
-Окремо задокументувати handshake, команди, адреси, scaling і validity.
-Профілі P07/P1G/P28 не додавати на підставі припущень. Synthetic-demo-v1
-залишити як незалежний regression fixture. Вибір реального профілю
-має явну межу довіри та не змінює прилади/recording API.
+Реалізовано незалежний C++20 Honda DLC encoder/parser/profile/session та
+ScriptedHondaEcu. Whitelist трьох читань, RPM/ECT/TPS, per-channel freshness,
+лабораторний GUI і recording v3 перевіряються незалежними reference-derived
+fixtures. Evidence містить pinned revisions, походження форків і суперечності.
+Hardware_verified=false, live_enabled=false; captures відсутні. Це не статус
+«підтверджений Honda» і не перевірка P07/P1G/P28. M0/M1 збережено окремо.
+
+## M2b — інтеграція з firmware-мостом Nano та програмні перевірки
+
+Майбутня межа: ПК ↔ власна USB-оболонка ↔ Nano bridge ↔ Honda DLC.
+Потрібен окремий контракт bridge, bounded buffers, transport diagnostics і
+модель recovery без вигаданого ID в ECU-відповіді. M1 firmware залишається
+синтетичним endpoint; передавання сирих Honda-команд у неї заборонене.
+Host tests/AVR compilation не замінюють перевірку фізичної плати.
 
 ## M3 — електричний інтерфейс
 
 Розробити й перевірити physical adapter: рівні напруг, захист, живлення,
 земля, ізоляція/перетворення сигналів і поведінка при несправності.
 USB-підключення Nano не доводить безпечності підключення до DLC/ECU.
-Цей етап потребує реальної схеми та вимірювань; M1 їх не вигадує.
+Цей етап потребує реальної схеми та вимірювань; M2a їх не реалізує.
 
 ## M4 — справжній ECU
 
@@ -45,4 +54,4 @@ ECU, firmware, частоту, latency й відмови. Не переноси�
 із симуляції на обладнання.
 
 Запис у ECU, прошивання, очищення DTC, Android і складний редактор
-компонування не входять до M1 та не додаються побічно до цих робіт.
+компонування не входять до M2a та не додаються побічно до цих робіт.

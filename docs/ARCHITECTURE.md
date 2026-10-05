@@ -1,4 +1,21 @@
-# Архітектура M1
+# Архітектура M0/M1 та M2a
+
+M2a додає незалежну стандартну C++20 бібліотеку `hondadash_dlc`:
+`dlc::Session → encoder → OfflineLink → ScriptedHondaEcu → fragmented RX →
+parser → profile decoder → Model → widgets/Recorder`. Honda Session не
+приймає transport-параметр і структурно не може відкрити COM. Спільними
+лишаються optional measurements, RawEvent, widgets і bounded recording.
+Деталі: [HONDA_DLC_PROTOCOL.md](HONDA_DLC_PROTOCOL.md).
+
+Sample має updatedMask (усі канали за замовчуванням для M0/M1), source,
+reasons та політику числового діапазону. Незмінені канали не змінюють
+lastValid/quality/host IDs. DecoderValidated допускає скінченні значення
+поза demo-шкалою. Графік має окрему bounded історію кожного каналу; пропущений
+bit не додає старого значення як нове. M2a recording v3 явно додає partial
+semantics і per-channel ages; формат synthetic v2 збережено.
+
+Нижче описано збережений synthetic шлях M0/M1, з його власним HELLO/CRC/IDs.
+Ці правила не переносяться в Honda DLC.
 
 Настільний C++20 Session не залежить від Qt, Windows API або Emulator.
 Він отримує Transport за посиланням; transport живе довше за Session.
@@ -84,7 +101,7 @@ Recorder має bounded256 worker queue; disk I/O поза GUI. Переповн
 open/write помилки видимі. UTF-8 CSV та JSONL з decimal point незалежним
 від locale. Порожнє value означає відсутність; нуль залишається числом.
 
-Format_version=2, app_version=0.2.0, source=simulation завжди, навіть USB.
+Format_version=2, app_version=0.3.0, source=simulation завжди, навіть USB.
 Метадані: profile, scenario/seed на початку запису, transport(in-memory/
 serial), endpoint, firmware, port, baud, created_unix_ms, clock, units.
 Початок запису до handshake має endpoint=unrecognized; ready event згодом

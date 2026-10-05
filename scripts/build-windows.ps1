@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [string]$QtPath = $env:QT_ROOT_DIR,
-    [ValidateSet('Debug', 'Release')][string[]]$Configuration = @('Debug', 'Release')
+    [ValidateSet('Debug', 'Release')][string[]]$Configuration = @('Debug', 'Release'),
+    [ValidateRange(1, 64)][int]$Parallel = 2
 )
 
 $ErrorActionPreference = 'Stop'
@@ -30,7 +31,7 @@ try {
     $reports = Join-Path $repository 'build/windows/reports'
     New-Item -ItemType Directory -Path $reports -Force | Out-Null
     foreach ($buildConfiguration in $Configuration) {
-        & cmake --build build/windows --config $buildConfiguration --parallel
+        & cmake --build build/windows --config $buildConfiguration --parallel $Parallel
         Assert-NativeExit "$buildConfiguration build"
         & ctest --test-dir build/windows -C $buildConfiguration --output-on-failure --output-junit (Join-Path $reports "ctest-$buildConfiguration.xml")
         Assert-NativeExit "$buildConfiguration tests"

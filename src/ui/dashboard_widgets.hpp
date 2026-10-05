@@ -43,12 +43,14 @@ public:
     void setNow(Time now);
     void setChannel(Channel channel);
     void clear();
-    std::size_t sampleCount() const { return count_; }
+    std::size_t sampleCount() const { return sampleCount(channel_); }
+    std::size_t sampleCount(Channel channel) const { return counts_[channelIndex(channel)]; }
 protected:
     void paintEvent(QPaintEvent*) override;
 private:
-    std::array<Sample, Capacity> samples_{};
-    std::size_t start_{}, count_{};
+    struct Point { Time time{}; std::optional<double> value; Quality quality{Quality::NoData}; Time gapMs{250}; };
+    std::array<std::array<Point, Capacity>, ChannelCount> samples_{};
+    std::array<std::size_t, ChannelCount> starts_{}, counts_{};
     Channel channel_{Channel::Rpm};
     Time now_{};
 };

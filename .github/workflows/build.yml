@@ -1,4 +1,4 @@
-name: Build and test M1
+name: Build and test M2a offline
 
 on:
   push:
@@ -94,6 +94,13 @@ jobs:
           QT_QPA_PLATFORM: offscreen
         run: |
           ctest --test-dir build/linux --output-on-failure --output-junit "$PWD/build/linux/ctest-linux.xml"
+      - name: Linux simulation-only without SerialPort
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          cmake -S . -B build/linux-simulation -G Ninja -DCMAKE_BUILD_TYPE=Release -DHONDADASH_WITH_SERIAL=OFF -DCMAKE_DISABLE_FIND_PACKAGE_Qt6SerialPort=TRUE -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
+          cmake --build build/linux-simulation --parallel 2
+          ctest --test-dir build/linux-simulation --output-on-failure --output-junit "$PWD/build/linux-simulation/ctest.xml"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -105,6 +112,9 @@ jobs:
             build/linux/*smoke*.json
             build/linux/smoke*.png
             build/linux/*offscreen*.png
+            build/linux-simulation/ctest.xml
+            build/linux-simulation/smoke*.json
+            build/linux-simulation/smoke*.png
 
   firmware:
     runs-on: ubuntu-22.04

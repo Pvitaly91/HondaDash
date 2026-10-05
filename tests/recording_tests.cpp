@@ -10,6 +10,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace {
 void require(bool condition, const char* message) {
@@ -80,6 +81,126 @@ void outputAndLifecycle() {
     recorder.stop();
 }
 
+std::vector<std::string> csvCells(const std::string& line) {
+    std::vector<std::string> cells(1);
+    bool quoted = false;
+    for (std::size_t i = 0; i < line.size(); ++i) {
+        const auto ch = line[i];
+        if (ch == '"') {
+            if (quoted && i + 1 < line.size() && line[i + 1] == '"') {
+                cells.back() += '"';
+                ++i;
+            } else quoted = !quoted;
+        } else if (ch == ',' && !quoted) cells.emplace_back();
+        else cells.back() += ch;
+    }
+    require(!quoted, "unbalanced CSV quoting");
+    return cells;
+}
+
+void partialFormatAndProvenance() {
+    TemporaryDirectory temp;
+    LocaleGuard locale;
+    hd::RecordingMetadata metadata;
+    metadata.scenario = "raw-a";
+    metadata.transport = "offline-dlc";
+    metadata.endpoint = "scripted-honda-ecu";
+    metadata.firmware.clear();
+    metadata.wireProtocol = "honda-dlc";
+    metadata.profile = "honda-dlc-reference-v1";
+    metadata.evidenceStatus = "reference-derived; hardware-unverified";
+    metadata.fixtureClass = "reference-derived";
+    metadata.fixtureId = "raw-a";
+    metadata.formatVersion = 3;
+    hd::Recorder recorder;
+    require(recorder.start(temp.path, metadata), "version 3 start failed");
+    hd::Sample sample;
+    sample.session = 7;
+    sample.request = 1;
+    sample.time = 100;
+    sample.updatedMask = 4;
+    sample.source = metadata.profile;
+    sample.rangePolicy = hd::RangePolicy::DecoderValidated;
+    sample.values[2] = 155;
+    sample.qualities[2] = hd::Quality::Valid;
+    sample.reasons[2] = "reference, \"formula\"";
+    require(recorder.enqueueSample(sample), "partial coolant enqueue failed");
+    require(recorder.enqueueRaw({101, 7, 2, "RX", "checksum rejected", {0x00, 0x04, 0x20, 0x00}}),
+            "damaged DLC bytes enqueue failed");
+    sample.time = 1500;
+    sample.request = 2;
+    sample.updatedMask = 1;
+    sample.values[0] = 0;
+    sample.qualities[0] = hd::Quality::Valid;
+    require(recorder.enqueueSample(sample), "partial zero enqueue failed");
+    sample.time = 1600;
+    sample.request = 3;
+    sample.values[0].reset();
+    sample.qualities[0] = hd::Quality::Invalid;
+    sample.reasons[0] = "undefined conversion";
+    require(recorder.enqueueSample(sample), "partial invalid enqueue failed");
+    sample.time = 1700;
+    sample.session = 8;
+    sample.request = 1;
+    sample.values[0] = 500;
+    sample.qualities[0] = hd::Quality::Valid;
+    require(recorder.enqueueSample(sample), "new session enqueue failed");
+    recorder.stop();
+    require(recorder.error().empty(), "partial recording failed");
+    const auto csv = readFile(recorder.directory() / "measurements.csv");
+    const auto raw = readFile(recorder.directory() / "raw.jsonl");
+    require(raw.find("\"format_version\":3") != std::string::npos &&
+            raw.find("\"wire_protocol\":\"honda-dlc\"") != std::string::npos &&
+            raw.find("\"profile_version\":1") != std::string::npos &&
+            raw.find("\"fixture_class\":\"reference-derived\"") != std::string::npos &&
+            raw.find("\"fixture_id\":\"raw-a\"") != std::string::npos &&
+            raw.find("\"source\":\"simulation\"") != std::string::npos &&
+            raw.find("\"hardware_verified\":false,\"live_enabled\":false") != std::string::npos &&
+            raw.find("\"transaction_id_origin\":\"host_only_not_ecu_wire\"") != std::string::npos,
+            "version 3 metadata missing or incorrectly claims hardware evidence");
+    require(raw.find("\"time_ms\":101,\"host_session_id\":7,\"host_transaction_id\":2,\"kind\":\"RX\"") != std::string::npos &&
+            raw.find("\"bytes_hex\":\"00042000\"") != std::string::npos,
+            "raw fragment or host transaction origin lost");
+    require(raw.find("\"coolant\":{\"updated\":false,\"value\":null,\"quality\":\"Stale\",\"last_valid_ms\":100,\"age_ms\":1400") != std::string::npos,
+            "JSON repeated stale coolant as a fresh measurement");
+    require(raw.find("\"rpm\":{\"updated\":true,\"value\":0,\"quality\":\"Valid\",\"last_valid_ms\":1500,\"age_ms\":0") != std::string::npos,
+            "JSON lost valid zero or partial timestamp");
+    require(raw.find("reference, \\\"formula\\\"") != std::string::npos, "formula provenance JSON escaping failed");
+
+    std::istringstream rows(csv);
+    std::string line;
+    std::getline(rows, line); // Metadata.
+    std::getline(rows, line);
+    const auto header = csvCells(line);
+    require(header.size() == 67 && header[2] == "host_transaction_id" && header[3] == "updated_mask",
+            "partial CSV header incorrect");
+    std::getline(rows, line);
+    const auto coolant = csvCells(line);
+    require(coolant[3] == "4" && coolant[22] == "155" && coolant[24] == "1" && coolant[25] == "100" &&
+            coolant[30] == "reference, \"formula\"", "partial coolant CSV or quoting failed");
+    std::getline(rows, line);
+    const auto rpm = csvCells(line);
+    require(rpm.size() == 67 && rpm[4] == "0" && rpm[6] == "1" && rpm[7] == "1500" && rpm[8] == "0",
+            "partial RPM CSV invalid");
+    require(rpm[22].empty() && rpm[23] == "Stale" && rpm[24] == "0" && rpm[25] == "100" &&
+            rpm[26] == "1400" && rpm[29] == "1", "RPM refreshed or repeated unrelated coolant");
+    std::getline(rows, line);
+    const auto invalid = csvCells(line);
+    require(invalid[4].empty() && invalid[5] == "Invalid" && invalid[7] == "1500" && invalid[8] == "100",
+            "invalid conversion renewed last-valid time");
+    std::getline(rows, line);
+    const auto restarted = csvCells(line);
+    require(restarted[22].empty() && restarted[23] == "NoData" && restarted[25].empty() && restarted[26].empty(),
+            "new session inherited old recording provenance");
+
+    metadata.formatVersion = 2;
+    require(!recorder.start(temp.path, metadata), "DLC profile silently accepted by snapshot-only version 2");
+    require(recorder.start(temp.path, {"manual", 1}), "version 2 restart failed");
+    require(!recorder.enqueueSample(sample), "partial sample silently accepted in version 2");
+    recorder.stop();
+    require(!recorder.error().empty(), "version 2 incompatible sample rejection was invisible");
+}
+
 void visibleFailures() {
     TemporaryDirectory temp;
     hd::Recorder recorder;
@@ -135,9 +256,10 @@ void boundedQueue() {
 int main() {
     try {
         outputAndLifecycle();
+        partialFormatAndProvenance();
         visibleFailures();
         boundedQueue();
-        std::cout << "recording: CSV/JSONL, Unicode paths, lifecycle, write failures and bounded queue passed\n";
+        std::cout << "recording: v2/v3 CSV/JSONL, partial provenance/age, Unicode paths, lifecycle, failures and bounds passed\n";
         return 0;
     } catch (const std::exception& exception) {
         std::cerr << "recording test failed: " << exception.what() << '\n';

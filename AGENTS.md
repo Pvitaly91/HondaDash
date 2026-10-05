@@ -3,6 +3,8 @@
 HondaDash — окремий C++20/Qt Widgets проєкт. M1 використовує тільки
 синтетичний профіль `synthetic-demo-v1`: вбудований endpoint або Nano USB.
 Фізичний USB не означає вимірювання автомобіля; hardware status окремий.
+M2a додає окремий offline-only Honda DLC reference-профіль. Він не має
+доступу до SerialTransport або Nano M1; hardware_verified=false і live_enabled=false.
 Не переносити сюди HondaEcu, WPF/.NET, ROM, код або ресурси Hondash.
 
 - Перш ніж змінювати файли, перевірити git status та локальні інструкції;
@@ -16,6 +18,15 @@ HondaDash — окремий C++20/Qt Widgets проєкт. M1 використ�
 - Синтетичні формули, команди й діапазони не називати характеристиками
   Honda. Постійне позначення «ЕМУЛЯЦІЯ — не підключено до автомобіля»
   не можна приховувати у програмній симуляції.
+- Honda DLC: лише whitelist профілю та власна реалізація за pinned evidence.
+  Не змішувати ELM, CN2 і DLC; не копіювати код без ліцензійного дозволу.
+  Постійно показувати «ЛАБОРАТОРНА ЕМУЛЯЦІЯ HONDA DLC — ECU НЕ ПІДКЛЮЧЕНО».
+  Valid/checksum не підтверджують калібрування чи сумісність із ECU.
+- Часткове читання змінює тільки позначені канали; не освіжати старі значення
+  з інших блоків. Діапазони demo-віджетів не є критеріями Honda validity.
+- Відповідь reference DLC не має адреси/ID: після timeout/error зупинити
+  опитування, зберегти пізні RX у журналі. Parser reset не очищує offline link.
+  Новий offline experiment не є доказом recovery фізичного ECU.
 - Qt SerialPort 6.8.3 дозволений лише в транспортній Qt-обгортці M1.
   Session/model/protocol залишаються стандартним C++20; simulation-only
   збірка повинна працювати без SerialPort.
@@ -41,7 +52,7 @@ HondaDash — окремий C++20/Qt Widgets проєкт. M1 використ�
 - Nano firmware: Arduino AVR Boards 1.8.6, фіксований Arduino CLI;
   без heap/String/exceptions, з потоковими RX/TX та .data+.bss <=1536.
   Нативні тести компілюють той самий embedded parser/dispatcher.
-- Жодного auto-upload, сканування портів командами, Honda DLC, D12,
+- Жодного auto-upload, сканування портів командами, фізичного Honda DLC, D12,
   SoftwareSerial, EEPROM/fuses/bootloader змін. Upload тільки явною
   командою користувача з конкретним портом і варіантом Nano.
 - PTY, host firmware tests і AVR compilation не є фізичним USB тестом.
@@ -49,3 +60,5 @@ HondaDash — окремий C++20/Qt Widgets проєкт. M1 використ�
 Протокол описано в `docs/DEMO_PROTOCOL.md`, межі наступних етапів —
 в `docs/ROADMAP.md`. Новий реальний транспорт не повинен потребувати
 переписування приладів, моделі та журналювання.
+Evidence і межі M2a: `docs/HONDA_DLC_EVIDENCE.md`,
+`docs/HONDA_DLC_PROTOCOL.md`, `docs/HONDA_DLC_REFERENCE_PROFILE.md`.

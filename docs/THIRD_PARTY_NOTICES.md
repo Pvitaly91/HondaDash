@@ -1,4 +1,4 @@
-# Third-party notices — HondaDash M1
+# Third-party notices — HondaDash M2a
 
 HondaDash uses the unmodified **Qt 6.8.3** QtCore, QtGui and QtWidgets
 shared libraries and their platform/image/style plugins. Qt copyright
@@ -44,6 +44,17 @@ the accompanying dependency inspection report.
 HondaDash contains no OEM ROM, Honda proprietary assets, Hondash code,
 third-party UI artwork or additional application runtime framework.
 The repository owner has not chosen a licence for the project itself.
+
+## Protocol research references (M2a)
+
+The offline Honda DLC module is an original implementation of observed packet
+facts and documented mathematical formulas. The pinned kerpz ArduinoHondaOBD,
+kerpz ArduinoHondaUNI and mr-sneezy references have no LICENSE file or explicit
+code-copying grant in the inspected revisions. Their source files are not
+copied into HondaDash or its distributed package. Public visibility is not
+treated as a redistribution licence. Exact revisions, paths, attribution and
+limitations are in `HONDA_DLC_EVIDENCE.md`; this research adds no runtime
+dependency. No Hondash resources, application code or OEM ROM are included.
 
 ## Nano firmware components (M1)
 

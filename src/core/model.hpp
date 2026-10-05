@@ -16,6 +16,10 @@ constexpr std::size_t channelIndex(Channel channel) { return static_cast<std::si
 
 enum class Quality : std::uint8_t { NoData, Valid, Stale, Unsupported, Invalid };
 const char* qualityName(Quality quality);
+// Widget ranges belong to the synthetic demo. A protocol decoder with its own
+// documented domain must not be constrained by those display ranges.
+enum class RangePolicy : std::uint8_t { DemoLimits, DecoderValidated };
+inline constexpr std::uint8_t AllChannelsMask = (1u << ChannelCount) - 1u;
 
 struct ChannelInfo {
     const char* name;
@@ -38,6 +42,7 @@ struct Measurement {
     std::uint32_t session{};
     std::uint32_t request{};
     std::string source{"synthetic-demo-v1"};
+    std::string reason;
 };
 
 struct Sample {
@@ -46,6 +51,10 @@ struct Sample {
     std::uint32_t request{};
     std::array<std::optional<double>, ChannelCount> values{};
     std::array<Quality, ChannelCount> qualities{};
+    std::uint8_t updatedMask{AllChannelsMask};
+    std::string source{"synthetic-demo-v1"};
+    std::array<std::string, ChannelCount> reasons{};
+    RangePolicy rangePolicy{RangePolicy::DemoLimits};
 };
 
 class Model {

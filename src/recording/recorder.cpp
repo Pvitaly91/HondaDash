@@ -45,13 +45,26 @@ std::string metadataJson(const RecordingMetadata& metadata) {
     out.imbue(std::locale::classic());
     const auto wallTime = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
-    out << "{\"kind\":\"metadata\",\"format_version\":2,\"app_version\":\"0.2.0\","
-           "\"source\":\"simulation\",\"profile\":\"synthetic-demo-v1\",\"scenario\":"
+    out << "{\"kind\":\"metadata\",\"format_version\":" << metadata.formatVersion
+        << ",\"app_version\":\"0.3.0\",\"source\":\"simulation\",\"profile\":"
+        << jsonString(metadata.profile) << ",\"scenario\":"
         << jsonString(metadata.scenario) << ",\"seed\":" << metadata.seed
         << ",\"transport\":" << jsonString(metadata.transport) << ",\"endpoint\":" << jsonString(metadata.endpoint)
         << ",\"firmware\":" << jsonString(metadata.firmware) << ",\"port\":" << jsonString(metadata.port)
-        << ",\"baud\":" << metadata.baud
-        << ",\"created_unix_ms\":" << wallTime << ",\"clock\":\"monotonic_ms\",\"units\":{";
+        << ",\"baud\":" << metadata.baud;
+    if (metadata.formatVersion == 3) {
+        out << ",\"wire_protocol\":" << jsonString(metadata.wireProtocol)
+            << ",\"profile_version\":" << metadata.profileVersion
+            << ",\"evidence_status\":" << jsonString(metadata.evidenceStatus)
+            << ",\"fixture_class\":" << jsonString(metadata.fixtureClass)
+            << ",\"fixture_id\":" << jsonString(metadata.fixtureId)
+            << ",\"hardware_verified\":" << (metadata.hardwareVerified ? "true" : "false")
+            << ",\"live_enabled\":" << (metadata.liveEnabled ? "true" : "false")
+            << ",\"transaction_id_origin\":\"host_only_not_ecu_wire\""
+            << ",\"stale_after_ms\":" << metadata.freshness.staleMs
+            << ",\"hide_after_ms\":" << metadata.freshness.hideMs;
+    }
+    out << ",\"created_unix_ms\":" << wallTime << ",\"clock\":\"monotonic_ms\",\"units\":{";
     for (std::size_t i = 0; i < ChannelCount; ++i) {
         if (i) out << ',';
         out << jsonString(Names[i]) << ':' << jsonString(Units[i]);
@@ -59,11 +72,13 @@ std::string metadataJson(const RecordingMetadata& metadata) {
     return out.str() + "}}";
 }
 
-std::string rawJson(const RawEvent& event) {
+std::string rawJson(const RawEvent& event, std::uint32_t version) {
     std::ostringstream out;
     out.imbue(std::locale::classic());
-    out << "{\"time_ms\":" << event.time << ",\"session_id\":" << event.session
-        << ",\"request_id\":" << event.request << ",\"kind\":" << jsonString(event.kind)
+    out << "{\"time_ms\":" << event.time
+        << (version == 3 ? ",\"host_session_id\":" : ",\"session_id\":") << event.session
+        << (version == 3 ? ",\"host_transaction_id\":" : ",\"request_id\":") << event.request
+        << ",\"kind\":" << jsonString(event.kind)
         << ",\"detail\":" << jsonString(event.detail) << ",\"bytes_hex\":\"";
     for (const auto byte : event.bytes)
         out << std::hex << std::setw(2) << std::setfill('0') << unsigned(byte);
@@ -81,6 +96,68 @@ std::string sampleCsv(const Sample& sample) {
     }
     return out.str();
 }
+
+std::string csvString(const std::string& value) {
+    std::string result{"\""};
+    for (const auto ch : value) {
+        if (ch == '"') result += '"';
+        result += ch;
+    }
+    return result + '"';
+}
+
+Time measurementAge(Time now, Time then) { return now >= then ? now - then : 0; }
+
+std::string partialCsv(const Sample& sample, const Model& state) {
+    std::ostringstream out;
+    out.imbue(std::locale::classic());
+    out << std::setprecision(12) << sample.time << ',' << sample.session << ',' << sample.request
+        << ',' << unsigned(sample.updatedMask & AllChannelsMask);
+    for (std::size_t i = 0; i < ChannelCount; ++i) {
+        const bool updated = (sample.updatedMask & (1u << i)) != 0;
+        const auto& measurement = state.channels()[i];
+        out << ',';
+        // The timestamp belongs only to changed channels. Historical values are
+        // never repeated as fresh CSV measurements in a different block's row.
+        if (updated && measurement.value && measurement.quality == Quality::Valid)
+            out << *measurement.value;
+        out << ',' << qualityName(measurement.quality) << ',' << (updated ? 1 : 0) << ',';
+        if (measurement.lastValid) out << *measurement.lastValid;
+        out << ',';
+        if (measurement.lastValid) out << measurementAge(sample.time, *measurement.lastValid);
+        out << ',' << csvString(measurement.source) << ',' << measurement.session << ',' << measurement.request
+            << ',' << csvString(measurement.reason);
+    }
+    return out.str();
+}
+
+std::string partialJson(const Sample& sample, const Model& state) {
+    std::ostringstream out;
+    out.imbue(std::locale::classic());
+    out << std::setprecision(12) << "{\"kind\":\"partial_sample\",\"time_ms\":" << sample.time
+        << ",\"host_session_id\":" << sample.session << ",\"host_transaction_id\":" << sample.request
+        << ",\"updated_mask\":" << unsigned(sample.updatedMask & AllChannelsMask)
+        << ",\"profile\":" << jsonString(sample.source) << ",\"channels\":{";
+    for (std::size_t i = 0; i < ChannelCount; ++i) {
+        if (i) out << ',';
+        const bool updated = (sample.updatedMask & (1u << i)) != 0;
+        const auto& measurement = state.channels()[i];
+        out << jsonString(Names[i]) << ":{\"updated\":" << (updated ? "true" : "false") << ",\"value\":";
+        if (updated && measurement.value && measurement.quality == Quality::Valid) out << *measurement.value;
+        else out << "null";
+        out << ",\"quality\":" << jsonString(qualityName(measurement.quality)) << ",\"last_valid_ms\":";
+        if (measurement.lastValid) out << *measurement.lastValid;
+        else out << "null";
+        out << ",\"age_ms\":";
+        if (measurement.lastValid) out << measurementAge(sample.time, *measurement.lastValid);
+        else out << "null";
+        out << ",\"source\":" << jsonString(measurement.source)
+            << ",\"host_session_id\":" << measurement.session
+            << ",\"host_transaction_id\":" << measurement.request
+            << ",\"reason\":" << jsonString(measurement.reason) << '}';
+    }
+    return out.str() + "}}";
+}
 } // namespace
 
 struct Recorder::Impl {
@@ -94,6 +171,7 @@ struct Recorder::Impl {
     std::thread worker;
     std::filesystem::path directory;
     std::string error;
+    std::uint32_t formatVersion{2};
     bool accepting{}, stopping{}, ready{}, workerRunning{};
 
     void fail(std::string message, bool discard) {
@@ -108,6 +186,15 @@ struct Recorder::Impl {
     bool enqueue(Record record) {
         std::lock_guard lock(mutex);
         if (!accepting) return false;
+        if (const auto* sample = std::get_if<Sample>(&record);
+            sample && formatVersion == 2 &&
+            (sample->updatedMask != AllChannelsMask || sample->source != "synthetic-demo-v1")) {
+            error = "Часткові вимірювання та інший профіль потребують format_version=3; запис зупинено.";
+            accepting = false;
+            stopping = true;
+            wake.notify_all();
+            return false;
+        }
         if (queue.size() >= capacity) {
             error = "Переповнення черги запису (" + std::to_string(capacity) + "); запис зупинено.";
             accepting = false;
@@ -141,8 +228,18 @@ struct Recorder::Impl {
             csv.exceptions(std::ios::badbit | std::ios::failbit);
             raw.exceptions(std::ios::badbit | std::ios::failbit);
             const auto metadataLine = metadataJson(metadata);
-            csv << "# " << metadataLine << '\n' << "time_ms,session_id,request_id";
-            for (const auto name : Names) csv << ',' << name << ',' << name << "_state";
+            csv << "# " << metadataLine << '\n';
+            if (metadata.formatVersion == 3) {
+                csv << "time_ms,host_session_id,host_transaction_id,updated_mask";
+                for (const auto name : Names) {
+                    csv << ',' << name << ',' << name << "_state," << name << "_updated," << name
+                        << "_last_valid_ms," << name << "_age_ms," << name << "_source," << name
+                        << "_host_session_id," << name << "_host_transaction_id," << name << "_reason";
+                }
+            } else {
+                csv << "time_ms,session_id,request_id";
+                for (const auto name : Names) csv << ',' << name << ',' << name << "_state";
+            }
             csv << '\n';
             raw << metadataLine << '\n';
             csv.flush();
@@ -152,6 +249,9 @@ struct Recorder::Impl {
                 directory = target;
                 ready = true;
             }
+            Model state(metadata.freshness);
+            std::optional<std::uint32_t> sampleSession;
+            std::string sampleProfile;
             while (true) {
                 Record record;
                 {
@@ -163,10 +263,22 @@ struct Recorder::Impl {
                 }
                 if (beforeWrite && !beforeWrite()) throw std::runtime_error("injected write failure");
                 if (const auto* event = std::get_if<RawEvent>(&record)) {
-                    raw << rawJson(*event) << '\n';
+                    raw << rawJson(*event, metadata.formatVersion) << '\n';
                     raw.flush();
                 } else {
-                    csv << sampleCsv(std::get<Sample>(record)) << '\n';
+                    const auto& sample = std::get<Sample>(record);
+                    if (metadata.formatVersion == 3) {
+                        if (!sampleSession || *sampleSession != sample.session || sampleProfile != sample.source) {
+                            state.reset();
+                            sampleSession = sample.session;
+                            sampleProfile = sample.source;
+                        }
+                        state.apply(sample);
+                        state.refresh(sample.time);
+                        csv << partialCsv(sample, state) << '\n';
+                        raw << partialJson(sample, state) << '\n';
+                        raw.flush();
+                    } else csv << sampleCsv(sample) << '\n';
                     csv.flush();
                 }
             }
@@ -197,12 +309,20 @@ bool Recorder::start(std::filesystem::path directory, RecordingMetadata metadata
     if (impl_->worker.joinable()) impl_->worker.join();
     std::lock_guard lock(impl_->mutex);
     impl_->error.clear();
+    if ((metadata.formatVersion != 2 && metadata.formatVersion != 3) ||
+        (metadata.formatVersion == 2 && (metadata.profile != "synthetic-demo-v1" ||
+                                        metadata.wireProtocol != "synthetic-demo-v1")) ||
+        metadata.freshness.hideMs < metadata.freshness.staleMs) {
+        impl_->error = "Непідтримувана версія або несумісні метадані журналу.";
+        return false;
+    }
     if (directory.empty()) {
         impl_->error = "Папку для запису не вибрано.";
         return false;
     }
     impl_->directory = directory;
     impl_->queue.clear();
+    impl_->formatVersion = metadata.formatVersion;
     impl_->accepting = true;
     impl_->stopping = false;
     impl_->ready = false;
