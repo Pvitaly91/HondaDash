@@ -16,11 +16,20 @@ struct SessionStats {
     std::uint64_t accepted{}, timeouts{}, corrupt{}, ignored{};
     double responseHz{};
 };
+// Optional facts from a CRC-validated bridge message. Host and device clocks
+// have unrelated epochs; these fields describe durations, never synchronization.
+struct BridgeTrace {
+    std::uint32_t generation{}, operation{};
+    std::uint16_t sequence{}, txElapsedMs{}, rxElapsedMs{}, maxGapMs{};
+    std::uint8_t status{};
+    std::string origin{"bridge_reported"};
+};
 struct RawEvent {
     Time time{};
     std::uint32_t session{}, request{};
     std::string kind, detail;
     std::vector<std::uint8_t> bytes;
+    std::optional<BridgeTrace> bridge;
 };
 class Session {
   public:

@@ -3,6 +3,24 @@
 #include <array>
 
 namespace hd::dlc {
+void OfflineLink::start(std::uint32_t, Time now, LinkCallbacks callbacks) {
+    callbacks_ = std::move(callbacks);
+    newExperiment();
+    initializing_ = true;
+    readyAt_ = now + 300;
+    send(Initialization, now);
+}
+void OfflineLink::tick(Time now) {
+    tick(now, [this](auto bytes, Time at) {
+        if (callbacks_.received)
+            callbacks_.received(bytes, at, at);
+    });
+    if (initializing_ && now >= readyAt_) {
+        initializing_ = false;
+        if (callbacks_.ready)
+            callbacks_.ready(now);
+    }
+}
 const char *scenarioId(Scenario scenario) {
     switch (scenario) {
     case Scenario::Baseline:

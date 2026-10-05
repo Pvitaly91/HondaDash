@@ -1,5 +1,6 @@
 [CmdletBinding()]
-param([switch]$Bootstrap, [string]$ArduinoCli = '', [int]$SramBudget = 1536)
+param([switch]$Bootstrap, [string]$ArduinoCli = '', [int]$SramBudget = 1536,
+      [ValidateSet('synthetic', 'bridge-lab', 'all')][string]$Firmware = 'synthetic')
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -50,21 +51,24 @@ $compilerBin = Join-Path $toolsDirectory "data/packages/arduino/tools/avr-gcc/$c
 $compiler = Join-Path $compilerBin 'avr-g++.exe'
 $sizeTool = Join-Path $compilerBin 'avr-size.exe'
 $nmTool = Join-Path $compilerBin 'avr-nm.exe'
-$sketch = Join-Path $repository 'firmware/nano_synthetic'
-
+$variants = if ($Firmware -eq 'all') { @('synthetic', 'bridge-lab') } else { @($Firmware) }
+foreach ($variant in $variants) {
+$sketchName = if ($variant -eq 'synthetic') { 'nano_synthetic' } else { 'nano_dlc_bridge_lab' }
+$buildName = if ($variant -eq 'synthetic') { 'firmware' } else { 'firmware-bridge-lab' }
+$sketch = Join-Path $repository "firmware/$sketchName"
 foreach ($cpu in @('atmega328', 'atmega328old')) {
-    $output = Join-Path $repository "build/firmware/$cpu"
+    $output = Join-Path $repository "build/$buildName/$cpu"
     New-Item -ItemType Directory -Path $output -Force | Out-Null
     $outputLicenses = Join-Path $output 'licenses'
     New-Item -ItemType Directory -Path $outputLicenses -Force | Out-Null
     Get-ChildItem -LiteralPath (Join-Path $repository 'docs/licenses/firmware') -File | Copy-Item -Destination $outputLicenses -Force
-    $map = (Join-Path $output 'nano_synthetic.map').Replace('\', '/')
+    $map = (Join-Path $output "$sketchName.map").Replace('\', '/')
     $fqbn = "arduino:avr:nano:cpu=$cpu"
     & $ArduinoCli --config-file $configPath compile --fqbn $fqbn --warnings all --build-path $output `
         --build-property "compiler.c.elf.extra_flags=`"-Wl,-Map=$map`"" $sketch 2>&1 | Tee-Object -FilePath (Join-Path $output 'compile.txt')
     Assert-NativeExit "AVR $cpu compile"
-    $elf = Join-Path $output 'nano_synthetic.ino.elf'
-    $hex = Join-Path $output 'nano_synthetic.ino.hex'
+    $elf = Join-Path $output "$sketchName.ino.elf"
+    $hex = Join-Path $output "$sketchName.ino.hex"
     foreach ($required in @($elf, $hex, $map)) {
         if (-not (Test-Path -LiteralPath $required)) { throw "Missing firmware output: $required" }
     }
@@ -90,11 +94,14 @@ foreach ($cpu in @('atmega328', 'atmega328old')) {
     # a measurement of the deployed LTO image's maximum stack depth.
     $stackDirectory = Join-Path $output 'stack'
     New-Item -ItemType Directory -Path $stackDirectory -Force | Out-Null
-    & $compiler -mmcu=atmega328p -DF_CPU=16000000UL -std=gnu++11 -Os -fno-exceptions -fno-threadsafe-statics `
-        -fstack-usage -c (Join-Path $sketch 'endpoint.cpp') -o (Join-Path $stackDirectory 'endpoint.o')
-    Assert-NativeExit 'AVR stack diagnostic compile'
+    foreach ($source in (Get-ChildItem -LiteralPath $sketch -Filter '*.cpp' -File)) {
+        & $compiler -mmcu=atmega328p -DF_CPU=16000000UL -std=gnu++11 -Os -fno-exceptions -fno-threadsafe-statics `
+            -fstack-usage -c $source.FullName -o (Join-Path $stackDirectory ($source.BaseName + '.o'))
+        Assert-NativeExit "AVR stack diagnostic compile: $($source.Name)"
+    }
     [ordered]@{
-        fqbn=$fqbn; arduino_cli=$cliVersion; arduino_avr_boards=$coreVersion;
+        fqbn=$fqbn; firmware=$variant; physical_dlc_enabled=$false;
+        arduino_cli=$cliVersion; arduino_avr_boards=$coreVersion;
         avr_gcc_package=$compilerVersion; compiler=$compilerText[0]; protocol_baud=115200;
         flash_bytes=$flash; data_bytes=$sections['.data']; bss_bytes=$sections['.bss'];
         static_sram_bytes=$sram; static_sram_budget=$SramBudget; sram_remaining_for_stack=2048-$sram;
@@ -104,6 +111,7 @@ foreach ($cpu in @('atmega328', 'atmega328old')) {
     } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $output 'size-report.json') -Encoding utf8
     if ($sram -gt $SramBudget) { throw "Static SRAM budget exceeded: $sram > $SramBudget" }
     if ($flash -gt 30720) { throw "Flash budget exceeded: $flash > 30720" }
-    Write-Host "$fqbn : Flash $flash/30720; .data+.bss $sram/$SramBudget; stack reserve $(2048-$sram)."
+    Write-Host "$variant / $fqbn : Flash $flash/30720; .data+.bss $sram/$SramBudget; stack reserve $(2048-$sram)."
 }
-Write-Host 'Both Nano builds completed. No port was opened and no upload was performed.'
+}
+Write-Host 'Selected Nano firmware builds completed. No port was opened and no upload was performed.'

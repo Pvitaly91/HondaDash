@@ -55,6 +55,9 @@ struct Sample {
     std::string source{"synthetic-demo-v1"};
     std::array<std::string, ChannelCount> reasons{};
     RangePolicy rangePolicy{RangePolicy::DemoLimits};
+    // Optional host-clock lower bound of acquisition time. time remains the
+    // actual host receipt time; a delayed bridge result must not appear new.
+    std::optional<Time> freshnessSince;
 };
 
 class Model {

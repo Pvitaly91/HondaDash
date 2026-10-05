@@ -46,7 +46,7 @@ std::string metadataJson(const RecordingMetadata& metadata) {
     const auto wallTime = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
     out << "{\"kind\":\"metadata\",\"format_version\":" << metadata.formatVersion
-        << ",\"app_version\":\"0.3.0\",\"source\":\"simulation\",\"profile\":"
+        << ",\"app_version\":\"0.4.0\",\"source\":\"simulation\",\"profile\":"
         << jsonString(metadata.profile) << ",\"scenario\":"
         << jsonString(metadata.scenario) << ",\"seed\":" << metadata.seed
         << ",\"transport\":" << jsonString(metadata.transport) << ",\"endpoint\":" << jsonString(metadata.endpoint)
@@ -63,6 +63,15 @@ std::string metadataJson(const RecordingMetadata& metadata) {
             << ",\"transaction_id_origin\":\"host_only_not_ecu_wire\""
             << ",\"stale_after_ms\":" << metadata.freshness.staleMs
             << ",\"hide_after_ms\":" << metadata.freshness.hideMs;
+        if (!metadata.outerProtocol.empty()) {
+            out << ",\"outer_protocol\":" << jsonString(metadata.outerProtocol)
+                << ",\"bridge_identity\":" << jsonString(metadata.bridgeIdentity)
+                << ",\"bridge_version\":" << metadata.bridgeVersion
+                << ",\"backend\":" << jsonString(metadata.backend)
+                << ",\"read_policy_version\":" << metadata.readPolicyVersion
+                << ",\"physical_dlc_enabled\":" << (metadata.physicalDlcEnabled ? "true" : "false")
+                << ",\"freshness_time_policy\":\"host_request_start_lower_bound\"";
+        }
     }
     out << ",\"created_unix_ms\":" << wallTime << ",\"clock\":\"monotonic_ms\",\"units\":{";
     for (std::size_t i = 0; i < ChannelCount; ++i) {
@@ -82,7 +91,16 @@ std::string rawJson(const RawEvent& event, std::uint32_t version) {
         << ",\"detail\":" << jsonString(event.detail) << ",\"bytes_hex\":\"";
     for (const auto byte : event.bytes)
         out << std::hex << std::setw(2) << std::setfill('0') << unsigned(byte);
-    return out.str() + "\"}";
+    out << '"' << std::dec;
+    if (version == 3 && event.bridge) {
+        const auto& bridge = *event.bridge;
+        out << ",\"bridge\":{\"origin\":" << jsonString(bridge.origin)
+            << ",\"generation\":" << bridge.generation << ",\"operation\":" << bridge.operation
+            << ",\"sequence\":" << bridge.sequence << ",\"tx_elapsed_ms\":" << bridge.txElapsedMs
+            << ",\"rx_elapsed_ms\":" << bridge.rxElapsedMs << ",\"max_gap_ms\":" << bridge.maxGapMs
+            << ",\"status\":" << unsigned(bridge.status) << '}';
+    }
+    return out.str() + '}';
 }
 
 std::string sampleCsv(const Sample& sample) {
@@ -119,7 +137,8 @@ std::string partialCsv(const Sample& sample, const Model& state) {
         out << ',';
         // The timestamp belongs only to changed channels. Historical values are
         // never repeated as fresh CSV measurements in a different block's row.
-        if (updated && measurement.value && measurement.quality == Quality::Valid)
+        if (updated && measurement.value &&
+            (measurement.quality == Quality::Valid || measurement.quality == Quality::Stale))
             out << *measurement.value;
         out << ',' << qualityName(measurement.quality) << ',' << (updated ? 1 : 0) << ',';
         if (measurement.lastValid) out << *measurement.lastValid;
@@ -137,13 +156,17 @@ std::string partialJson(const Sample& sample, const Model& state) {
     out << std::setprecision(12) << "{\"kind\":\"partial_sample\",\"time_ms\":" << sample.time
         << ",\"host_session_id\":" << sample.session << ",\"host_transaction_id\":" << sample.request
         << ",\"updated_mask\":" << unsigned(sample.updatedMask & AllChannelsMask)
-        << ",\"profile\":" << jsonString(sample.source) << ",\"channels\":{";
+        << ",\"profile\":" << jsonString(sample.source);
+    if (sample.freshnessSince)
+        out << ",\"freshness_lower_bound_ms\":" << std::min(sample.time, *sample.freshnessSince);
+    out << ",\"channels\":{";
     for (std::size_t i = 0; i < ChannelCount; ++i) {
         if (i) out << ',';
         const bool updated = (sample.updatedMask & (1u << i)) != 0;
         const auto& measurement = state.channels()[i];
         out << jsonString(Names[i]) << ":{\"updated\":" << (updated ? "true" : "false") << ",\"value\":";
-        if (updated && measurement.value && measurement.quality == Quality::Valid) out << *measurement.value;
+        if (updated && measurement.value &&
+            (measurement.quality == Quality::Valid || measurement.quality == Quality::Stale)) out << *measurement.value;
         else out << "null";
         out << ",\"quality\":" << jsonString(qualityName(measurement.quality)) << ",\"last_valid_ms\":";
         if (measurement.lastValid) out << *measurement.lastValid;
@@ -186,9 +209,16 @@ struct Recorder::Impl {
     bool enqueue(Record record) {
         std::lock_guard lock(mutex);
         if (!accepting) return false;
+        if (const auto* event = std::get_if<RawEvent>(&record); event && event->bridge && formatVersion != 3) {
+            error = "Дворівневий bridge trace потребує format_version=3; запис зупинено.";
+            accepting = false;
+            stopping = true;
+            wake.notify_all();
+            return false;
+        }
         if (const auto* sample = std::get_if<Sample>(&record);
             sample && formatVersion == 2 &&
-            (sample->updatedMask != AllChannelsMask || sample->source != "synthetic-demo-v1")) {
+            (sample->updatedMask != AllChannelsMask || sample->source != "synthetic-demo-v1" || sample->freshnessSince)) {
             error = "Часткові вимірювання та інший профіль потребують format_version=3; запис зупинено.";
             accepting = false;
             stopping = true;

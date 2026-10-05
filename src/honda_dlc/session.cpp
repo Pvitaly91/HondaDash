@@ -8,10 +8,18 @@ Session::Session(Settings settings, FreshnessSettings freshness) : settings_(set
     if (!settings.totalMs || !settings.interbyteMs || settings.fastMs < 20 || !settings.coolantMs)
         throw std::invalid_argument("invalid offline DLC timing policy");
 }
+Session::Session(Link &link, Settings settings, FreshnessSettings freshness) : Session(settings, freshness) {
+    link_ = &link;
+    lab_ = dynamic_cast<LabControl *>(&link);
+}
+Session::~Session() {
+    lifetime_.reset();
+    link_->abort(0);
+}
 void Session::event(std::string kind, Time now, std::uint32_t transaction, std::string detail,
                     std::span<const std::uint8_t> bytes) {
     if (onRaw)
-        onRaw({now, session_, transaction, std::move(kind), std::move(detail), {bytes.begin(), bytes.end()}});
+        onRaw({now, session_, transaction, std::move(kind), std::move(detail), {bytes.begin(), bytes.end()}, {}});
 }
 void Session::start(Time now) {
     if (!profileSelected_)
@@ -31,15 +39,16 @@ void Session::start(Time now) {
     parser_.reset();
     accepted_ = {};
     model_.reset();
-    link_.newExperiment();
     nextRead_.fill(now + 300);
     initializedAt_ = now + 300;
     cursor_ = 0;
     const auto sample = unavailable(now, session_);
     model_.apply(sample);
-    event("offline_boundary", now, 0,
-          "New simulated ECU instance; queued prior experiment discarded explicitly; not a physical recovery "
-          "guarantee");
+    if (!link_->deviceTimed())
+        event("offline_boundary", now, 0,
+              "New simulated ECU instance; queued prior experiment discarded explicitly; not a physical "
+              "recovery "
+              "guarantee");
     if (generation != generation_)
         return;
     if (onSample)
@@ -49,11 +58,36 @@ void Session::start(Time now) {
     exchange_.requestHex = hex(Initialization);
     exchange_.read = "Initialization: 11 bytes + 300 ms";
     exchange_.check = "Послідовність надіслано; відповіді/ACK та ідентифікації ECU немає";
-    event("tx_queued", now, 0, "initialization intent; no ECU ACK expected", Initialization);
+    if (!link_->deviceTimed())
+        event("tx_queued", now, 0, "initialization intent; no ECU ACK expected", Initialization);
     if (generation != generation_)
         return;
-    link_.send(Initialization, now);
-    event("tx", now, 0, "initialization delivered to offline ECU; no ECU ACK expected", Initialization);
+    const std::weak_ptr<int> alive = lifetime_;
+    LinkCallbacks callbacks;
+    callbacks.ready = [this, alive, generation](Time at) {
+        if (alive.expired() || generation != generation_ || state_ != State::Initializing)
+            return;
+        state_ = State::Polling;
+        nextRead_.fill(at);
+        event("initialization_wait_complete", at, 0,
+              "Executor wait complete; ECU recognition not established");
+    };
+    // Keep stopped/faulted delivery callbacks alive to log all unassociated late RX.
+    callbacks.received = [this, alive](auto bytes, Time at, Time measured) {
+        if (!alive.expired())
+            receive(bytes, at, measured);
+    };
+    callbacks.fault = [this, alive, generation](std::string reason, Time at, bool timeout) {
+        if (!alive.expired() && generation == generation_ && state_ != State::Stopped)
+            fail(std::move(reason), at, timeout);
+    };
+    callbacks.raw = [this, alive](const RawEvent &raw) {
+        if (!alive.expired() && onRaw)
+            onRaw(raw);
+    };
+    link_->start(session_, now, std::move(callbacks));
+    if (!link_->deviceTimed())
+        event("tx", now, 0, "initialization delivered to offline ECU; no ECU ACK expected", Initialization);
 }
 void Session::stop(Time now) {
     ++generation_;
@@ -62,6 +96,7 @@ void Session::stop(Time now) {
     parser_.reset();
     state_ = State::Stopped;
     model_.reset();
+    link_->abort(now);
     event("stopped", now, transaction, "Context cancelled; remaining offline bytes retained for drain");
 }
 bool Session::setProfile(std::string_view profile, Time now) {
@@ -73,10 +108,12 @@ bool Session::setProfile(std::string_view profile, Time now) {
     return profileSelected_;
 }
 void Session::setScenario(Scenario scenario) {
-    link_.setScenario(scenario);
+    if (lab_)
+        lab_->setScenario(scenario);
 }
 void Session::setFaults(Faults faults) {
-    link_.setFaults(faults);
+    if (lab_)
+        lab_->setFaults(faults);
 }
 void Session::fail(std::string reason, Time now, bool timeout) {
     const auto transaction = pending_ ? pending_->transaction : 0;
@@ -87,13 +124,14 @@ void Session::fail(std::string reason, Time now, bool timeout) {
         ++stats_.timeouts;
     else
         ++stats_.corrupt;
-    error_ = std::move(reason) + "; потрібен новий offline-запуск";
+    error_ = std::move(reason) + (link_->deviceTimed() ? "; потрібен новий лабораторний експеримент"
+                                                       : "; потрібен новий offline-запуск");
     exchange_.check = error_;
     event("transaction_fault", now, transaction, error_);
 }
 bool Session::request(Operation operation, Read read, Time now) {
     const auto bytes = encode(operation, read);
-    if (!bytes || state_ != State::Polling || pending_)
+    if (!bytes || state_ != State::Polling || pending_ || !link_->canExecute())
         return false;
     const auto generation = generation_;
     parser_.expect(read.length);
@@ -111,17 +149,18 @@ bool Session::request(Operation operation, Read read, Time now) {
     event("tx_queued", now, transaction, exchange_.read + "; " + exchange_.formulaSource, *bytes);
     if (generation != generation_ || !pending_ || state_ != State::Polling)
         return false;
-    const bool responseQueued = link_.send(*bytes, now);
-    event("tx", now, transaction, "delivered to offline ECU; " + exchange_.read, *bytes);
+    const bool responseQueued = link_->execute(*bytes, read, transaction, now);
+    if (!link_->deviceTimed())
+        event("tx", now, transaction, "delivered to offline ECU; " + exchange_.read, *bytes);
     if (generation != generation_)
         return responseQueued;
     if (!responseQueued) {
-        fail("Переповнення bounded offline RX queue", now, false);
+        fail("DLC executor відхилив операцію або переповнив чергу", now, false);
         return false;
     }
     return true;
 }
-void Session::receive(std::span<const std::uint8_t> bytes, Time now) {
+void Session::receive(std::span<const std::uint8_t> bytes, Time now, Time measurementAt) {
     const auto generation = generation_;
     const auto transaction = pending_ ? pending_->transaction : 0;
     event("rx", now, transaction,
@@ -134,7 +173,8 @@ void Session::receive(std::span<const std::uint8_t> bytes, Time now) {
         stats_.ignored += bytes.size();
         return;
     }
-    for (auto byte : bytes) {
+    for (std::size_t index = 0; index < bytes.size(); ++index) {
+        const auto byte = bytes[index];
         if (!exchange_.responseHex.empty())
             exchange_.responseHex += ' ';
         exchange_.responseHex += hex(std::span(&byte, 1));
@@ -149,14 +189,21 @@ void Session::receive(std::span<const std::uint8_t> bytes, Time now) {
                  now, false);
             return;
         }
-        const auto sample = decode(pending_->read, parser_.payload(), now, session_, pending_->transaction);
+        if (index + 1 != bytes.size()) {
+            fail("Зайві DLC RX після повної відповіді", now, false);
+            return;
+        }
+        auto sample = decode(pending_->read, parser_.payload(), now, session_, pending_->transaction);
         pending_.reset();
         parser_.reset();
         if (!sample) {
             fail("Не визначено decoder для відповіді", now, false);
             return;
         }
+        if (link_->deviceTimed())
+            sample->freshnessSince = measurementAt;
         model_.apply(*sample);
+        model_.refresh(now);
         ++stats_.accepted;
         for (std::size_t i = 0; i < ChannelCount; ++i)
             if ((sample->updatedMask & (1u << i)) != 0) {
@@ -187,26 +234,20 @@ void Session::rates(Time now) {
 void Session::tick(Time now) {
     const auto generation = generation_;
     model_.refresh(now);
-    if (pending_ && (now >= pending_->deadline || (pending_->lastByte && now >= *pending_->lastByte &&
-                                                   now - *pending_->lastByte >= settings_.interbyteMs))) {
+    if (!link_->deviceTimed() && pending_ &&
+        (now >= pending_->deadline || (pending_->lastByte && now >= *pending_->lastByte &&
+                                       now - *pending_->lastByte >= settings_.interbyteMs))) {
         fail(now >= pending_->deadline ? "Загальний timeout; відповідь не можна однозначно прив'язати"
                                        : "Міжбайтовий timeout",
              now, true);
         if (generation != generation_)
             return;
     }
-    link_.tick(now, [this](auto bytes, Time at) { receive(bytes, at); });
+    link_->tick(now);
     if (generation != generation_)
         return;
     rates(now);
-    if (state_ == State::Initializing && now >= initializedAt_) {
-        state_ = State::Polling;
-        event("initialization_wait_complete", now, 0,
-              "Only local wait complete; ECU recognition not established");
-        if (generation != generation_)
-            return;
-    }
-    if (state_ != State::Polling || pending_)
+    if (state_ != State::Polling || pending_ || !link_->canExecute())
         return;
     for (std::size_t offset = 0; offset < fields().size(); ++offset) {
         const auto index = (cursor_ + offset) % fields().size();

@@ -1,4 +1,4 @@
-name: Build and test M2a offline
+name: Build and test M2b virtual bridge
 
 on:
   push:
@@ -36,7 +36,7 @@ jobs:
         run: |
           cmake -S . -B build/windows-simulation -G "Visual Studio 17 2022" -A x64 -DHONDADASH_WITH_SERIAL=OFF "-DCMAKE_PREFIX_PATH=$env:QT_ROOT_DIR" -DCMAKE_DISABLE_FIND_PACKAGE_Qt6SerialPort=TRUE
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          cmake --build build/windows-simulation --config Release --parallel
+          cmake --build build/windows-simulation --config Release --parallel 2
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           $env:PATH = "$env:QT_ROOT_DIR/bin;$env:PATH"
           ctest --test-dir build/windows-simulation -C Release --output-on-failure --output-junit "$PWD/build/windows-simulation/ctest.xml"
@@ -124,8 +124,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12.10'
-      - name: Arduino CLI 1.2.2, AVR Boards 1.8.6, both Nano bootloaders
-        run: bash scripts/build-firmware.sh --bootstrap
+      - name: Arduino CLI 1.2.2, AVR Boards 1.8.6, both firmwares and Nano bootloaders
+        run: bash scripts/build-firmware.sh --bootstrap --firmware all
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -142,3 +142,20 @@ jobs:
             build/firmware/**/*.a
             docs/licenses/firmware/
             firmware/nano_synthetic/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: HondaDash-nano-dlc-bridge-lab-firmware
+          if-no-files-found: error
+          path: |
+            build/firmware-bridge-lab/**/*.ino.hex
+            build/firmware-bridge-lab/**/*.ino.elf
+            build/firmware-bridge-lab/**/*.map
+            build/firmware-bridge-lab/**/*.json
+            build/firmware-bridge-lab/**/*.txt
+            build/firmware-bridge-lab/**/*.su
+            build/firmware-bridge-lab/**/*.o
+            build/firmware-bridge-lab/**/*.a
+            docs/licenses/firmware/
+            firmware/nano_dlc_bridge_lab/
+            docs/NANO_DLC_BRIDGE_*.md

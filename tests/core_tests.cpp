@@ -297,6 +297,25 @@ void partialUpdatesAndDomains() {
     CHECK(model.channels()[2].reason.empty() && !model.channels()[2].lastValid);
 }
 
+void bridgeFreshness() {
+    hd::Model model;
+    auto sample = allValid({750,0,61,0,32,0,0});
+    sample.time = 2101; // Actual host receipt after USB delay.
+    sample.freshnessSince = 1000;
+    sample.updatedMask = 1;
+    model.apply(sample);
+    CHECK(sample.time == 2101);
+    CHECK(model.channels()[0].lastValid == 1000);
+    CHECK(model.channels()[0].quality == hd::Quality::Stale);
+    CHECK(model.current(hd::Channel::Rpm, 4000) == 750);
+    CHECK(!model.current(hd::Channel::Rpm, 4001));
+    CHECK(!model.channels()[2].lastValid);
+    sample.freshnessSince = 9999; // A future lower bound cannot extend freshness.
+    model.apply(sample);
+    CHECK(model.channels()[0].lastValid == 2101);
+    CHECK(model.channels()[0].quality == hd::Quality::Valid);
+}
+
 hd::Sample read(hd::Emulator& emulator, hd::Time time) {
     const auto request = hd::encode({hd::ReadSnapshot, 55, 66, {}});
     const auto replies = emulator.consume(request, time);
@@ -404,7 +423,8 @@ void emulatorPath() {
 int main() {
     struct Test { const char* name; void (*run)(); };
     const std::array tests{Test{"golden/scales", goldenAndScaling}, Test{"stream/recovery/bounds", streamingAndRecovery},
-        Test{"freshness", freshness}, Test{"partial updates/domains", partialUpdatesAndDomains},
+        Test{"freshness", freshness}, Test{"bridge conservative freshness", bridgeFreshness},
+        Test{"partial updates/domains", partialUpdatesAndDomains},
         Test{"emulator/byte-path/determinism", emulatorPath}};
     for (const auto& test : tests) {
         try {

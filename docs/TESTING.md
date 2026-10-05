@@ -1,4 +1,65 @@
-# Перевірки M0/M1 та M2a
+# Перевірки M0/M1, M2a та M2b
+
+M2b додає `bridge_embedded`, `bridge`, Linux `bridge_pty` та assertions
+нового GUI-режиму. [Детальний чекліст і команди](NANO_DLC_BRIDGE_TESTING.md),
+[wire contract](NANO_DLC_BRIDGE_PROTOCOL.md),
+[дві часові області та recording](NANO_DLC_BRIDGE_ARCHITECTURE.md).
+Baseline M2a `1d7a8ede50c7d114a1a406511b470f8efc817e81` до змін:
+Windows Release9/9 PASS (`build/windows/m2b-baseline.xml`).
+
+Managed GUI smoke зберігає protocol/model ticks10ms та всі assertion boundaries;
+під час довгих advances widget refresh обмежено50ms, фінальний стан завжди
+перемальовується перед assertions. Звичайний GUI timer16ms не змінено.
+CTest GUI watchdog180s — обмеження часу OS-тесту, не політика DLC timing.
+Перший Debug smoke перевищив старий60s guard через зайве форматування QWidget
+на кожному модельному tick; assertions не вилучалися.
+
+## Пам'ять M2b AVR
+
+Обидві конфігурації `arduino:avr:nano:cpu=atmega328` і `atmega328old`:
+Flash8266 bytes, `.data118 + .bss742 =860`, budget1536. SRAM включає
+UART RX64/TX64/HardwareSerial; залишок1188 — простір для runtime stack,
+не виміряний high-water. M1 залишився Flash5736/SRAM819.
+
+Diagnostic non-LTO `.su` frames: receive26, dispatch92, publishResult120,
+reply97, enqueue13 bytes. Консервативна сума вкладеного шляху
+receive→dispatch→publishResult→reply→enqueue≈348 bytes; loop locals, return
+addresses/interrupts і Arduino calls потребують додаткового запасу. Для
+лабораторної оцінки резервуємо ще256 bytes: приблизно604 <1188 доступних.
+Це оцінка вихідного call graph, не доказ worst-case LTO stack або hardware
+high-water. Final ELF не містить malloc/calloc/realloc/operator new; linker
+map, symbols і `.su` входять до firmware artifact. Static SRAM перевіряється
+автоматично для кожного FQBN. Жодного upload не виконано.
+
+## Фактичний прогін M2b — 6 жовтня 2026
+
+| Середовище | Результат |
+| --- | --- |
+| Windows x64, MSVC19.34.31948.0, Debug | CTest11/11 PASS; GUI92/92;33.79s |
+| Windows x64, Release | CTest11/11 PASS; GUI92/92;5.15s |
+| Windows Release без SerialPort | CTest10/10 PASS; GUI84/84;5.25s |
+| WSL Ubuntu24.04.3, GCC13.3.0, Release | CTest13/13 PASS, включно з обома M1/M2b PTY |
+| Linux Release без SerialPort | CTest10/10 PASS |
+| Розпакований Windows ZIP | Native windows/offscreen=false, GUI92/92 при100% і150%; runtime/import inspection PASS |
+| M1 і M2b, кожна для двох Nano FQBN | Windows AVR compilation PASS; M1 5736/819, M2b 8266/860 Flash/SRAM |
+
+Qt/SerialPort6.8.3 та CMake3.31.6; Linux Ninja1.11.1. Пакет тестувався
+з очищеними Qt variables/PATH. Переглянуто actual PNG1024×600/1280×720,
+обидва HEX-рівні та масштаб150%. Усі92 package assertions пройшли при кожному
+масштабі. Незалежна чиста Windows VM не тестувалася.
+
+Локальні звіти: `build/windows/m2b-{debug,release}.xml`,
+`build/windows-simulation/m2b-simulation.xml`,
+`build/linux-local/m2b-release.xml`, `build/linux-simulation/m2b-release.xml`,
+`dist/reports/package-smoke.json`, `dist/reports/package-scale-150.json`.
+Розпакований пакет містить app-local VC143 CRT, Qt6SerialPort6.8.3 та qwindows.
+CI результати для опублікованого commit перевіряються окремо.
+
+M0/M1/M2a regression, bridge host end-to-end та OS serial/PTY — PASS.
+Фізична Nano/Windows USB — NOT VERIFIED. Електричний DLC — NOT VERIFIED.
+Реальний ECU — NOT VERIFIED. Ці статуси незалежні від software PASS.
+
+## Історичні перевірки M2a
 
 M2a додає `honda_dlc` CTest і нові assertions до GUI smoke, зберігаючи всі
 M0/M1 групи нижче. Незалежні байтові/math fixtures, recovery, partial ages,

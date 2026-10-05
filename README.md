@@ -1,4 +1,4 @@
-# HondaDash — M2a offline
+# HondaDash — M2b virtual bridge
 
 Незалежна настільна панель параметрів двигуна: C++20, Qt 6 Widgets,
 власні прилади й графік через QPainter. Вбудована емуляція працює без
@@ -6,6 +6,8 @@
 
 Третє джерело «Honda DLC — лабораторна емуляція» використовує досліджені
 байтові запити й відповіді та власний програмний відповідач ECU.
+Четверте джерело «Honda DLC — тестовий міст» виконує той самий профіль
+через C++11 bridge core: нативно на ПК або у новій Nano firmware з virtual ECU.
 **Усі джерела — simulation. Фізичні Nano/USB, електричний DLC і реальний ECU:
 NOT VERIFIED. Реальні captures відсутні.**
 
@@ -35,11 +37,33 @@ ECT `0x10/1`, TPS `0x14/1`. Дані reference-derived; калібрування
    host-only transaction ID та всі RX, включно з пошкодженими.
 
 Попередження «ЛАБОРАТОРНА ЕМУЛЯЦІЯ HONDA DLC — ECU НЕ ПІДКЛЮЧЕНО»
-постійне. Honda-шлях не може відкрити COM чи надіслати команди в Nano M1.
+постійне. Саме M2a залишається offline; новий M2b допускає лише розпізнаний
+virtual bridge через USB. Жоден Honda-шлях не надсилає DLC-команди в Nano M1.
 Докази та суперечності: [evidence](docs/HONDA_DLC_EVIDENCE.md),
 [профіль](docs/HONDA_DLC_REFERENCE_PROFILE.md),
 [протокол/recovery](docs/HONDA_DLC_PROTOCOL.md),
 [fixtures і перевірки](docs/HONDA_DLC_OFFLINE_TESTING.md).
+
+## Honda DLC — тестовий міст
+
+1. Виберіть це джерело та «Міст на ПК». «Старт» виконує лише handshake.
+2. Натисніть «Новий експеримент»: створюється новий virtual ECU, виконується
+   фіксований init, потім окремі RPM/ECT/TPS reads. Набори A/B збігаються з M2a.
+3. Два HEX-рівні показують outer USB і повідомлені мостом inner DLC bytes.
+   Спробуйте checksum, gap чи trailing fault: DLC polling зупиниться, пізні RX
+   потраплять у журнал. Продовження потребує явного нового експерименту.
+4. Для «Міст на Nano через USB» окремо складіть/завантажте `bridge-lab`,
+   явно виберіть порт. M1 firmware не розпізнається як bridge; fallback відсутній.
+
+Постійне позначення: **ТЕСТОВИЙ МІСТ — ВІРТУАЛЬНИЙ ECU — ФІЗИЧНИЙ DLC ВИМКНЕНО**.
+Nano не має фізичного DLC backend, GPIO init або D12. DLC deadline контролює
+embedded engine, USB watchdog — ПК. Для виявлення trailing bytes engine
+спостерігає повне 200ms вікно: сумарно приблизно до5 читань/с, GUI показує
+фактичні частоти. Журнал v3 зберігає host receipt time й консервативну давність.
+
+[USB-протокол](docs/NANO_DLC_BRIDGE_PROTOCOL.md),
+[архітектура і clocks](docs/NANO_DLC_BRIDGE_ARCHITECTURE.md),
+[збірка, перевірки, ручний PC/Nano чекліст](docs/NANO_DLC_BRIDGE_TESTING.md).
 
 ## Що можна перевірити
 
@@ -172,7 +196,8 @@ Offscreen-знімок підтверджує рендеринг віджета;
 [GitHub Actions](https://github.com/Pvitaly91/HondaDash/actions) складає
 Windows Debug/Release та Linux GUI/логіку. Успішний Windows job додає
 окремі artifacts `HondaDash-windows-x64`, `HondaDash-windows-test-reports`,
-`HondaDash-linux-test-reports` та `HondaDash-nano-firmware` (HEX/ELF/map/size).
+`HondaDash-linux-test-reports`, `HondaDash-nano-firmware` (M1) та
+`HondaDash-nano-dlc-bridge-lab-firmware` (M2b; HEX/ELF/map/size/stack).
 Наявність workflow сама по собі не підтверджує, що конкретний запуск успішний;
 перевіряйте статус відповідного commit у Actions.
 
@@ -204,6 +229,8 @@ USB-режим працює через той самий parser/Session/Model/Re
 ```powershell
 # Лише складання, без upload; завантажує точні CLI 1.2.2 / AVR Boards 1.8.6
 ./scripts/build-firmware.ps1 -Bootstrap
+# Обидві окремі firmware, кожна для двох Nano FQBN; upload не виконується
+./scripts/build-firmware.ps1 -Firmware all
 ```
 
 Скрипт складає обидва `arduino:avr:nano:cpu=atmega328` / `atmega328old`.

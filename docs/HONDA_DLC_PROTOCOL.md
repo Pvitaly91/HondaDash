@@ -7,8 +7,10 @@ Evidence: [HONDA_DLC_EVIDENCE.md](HONDA_DLC_EVIDENCE.md), профіль:
 
 ## Шари та ініціалізація
 
-`hondadash_dlc` — C++20 без Qt/Windows API. `hd::dlc::Session` володіє
-`OfflineLink` і не приймає `Transport`/COM. M1 `hd::Session`, SerialTransport,
+`hondadash_dlc` — C++20 без Qt/Windows API. M2a constructor `hd::dlc::Session`
+володіє `OfflineLink` і не приймає `Transport`/COM. M2b додає ін'єкцію вузького
+`dlc::Link` до окремого розпізнаного virtual bridge; inner protocol незмінний.
+M1 `hd::Session`, SerialTransport,
 synthetic-demo-v1 і firmware Nano лишаються окремими. Синтетичні A5 5A,
 CRC16 та session/request IDs не додаються до Honda-пакетів.
 
@@ -111,9 +113,11 @@ value/state/updated/last_valid_ms/age_ms/source/host IDs/reason. Для незм
 та невизначені канали без історичних чисел; записуються тільки подальші
 прийняті читання. Давність до початку запису не реконструюється.
 
-## Наступна межа
+## Межа з M2b та наступними етапами
 
-M2b: ПК ↔ власна USB-оболонка ↔ Nano bridge ↔ Honda DLC. Вона потребуватиме
-окремої firmware і перевірок; M1 не є прозорим bridge. M3 — перевірений
+M2b: ПК ↔ власна USB-оболонка ↔ bridge core ↔ virtual ECU з DLC bytes.
+Це окрема firmware і native backend, описані в
+[NANO_DLC_BRIDGE_PROTOCOL.md](NANO_DLC_BRIDGE_PROTOCOL.md);
+M1 не є прозорим bridge. Фізичний DLC backend відсутній. M3 — перевірений
 електричний інтерфейс, M4 — конкретний ECU. M2a не містить wiring/upload,
 довільного читання пам'яті, reset/write операцій або ECU compatibility claims.

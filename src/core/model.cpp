@@ -1,5 +1,6 @@
 #include "core/model.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 
@@ -49,7 +50,9 @@ void Model::apply(const Sample& sample) {
              (*sample.values[i] >= info[i].min && *sample.values[i] <= info[i].max))) {
             measurement.value = sample.values[i];
             measurement.quality = Quality::Valid;
-            measurement.lastValid = sample.time;
+            measurement.lastValid = std::min(sample.time, sample.freshnessSince.value_or(sample.time));
+            if (age(sample.time, *measurement.lastValid) > settings_.staleMs)
+                measurement.quality = Quality::Stale;
         } else {
             measurement.value.reset();
             measurement.quality = quality == Quality::Unsupported ? Quality::Unsupported :

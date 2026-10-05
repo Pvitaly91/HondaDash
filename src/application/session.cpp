@@ -43,7 +43,7 @@ void Session::setSettings(SessionSettings s) {
 }
 void Session::event(std::string k, Time n, std::uint32_t r, std::string d, std::vector<std::uint8_t> b) {
     if (onRaw)
-        onRaw({n, sessionId_, r, std::move(k), std::move(d), std::move(b)});
+        onRaw({n, sessionId_, r, std::move(k), std::move(d), std::move(b), {}});
 }
 void Session::fail(std::string message, Time n) {
     error_ = std::move(message);

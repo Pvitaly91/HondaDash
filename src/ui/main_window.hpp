@@ -1,5 +1,7 @@
 #pragma once
 #include "application/session.hpp"
+#include "bridge/client.hpp"
+#include "bridge/native_transport.hpp"
 #include "honda_dlc/session.hpp"
 #include "recording/recorder.hpp"
 #include "transport/in_memory_transport.hpp"
@@ -48,17 +50,27 @@ private:
     void settleControlLayout();
     void tickSessions();
     void refreshDlcDetails();
+    void refreshBridgeDetails();
+    void rebuildBridge();
+    void newBridgeExperiment();
+    void applyBridgeFaults(dlc::Faults faults);
+    void bridgeRaw(const RawEvent& event);
     const Model& activeModel() const;
     void applyDlcFaults(dlc::Faults faults);
     RecordingMetadata recordingMetadata() const;
     bool serialSelected() const;
     bool dlcSelected() const;
+    bool bridgeSelected() const;
+    bool bridgeSerialSelected() const;
     InMemoryTransport memoryTransport_;
 #ifdef HONDADASH_WITH_SERIAL
     std::unique_ptr<SerialTransport> serialTransport_;
 #endif
     Session session_;
     dlc::Session dlcSession_;
+    bridge::NativeTransport nativeBridge_;
+    std::unique_ptr<bridge::Client> bridgeClient_;
+    std::unique_ptr<dlc::Session> bridgeSession_;
     Recorder recorder_;
     bool managedTime_{};
     Time managedNow_{}, lastPaint_{};
@@ -75,6 +87,16 @@ private:
     QSpinBox* dlcDelay_{};
     QPushButton *dlcCorrupt_{}, *dlcTruncate_{}, *dlcLength_{}, *dlcNoise_{};
     dlc::Faults dlcFaults_{};
+    QComboBox *bridgeBackend_{}, *bridgeScenario_{};
+    QGroupBox* bridgeBox_{};
+    QPushButton *bridgeNewExperiment_{}, *bridgeCorrupt_{}, *bridgeTruncate_{}, *bridgeLength_{}, *bridgeHeader_{}, *bridgeTrailing_{};
+    QCheckBox* bridgeSilence_{};
+    QSpinBox *bridgeDelay_{}, *bridgeGap_{};
+    QLabel *bridgeOuterHex_{}, *bridgeInnerHex_{}, *bridgeTiming_{};
+    dlc::Faults bridgeFaults_{};
+    QString bridgeOuterTx_, bridgeOuterRx_, bridgeInnerTx_, bridgeInnerRx_;
+    QString bridgeInnerRead_, bridgeInnerFormula_, bridgeInnerCheck_;
+    std::uint32_t bridgeDisplayedRequest_{};
     QWidget* controlPanel_{};
     QScrollArea* controlScroll_{};
     QCheckBox* silence_{};

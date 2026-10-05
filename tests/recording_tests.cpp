@@ -201,6 +201,62 @@ void partialFormatAndProvenance() {
     require(!recorder.error().empty(), "version 2 incompatible sample rejection was invisible");
 }
 
+void bridgeTraceMetadata() {
+    TemporaryDirectory temp;
+    hd::Recorder recorder;
+    hd::RecordingMetadata metadata{"raw-a", 0};
+    metadata.formatVersion = 3;
+    metadata.wireProtocol = "honda-dlc";
+    metadata.profile = "honda-dlc-kerpz-obd1-reference-v1";
+    metadata.outerProtocol = "hondadash-dlc-bridge-lab-v1";
+    metadata.bridgeIdentity = metadata.outerProtocol;
+    metadata.bridgeVersion = 1;
+    metadata.readPolicyVersion = 1;
+    metadata.backend = "virtual";
+    metadata.transport = "in-memory-embedded-bridge";
+    require(recorder.start(temp.path, metadata), "bridge recording failed to start");
+    hd::RawEvent corrupted{200, 7, 3, "usb_rx", "outer checksum rejected", {0xa5,0x5a,0x00}};
+    require(recorder.enqueueRaw(corrupted), "outer corruption enqueue failed");
+    hd::RawEvent inner{300, 7, 3, "bridge_dlc_rx", "bad inner checksum under trusted outer frame", {0x00,0x04,0x20,0x00}};
+    inner.bridge = hd::BridgeTrace{0xfedcba98u, 3, 10, 6, 200, 2, 4, "bridge_reported"};
+    require(recorder.enqueueRaw(inner), "bridge trace enqueue failed");
+    hd::Sample delayed;
+    delayed.time = 2101;
+    delayed.freshnessSince = 1000;
+    delayed.session = 7;
+    delayed.request = 4;
+    delayed.source = metadata.profile;
+    delayed.updatedMask = 1;
+    delayed.values[0] = 750;
+    delayed.qualities[0] = hd::Quality::Valid;
+    require(recorder.enqueueSample(delayed), "delayed bridge sample enqueue failed");
+    recorder.stop();
+    require(recorder.error().empty(), "bridge recording error");
+    const auto raw = readFile(recorder.directory() / "raw.jsonl");
+    require(raw.find("\"outer_protocol\":\"hondadash-dlc-bridge-lab-v1\"") != std::string::npos &&
+            raw.find("\"backend\":\"virtual\"") != std::string::npos &&
+            raw.find("\"physical_dlc_enabled\":false") != std::string::npos &&
+            raw.find("\"read_policy_version\":1") != std::string::npos,
+            "bridge metadata absent");
+    const auto corruptStart = raw.find("\"kind\":\"usb_rx\"");
+    const auto corruptEnd = raw.find('\n', corruptStart);
+    require(raw.substr(corruptStart, corruptEnd-corruptStart).find("\"bridge\"") == std::string::npos,
+            "outer corruption fabricated trusted inner facts");
+    require(raw.find("\"generation\":4275878552,\"operation\":3,\"sequence\":10,\"tx_elapsed_ms\":6,\"rx_elapsed_ms\":200,\"max_gap_ms\":2,\"status\":4") != std::string::npos,
+            "bridge relative time/generation lost or written in hex");
+    require(raw.find("\"bytes_hex\":\"00042000\"") != std::string::npos,
+            "bad inner bytes were changed");
+    require(raw.find("\"time_ms\":2101,\"host_session_id\":7,\"host_transaction_id\":4") != std::string::npos &&
+            raw.find("\"freshness_lower_bound_ms\":1000") != std::string::npos &&
+            raw.find("\"value\":750,\"quality\":\"Stale\",\"last_valid_ms\":1000,\"age_ms\":1101") != std::string::npos,
+            "receipt time or conservative age lost; delayed sample presented as fresh");
+    require(readFile(recorder.directory() / "measurements.csv").find("2101,7,4,1,750,Stale,1,1000,1101") != std::string::npos,
+            "CSV lost a valid but already stale bridge measurement");
+    require(recorder.start(temp.path, {"manual", 1}), "legacy recording restart failed");
+    require(!recorder.enqueueRaw(inner), "bridge metadata silently discarded by version 2");
+    recorder.stop();
+}
+
 void visibleFailures() {
     TemporaryDirectory temp;
     hd::Recorder recorder;
@@ -257,6 +313,7 @@ int main() {
     try {
         outputAndLifecycle();
         partialFormatAndProvenance();
+        bridgeTraceMetadata();
         visibleFailures();
         boundedQueue();
         std::cout << "recording: v2/v3 CSV/JSONL, partial provenance/age, Unicode paths, lifecycle, failures and bounds passed\n";

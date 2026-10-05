@@ -32,18 +32,25 @@ Hardware_verified=false, live_enabled=false; captures відсутні. Це н�
 
 ## M2b — інтеграція з firmware-мостом Nano та програмні перевірки
 
-Майбутня межа: ПК ↔ власна USB-оболонка ↔ Nano bridge ↔ Honda DLC.
-Потрібен окремий контракт bridge, bounded buffers, transport diagnostics і
-модель recovery без вигаданого ID в ECU-відповіді. M1 firmware залишається
-синтетичним endpoint; передавання сирих Honda-команд у неї заборонене.
-Host tests/AVR compilation не замінюють перевірку фізичної плати.
+Реалізовано ПК ↔ власна USB-оболонка ↔ C++11 bridge core ↔ virtual ECU.
+Те саме embedded ядро працює нативно на ПК та компілюється для класичної
+Nano; окрема firmware `nano_dlc_bridge_lab`. DLC Session повторно використовує
+M2a encoder/parser/decoder, exact whitelist, partial model/recording.
+Контракт має identity/version/policy, bounded buffers, власні MCU deadlines,
+relative timing diagnostics та явний NewExperiment після неоднозначності.
+ID оболонки не вставляється в ECU response. M1 firmware збережено окремо.
+
+Фізичні Nano/USB: **NOT VERIFIED**. Virtual backend не має GPIO, D12 або
+електричного DLC. Host/PTY/AVR tests не замінюють перевірку плати.
+[Контракт і межі](NANO_DLC_BRIDGE_PROTOCOL.md),
+[ручний PC/Nano чекліст](NANO_DLC_BRIDGE_TESTING.md).
 
 ## M3 — електричний інтерфейс
 
 Розробити й перевірити physical adapter: рівні напруг, захист, живлення,
 земля, ізоляція/перетворення сигналів і поведінка при несправності.
 USB-підключення Nano не доводить безпечності підключення до DLC/ECU.
-Цей етап потребує реальної схеми та вимірювань; M2a їх не реалізує.
+Цей етап потребує реальної схеми та вимірювань; M2a/M2b їх не реалізують.
 
 ## M4 — справжній ECU
 

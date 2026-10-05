@@ -24,6 +24,10 @@ struct RecordingMetadata {
     bool hardwareVerified{}, liveEnabled{};
     std::uint32_t formatVersion{2};
     FreshnessSettings freshness{};
+    // Additive v3 metadata. Inner DLC bytes/partial measurement semantics stay unchanged.
+    std::string bridgeIdentity, backend, outerProtocol;
+    std::uint32_t bridgeVersion{}, readPolicyVersion{};
+    bool physicalDlcEnabled{};
 };
 
 // Disk work runs on one bounded worker. A failed enqueue stops recording and

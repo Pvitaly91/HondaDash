@@ -20,6 +20,8 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QScrollBar>
+#include <QSignalBlocker>
 #include <QSpinBox>
 #include <QStringList>
 #include <QTimer>
@@ -55,6 +57,20 @@ QString dlcSessionName(dlc::State state) {
     }
     return {};
 }
+QString bridgeSessionName(bridge::State state) {
+    switch (state) {
+    case bridge::State::Disconnected: return QStringLiteral("Міст: від’єднано");
+    case bridge::State::Opening: return QStringLiteral("Міст: відкриття порту");
+    case bridge::State::BootWaiting: return QStringLiteral("Міст: порт відкритий, запуск");
+    case bridge::State::Handshaking: return QStringLiteral("Міст: перевірка identity");
+    case bridge::State::Ready: return QStringLiteral("Міст розпізнано · новий експеримент");
+    case bridge::State::Starting: return QStringLiteral("Міст: нова лабораторна межа");
+    case bridge::State::Initializing: return QStringLiteral("Міст: DLC-ініціалізація");
+    case bridge::State::Running: return QStringLiteral("Міст: ініціалізовано, читання");
+    case bridge::State::Faulted: return QStringLiteral("Міст: обмін заблоковано");
+    }
+    return {};
+}
 std::filesystem::path filePath(const QString& path) {
 #ifdef _WIN32
     return std::filesystem::path(path.toStdWString());
@@ -76,7 +92,7 @@ MainWindow::MainWindow(bool managedTime, QWidget* parent) : QMainWindow(parent),
     serialTransport_ = std::make_unique<SerialTransport>([this] { return now(); });
 #endif
     injectedQualities_.fill(Quality::Valid);
-    setWindowTitle(QStringLiteral("HondaDash · M2a · offline laboratory"));
+    setWindowTitle(QStringLiteral("HondaDash · M2b · virtual bridge laboratory"));
     resize(1280, 720); setMinimumSize(980, 560);
     setStyleSheet(QStringLiteral(
         "QMainWindow,QWidget{background:#0c121d;color:#e8f0f8;font-family:'Segoe UI';font-size:11px;}"
@@ -93,7 +109,7 @@ MainWindow::MainWindow(bool managedTime, QWidget* parent) : QMainWindow(parent),
     auto* root = new QWidget;
     auto* layout = new QVBoxLayout(root); layout->setContentsMargins(12, 10, 12, 10); layout->setSpacing(8);
     auto* top = new QHBoxLayout;
-    auto* title = label(QStringLiteral("HONDA<span style='color:#51d3ba'>DASH</span>  <span style='font-size:10px;color:#91a5ba'>M2a · лабораторія протоколів</span>"));
+    auto* title = label(QStringLiteral("HONDA<span style='color:#51d3ba'>DASH</span>  <span style='font-size:10px;color:#91a5ba'>M2b · лабораторія мосту</span>"));
     title->setTextFormat(Qt::RichText); title->setStyleSheet(QStringLiteral("font-size:19px;font-weight:bold;"));
     top->addWidget(title, 1);
     auto* fullscreen = new QPushButton(QStringLiteral("На весь екран · F11"));
@@ -137,9 +153,18 @@ MainWindow::MainWindow(bool managedTime, QWidget* parent) : QMainWindow(parent),
     source_->addItem(QStringLiteral("USB Serial · тестова Nano"), 1);
 #endif
     source_->addItem(QStringLiteral("Honda DLC — лабораторна емуляція"), 2);
+    source_->addItem(QStringLiteral("Honda DLC — тестовий міст"), 3);
     source_->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
-    source_->setToolTip(QStringLiteral("Honda DLC — лабораторна емуляція працює лише з програмним відповідачем. USB доступний тільки синтетичному M1."));
+    source_->setToolTip(QStringLiteral("Лабораторний DLC працює у пам’яті. Тестовий міст використовує embedded-ядро на ПК або окрему bridge-lab firmware Nano; backend завжди віртуальний."));
     controlLayout->addWidget(source_);
+    bridgeBackend_ = new QComboBox; bridgeBackend_->setObjectName(QStringLiteral("bridgeBackend"));
+    bridgeBackend_->addItem(QStringLiteral("Міст на ПК"), 0);
+#ifdef HONDADASH_WITH_SERIAL
+    bridgeBackend_->addItem(QStringLiteral("Міст на Nano через USB"), 1);
+#endif
+    bridgeBackend_->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    controlLayout->addWidget(bridgeBackend_);
+    connect(bridgeBackend_, &QComboBox::currentIndexChanged, this, [this] { changeSource(); });
     auto* portRow = new QHBoxLayout;
     port_ = new QComboBox; port_->setObjectName(QStringLiteral("serialPort"));
     port_->setMinimumWidth(120); port_->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
@@ -165,6 +190,11 @@ MainWindow::MainWindow(bool managedTime, QWidget* parent) : QMainWindow(parent),
     buttons->addWidget(start_); buttons->addWidget(stop_); controlLayout->addLayout(buttons);
     connect(start_, &QPushButton::clicked, this, [this] { startSession(); });
     connect(stop_, &QPushButton::clicked, this, [this] { stopSession(); });
+    bridgeNewExperiment_ = new QPushButton(QStringLiteral("Новий лабораторний експеримент"));
+    bridgeNewExperiment_->setObjectName(QStringLiteral("bridgeNewExperiment"));
+    bridgeNewExperiment_->setToolTip(QStringLiteral("Явно створює новий віртуальний ECU, відкидає його старі події та запускає ініціалізацію. Це не recovery фізичного ECU."));
+    controlLayout->addWidget(bridgeNewExperiment_);
+    connect(bridgeNewExperiment_, &QPushButton::clicked, this, [this] { newBridgeExperiment(); });
     auto* seedLayout = new QHBoxLayout; seedLabel_ = label(QStringLiteral("Seed")); seedLayout->addWidget(seedLabel_);
     seed_ = new QSpinBox; seed_->setRange(0, 2147483647); seed_->setValue(42); seedLayout->addWidget(seed_); controlLayout->addLayout(seedLayout);
     session_.setScenario(2, 42);
@@ -245,6 +275,43 @@ MainWindow::MainWindow(bool managedTime, QWidget* parent) : QMainWindow(parent),
     dlcExchange_->setTextInteractionFlags(Qt::TextSelectableByMouse); dlcExchange_->setStyleSheet(QStringLiteral("font-family:Consolas;font-size:10px;color:#b7cbdd;")); dlcLayout->addWidget(dlcExchange_);
     dlcLayout->insertWidget(2, dlcExchange_);
     controlLayout->addWidget(dlcBox_); dlcBox_->setVisible(false);
+    bridgeBox_ = new QGroupBox(QStringLiteral("Віртуальний DLC backend"));
+    auto* bridgeLayout = new QVBoxLayout(bridgeBox_); bridgeLayout->setContentsMargins(9, 17, 9, 8); bridgeLayout->setSpacing(6);
+    auto* bridgeProfile = label(QStringLiteral("kerpz OBD1 · reference v1\nRPM / ECT / TPS · ECU не перевірено"));
+    bridgeProfile->setToolTip(QStringLiteral("honda-dlc-kerpz-obd1-reference-v1 · hardware_verified=false · live_enabled=false")); bridgeLayout->addWidget(bridgeProfile);
+    bridgeScenario_ = new QComboBox; bridgeScenario_->setObjectName(QStringLiteral("bridgeScenario"));
+    bridgeScenario_->addItems({QStringLiteral("Набір A · 750 / 61 / 32"), QStringLiteral("Набір B · 1500 / 89 / 75")});
+    bridgeLayout->addWidget(bridgeScenario_);
+    connect(bridgeScenario_, &QComboBox::currentIndexChanged, this, [this](int index) {
+        if (bridgeSession_) bridgeSession_->setScenario(static_cast<dlc::Scenario>(index));
+    });
+    bridgeSilence_ = new QCheckBox(QStringLiteral("DLC: не відповідати")); bridgeLayout->addWidget(bridgeSilence_);
+    const auto bridgeTimeControl = [&](const QString& text, const QString& name, int maximum) {
+        auto* row = new QHBoxLayout; row->addWidget(label(text)); auto* spin = new QSpinBox;
+        spin->setObjectName(name); spin->setRange(0, maximum); spin->setSuffix(QStringLiteral(" мс")); row->addWidget(spin); bridgeLayout->addLayout(row); return spin;
+    };
+    bridgeDelay_ = bridgeTimeControl(QStringLiteral("DLC: затримка"), QStringLiteral("bridgeDelay"), 5000);
+    bridgeGap_ = bridgeTimeControl(QStringLiteral("DLC: пауза байтів"), QStringLiteral("bridgeGap"), 1000);
+    connect(bridgeSilence_, &QCheckBox::toggled, this, [this](bool value) { dlc::Faults f; f.silent = value; applyBridgeFaults(f); });
+    connect(bridgeDelay_, &QSpinBox::valueChanged, this, [this](int value) { dlc::Faults f; f.delayMs = static_cast<Time>(value); applyBridgeFaults(f); });
+    connect(bridgeGap_, &QSpinBox::valueChanged, this, [this](int value) { dlc::Faults f; f.gapMs = static_cast<Time>(value); applyBridgeFaults(f); });
+    const auto bridgeButton = [&](const QString& text) { auto* button = new QPushButton(text); bridgeLayout->addWidget(button); return button; };
+    bridgeCorrupt_ = bridgeButton(QStringLiteral("DLC: пошкодити checksum"));
+    bridgeTruncate_ = bridgeButton(QStringLiteral("DLC: обірвати відповідь"));
+    bridgeLength_ = bridgeButton(QStringLiteral("DLC: неправильна довжина"));
+    bridgeHeader_ = bridgeButton(QStringLiteral("DLC: неправильний header"));
+    bridgeTrailing_ = bridgeButton(QStringLiteral("DLC: зайві байти після відповіді"));
+    connect(bridgeCorrupt_, &QPushButton::clicked, this, [this] { dlc::Faults f; f.corruptNext = true; applyBridgeFaults(f); });
+    connect(bridgeTruncate_, &QPushButton::clicked, this, [this] { dlc::Faults f; f.truncateNext = true; applyBridgeFaults(f); });
+    connect(bridgeLength_, &QPushButton::clicked, this, [this] { dlc::Faults f; f.wrongLengthNext = true; applyBridgeFaults(f); });
+    connect(bridgeHeader_, &QPushButton::clicked, this, [this] { dlc::Faults f; f.headerNext = true; applyBridgeFaults(f); });
+    connect(bridgeTrailing_, &QPushButton::clicked, this, [this] { dlc::Faults f; f.trailingNext = true; applyBridgeFaults(f); });
+    const auto bridgeTraceLabel = [&](const QString& name) { auto* text = label({}); text->setObjectName(name); text->setTextFormat(Qt::PlainText);
+        text->setTextInteractionFlags(Qt::TextSelectableByMouse); text->setStyleSheet(QStringLiteral("font-family:Consolas;font-size:10px;color:#b7cbdd;")); bridgeLayout->addWidget(text); return text; };
+    bridgeOuterHex_ = bridgeTraceLabel(QStringLiteral("bridgeOuterHex"));
+    bridgeInnerHex_ = bridgeTraceLabel(QStringLiteral("bridgeInnerHex"));
+    bridgeTiming_ = bridgeTraceLabel(QStringLiteral("bridgeTiming"));
+    controlLayout->addWidget(bridgeBox_);
     record_ = new QPushButton(QStringLiteral("Почати запис CSV + JSONL")); record_->setObjectName(QStringLiteral("record")); controlLayout->addWidget(record_);
     connect(record_, &QPushButton::clicked, this, [this] { toggleRecording(); });
     recordStatus_ = label(QStringLiteral("Журнал: зупинено")); recordStatus_->setObjectName(QStringLiteral("recordStatus"));
@@ -261,22 +328,77 @@ MainWindow::MainWindow(bool managedTime, QWidget* parent) : QMainWindow(parent),
     statistics_ = label({}); statistics_->setAlignment(Qt::AlignRight | Qt::AlignVCenter); footer->addWidget(statistics_, 1);
     layout->addLayout(footer); setCentralWidget(root);
     const auto sampleSink = [this](const Sample& sample) { chart_->pushSample(sample); if (recorder_.active()) recorder_.enqueueSample(sample); };
-    session_.onSample = [this, sampleSink](const Sample& sample) { if (!dlcSelected()) sampleSink(sample); };
-    session_.onRaw = [this](const RawEvent& event) { if (!dlcSelected() && recorder_.active()) recorder_.enqueueRaw(event); };
+    session_.onSample = [this, sampleSink](const Sample& sample) { if (!dlcSelected() && !bridgeSelected()) sampleSink(sample); };
+    session_.onRaw = [this](const RawEvent& event) { if (!dlcSelected() && !bridgeSelected() && recorder_.active()) recorder_.enqueueRaw(event); };
     dlcSession_.onSample = [this, sampleSink](const Sample& sample) { if (dlcSelected()) sampleSink(sample); };
     dlcSession_.onRaw = [this](const RawEvent& event) { if (dlcSelected() && recorder_.active()) recorder_.enqueueRaw(event); };
     clock_.start(); timer_ = new QTimer(this); timer_->setTimerType(Qt::PreciseTimer); timer_->setInterval(16);
     connect(timer_, &QTimer::timeout, this, [this] { tickSessions(); refreshDashboard(); });
     if (!managedTime_) timer_->start();
+    rebuildBridge();
     refreshPorts();
     refreshDashboard();
 }
-MainWindow::~MainWindow() { session_.stop(now()); dlcSession_.stop(now()); recorder_.stop(); }
+MainWindow::~MainWindow() { session_.stop(now()); dlcSession_.stop(now()); bridgeSession_->stop(now()); bridgeClient_->disconnect(now()); recorder_.stop(); }
 Time MainWindow::now() const { return managedTime_ ? managedNow_ : static_cast<Time>(std::max<qint64>(0, clock_.elapsed())); }
 bool MainWindow::serialSelected() const { return source_->currentData().toInt() == 1; }
 bool MainWindow::dlcSelected() const { return source_->currentData().toInt() == 2; }
-const Model& MainWindow::activeModel() const { return dlcSelected() ? dlcSession_.model() : session_.model(); }
-void MainWindow::tickSessions() { if (dlcSelected()) dlcSession_.tick(now()); else session_.tick(now()); }
+bool MainWindow::bridgeSelected() const { return source_->currentData().toInt() == 3; }
+bool MainWindow::bridgeSerialSelected() const { return bridgeSelected() && bridgeBackend_->currentData().toInt() == 1; }
+const Model& MainWindow::activeModel() const { return bridgeSelected() ? bridgeSession_->model() : dlcSelected() ? dlcSession_.model() : session_.model(); }
+void MainWindow::tickSessions() { if (bridgeSelected()) bridgeSession_->tick(now()); else if (dlcSelected()) dlcSession_.tick(now()); else session_.tick(now()); }
+void MainWindow::rebuildBridge() {
+    if (bridgeSession_) bridgeSession_->stop(now());
+    if (bridgeClient_) bridgeClient_->disconnect(now());
+    bridgeSession_.reset(); bridgeClient_.reset();
+    bridge::Settings settings;
+#ifdef HONDADASH_WITH_SERIAL
+    if (bridgeSerialSelected()) { settings.bootMs = 1500; bridgeClient_ = std::make_unique<bridge::Client>(*serialTransport_, settings); }
+    else
+#endif
+        bridgeClient_ = std::make_unique<bridge::Client>(nativeBridge_, settings);
+    bridgeSession_ = std::make_unique<dlc::Session>(*bridgeClient_);
+    bridgeSession_->setScenario(static_cast<dlc::Scenario>(bridgeScenario_->currentIndex()));
+    bridgeSession_->setFaults(bridgeFaults_);
+    bridgeSession_->onSample = [this](const Sample& sample) {
+        if (!bridgeSelected()) return;
+        if (sample.updatedMask != AllChannelsMask && sample.request == bridgeDisplayedRequest_)
+            bridgeInnerCheck_ = QStringLiteral("Міст і ПК: header / length / checksum OK; калібрування ECU не перевірено");
+        chart_->pushSample(sample); if (recorder_.active()) recorder_.enqueueSample(sample);
+    };
+    bridgeSession_->onRaw = [this](const RawEvent& event) { if (bridgeSelected() && recorder_.active()) recorder_.enqueueRaw(event); };
+    bridgeClient_->onRaw = [this](const RawEvent& event) { bridgeRaw(event); };
+    bridgeOuterTx_.clear(); bridgeOuterRx_.clear(); bridgeInnerTx_.clear(); bridgeInnerRx_.clear();
+    bridgeInnerRead_.clear(); bridgeInnerFormula_.clear(); bridgeInnerCheck_.clear(); bridgeDisplayedRequest_ = 0;
+}
+void MainWindow::bridgeRaw(const RawEvent& event) {
+    if (!bridgeSelected()) return;
+    const auto bytes = QString::fromStdString(dlc::hex(event.bytes));
+    if (event.kind == "usb_tx") bridgeOuterTx_ = bytes;
+    if (event.kind == "usb_rx") bridgeOuterRx_ = bytes;
+    if (event.kind == "bridge_dlc_tx") {
+        bridgeInnerTx_ = bytes; bridgeDisplayedRequest_ = event.request;
+        bridgeInnerRead_ = QString::fromStdString(bridgeSession_->lastExchange().read);
+        bridgeInnerFormula_ = QString::fromStdString(bridgeSession_->lastExchange().formulaSource);
+    }
+    if (event.kind == "bridge_dlc_rx") bridgeInnerRx_ = bytes;
+    if (event.kind == "bridge_result" && event.bridge)
+        bridgeInnerCheck_ = QStringLiteral("Статус мосту %1 · %2").arg(event.bridge->status).arg(event.bridge->status == 0 ? QStringLiteral("OK; очікування перевірки ПК") : QStringLiteral("помилка DLC"));
+    if (recorder_.active()) recorder_.enqueueRaw(event);
+}
+void MainWindow::newBridgeExperiment() {
+    if (!bridgeSelected() || !bridgeClient_->info()) return;
+    chart_->clear(); bridgeInnerTx_.clear(); bridgeInnerRx_.clear();
+    bridgeInnerRead_.clear(); bridgeInnerFormula_.clear(); bridgeInnerCheck_.clear(); bridgeDisplayedRequest_ = 0;
+    bridgeSession_->start(now()); refreshDashboard();
+}
+void MainWindow::applyBridgeFaults(dlc::Faults faults) {
+    const QSignalBlocker silenceBlocker(bridgeSilence_), delayBlocker(bridgeDelay_), gapBlocker(bridgeGap_);
+    bridgeSilence_->setChecked(faults.silent); bridgeDelay_->setValue(static_cast<int>(faults.delayMs)); bridgeGap_->setValue(static_cast<int>(faults.gapMs));
+    bridgeFaults_ = faults;
+    bridgeFaults_.corruptNext = bridgeFaults_.truncateNext = bridgeFaults_.wrongLengthNext = bridgeFaults_.noiseNext = bridgeFaults_.headerNext = bridgeFaults_.trailingNext = false;
+    if (bridgeSession_) bridgeSession_->setFaults(faults);
+}
 void MainWindow::applyDlcFaults(dlc::Faults faults) {
     dlcSession_.setFaults(faults);
     if (recorder_.active()) {
@@ -309,6 +431,7 @@ void MainWindow::refreshPorts() {
 }
 void MainWindow::changeSource() {
     recorder_.stop(); session_.stop(now()); dlcSession_.stop(now()); chart_->clear();
+    rebuildBridge();
     SessionSettings settings;
 #ifdef HONDADASH_WITH_SERIAL
     if (serialSelected()) { session_.setTransport(*serialTransport_); settings.bootDelayMs = 2000; }
@@ -324,6 +447,14 @@ void MainWindow::applyManual() {
     session_.setManual(values);
 }
 void MainWindow::startSession() {
+    if (bridgeSelected()) {
+        if (bridgeSerialSelected() && port_->currentData().toString().isEmpty()) return;
+        rebuildBridge();
+#ifdef HONDADASH_WITH_SERIAL
+        if (bridgeSerialSelected()) serialTransport_->setPortName(port_->currentData().toString().toStdString());
+#endif
+        chart_->clear(); bridgeClient_->connect(now()); refreshDashboard(); return;
+    }
     if (dlcSelected()) { chart_->clear(); dlcSession_.start(now()); refreshDashboard(); return; }
     if (serialSelected() && port_->currentData().toString().isEmpty()) return;
     session_.stop(now());
@@ -332,7 +463,7 @@ void MainWindow::startSession() {
 #endif
     chart_->clear(); session_.start(now()); refreshDashboard();
 }
-void MainWindow::stopSession() { session_.stop(now()); dlcSession_.stop(now()); refreshDashboard(); }
+void MainWindow::stopSession() { session_.stop(now()); dlcSession_.stop(now()); bridgeSession_->stop(now()); bridgeClient_->disconnect(now()); refreshDashboard(); }
 void MainWindow::updateCapabilities(const std::optional<DeviceInfo>& info) {
     const auto flags = info ? info->capabilities : serialSelected() ? 0 : CapabilityScenario | CapabilityManual | CapabilityFaults | CapabilityQuality;
     scenario_->setEnabled((flags & CapabilityScenario) != 0); seed_->setEnabled(scenario_->isEnabled());
@@ -354,15 +485,16 @@ void MainWindow::updateCapabilities(const std::optional<DeviceInfo>& info) {
 }
 void MainWindow::refreshDashboard() {
     const auto currentTime = now(); const double elapsed = static_cast<double>(currentTime - lastPaint_); lastPaint_ = currentTime;
-    const bool honda = dlcSelected();
+    const bool bridge = bridgeSelected();
+    const bool honda = dlcSelected() || bridge;
     const auto& measurements = activeModel().channels();
     for (std::size_t i = 0; i < ChannelCount; ++i) {
         auto reading = measurements[i]; reading.value = activeModel().current(static_cast<Channel>(i), currentTime);
         if (i == 0) tachometer_->setReading(reading, elapsed); else cards_[i]->setReading(reading);
     }
-    chart_->setNow(currentTime); sessionStatus_->setText(honda ? dlcSessionName(dlcSession_.state()) : QStringLiteral("Сесія: ") + sessionName(session_.state()));
-    sessionStatus_->setToolTip(QString::fromStdString(honda ? dlcSession_.error() : session_.error()));
-    const bool running = honda ? dlcSession_.state() == dlc::State::Polling : session_.state() == SessionState::Running;
+    chart_->setNow(currentTime); sessionStatus_->setText(bridge ? bridgeSessionName(bridgeClient_->state()) : honda ? dlcSessionName(dlcSession_.state()) : QStringLiteral("Сесія: ") + sessionName(session_.state()));
+    sessionStatus_->setToolTip(QString::fromStdString(bridge ? bridgeClient_->error() + "; " + bridgeSession_->error() : honda ? dlcSession_.error() : session_.error()));
+    const bool running = bridge ? bridgeSession_->state() == dlc::State::Polling && bridgeClient_->state() != bridge::State::Faulted : honda ? dlcSession_.state() == dlc::State::Polling : session_.state() == SessionState::Running;
     sessionStatus_->setStyleSheet(running ? QStringLiteral("color:#51d3ba;") : QStringLiteral("color:#ffca79;"));
     const auto& stats = session_.stats(); std::optional<Time> newest;
     for (const auto& reading : measurements) if (reading.lastValid && (!newest || *reading.lastValid > *newest)) newest = reading.lastValid;
@@ -371,18 +503,22 @@ void MainWindow::refreshDashboard() {
     const auto recordState = !error.isEmpty() ? QStringLiteral("ПОМИЛКА") : recorder_.active() ? QStringLiteral("ЗАПИС") : QStringLiteral("зупинено");
     statistics_->setText(QStringLiteral("%1 відп./с · Давність: %2 · Тайм-аути: %3 · Пошкоджені: %4 · Прийнято: %5 · Журнал: %6")
         .arg(stats.responseHz, 0, 'f', 1).arg(age).arg(stats.timeouts).arg(stats.corrupt).arg(stats.accepted).arg(recordState));
-    const bool stopped = honda ? dlcSession_.state() == dlc::State::Stopped || dlcSession_.state() == dlc::State::Faulted : session_.state() == SessionState::Stopped || session_.state() == SessionState::Faulted;
-    const bool usb = serialSelected();
+    const bool bridgeDisconnected = bridgeClient_->state() == bridge::State::Disconnected;
+    const bool stopped = bridge ? bridgeDisconnected : honda ? dlcSession_.state() == dlc::State::Stopped || dlcSession_.state() == dlc::State::Faulted : session_.state() == SessionState::Stopped || session_.state() == SessionState::Faulted;
+    const bool usb = serialSelected() || bridgeSerialSelected();
     source_->setEnabled(stopped); port_->setEnabled(stopped); refreshPorts_->setEnabled(stopped);
+    bridgeBackend_->setVisible(bridge); bridgeBackend_->setEnabled(stopped);
     port_->setVisible(usb); refreshPorts_->setVisible(usb); portDetails_->setVisible(usb);
-    start_->setText(usb ? QStringLiteral("Підключити") : QStringLiteral("Старт"));
+    start_->setText(bridge ? QStringLiteral("Старт / handshake") : usb ? QStringLiteral("Підключити") : QStringLiteral("Старт"));
     stop_->setText(usb ? QStringLiteral("Від’єднати") : QStringLiteral("Стоп"));
     start_->setEnabled(stopped && (!usb || !port_->currentData().toString().isEmpty()));
-    stop_->setEnabled(honda ? dlcSession_.state() != dlc::State::Stopped : session_.state() != SessionState::Stopped);
+    stop_->setEnabled(bridge ? !bridgeDisconnected : honda ? dlcSession_.state() != dlc::State::Stopped : session_.state() != SessionState::Stopped);
+    bridgeNewExperiment_->setVisible(bridge);
+    bridgeNewExperiment_->setEnabled(bridge && bridgeClient_->info().has_value() && (bridgeClient_->state() == bridge::State::Ready || bridgeClient_->state() == bridge::State::Faulted));
     scenario_->setVisible(!honda); demoNotice_->setVisible(!honda); seed_->setVisible(!honda); seedLabel_->setVisible(!honda);
-    manualBox_->setVisible(!honda && scenario_->currentIndex() == 3); faultBox_->setVisible(!honda); dlcBox_->setVisible(honda);
+    manualBox_->setVisible(!honda && scenario_->currentIndex() == 3); faultBox_->setVisible(!honda); dlcBox_->setVisible(dlcSelected()); bridgeBox_->setVisible(bridge);
     dlcProfile_->setEnabled(stopped);
-    warning_->setText(honda ? QStringLiteral("ЛАБОРАТОРНА ЕМУЛЯЦІЯ HONDA DLC — ECU НЕ ПІДКЛЮЧЕНО") : usb ? QStringLiteral("ЕМУЛЯЦІЯ НА ПРИСТРОЇ — ECU НЕ ПІДКЛЮЧЕНО") : QStringLiteral("ЕМУЛЯЦІЯ — не підключено до автомобіля"));
+    warning_->setText(bridge ? QStringLiteral("ТЕСТОВИЙ МІСТ — ВІРТУАЛЬНИЙ ECU — ФІЗИЧНИЙ DLC ВИМКНЕНО") : honda ? QStringLiteral("ЛАБОРАТОРНА ЕМУЛЯЦІЯ HONDA DLC — ECU НЕ ПІДКЛЮЧЕНО") : usb ? QStringLiteral("ЕМУЛЯЦІЯ НА ПРИСТРОЇ — ECU НЕ ПІДКЛЮЧЕНО") : QStringLiteral("ЕМУЛЯЦІЯ — не підключено до автомобіля"));
     if (offscreenScreenshot_) warning_->setText(warning_->text() + QStringLiteral(" · знімок offscreen (без звичайного GUI)"));
     const auto& info = session_.deviceInfo();
     QString identity = info ? QStringLiteral("%1 · firmware %2").arg(QString::fromStdString(info->endpoint), QString::fromStdString(info->firmware)) : usb ? QStringLiteral("Тестовий пристрій не розпізнано") : QStringLiteral("Синтетичний профіль у пам’яті ПК");
@@ -390,7 +526,7 @@ void MainWindow::refreshDashboard() {
     if (!session_.error().empty()) identity += QStringLiteral("\nПОМИЛКА: ") + QString::fromStdString(session_.error());
     deviceInfo_->setText(identity);
     deviceInfo_->setStyleSheet(session_.error().empty() ? QStringLiteral("color:#91a5ba;") : QStringLiteral("color:#ff7e7e;"));
-    if (honda) refreshDlcDetails(); else updateCapabilities(info);
+    if (bridge) refreshBridgeDetails(); else if (honda) refreshDlcDetails(); else updateCapabilities(info);
     QString recordingText = QStringLiteral("Журнал: ") + QString::fromUtf8(recorder_.status().c_str());
     if (recorder_.active()) {
         const auto directory = recorder_.directory();
@@ -421,7 +557,51 @@ void MainWindow::refreshDlcDetails() {
     statistics_->setText(QStringLiteral("RPM %1 Гц / %2 · ECT %3 Гц / %4 · TPS %5 Гц / %6 · Тайм-аути %7 · Пошкоджені %8")
         .arg(stats.channelHz[0], 0, 'f', 1).arg(age(Channel::Rpm)).arg(stats.channelHz[2], 0, 'f', 1).arg(age(Channel::Coolant)).arg(stats.channelHz[4], 0, 'f', 1).arg(age(Channel::Throttle)).arg(stats.timeouts).arg(stats.corrupt));
 }
+void MainWindow::refreshBridgeDetails() {
+    const auto& info = bridgeClient_->info();
+    QString identity = info ? QString::fromStdString(info->identity) + QStringLiteral("\nbackend=virtual · фізичний DLC вимкнено") : QStringLiteral("Bridge-lab endpoint не розпізнано");
+    if (info) identity += QStringLiteral("\nFirmware %1 · bridge v%2\nRead-policy v%3 · покоління %4").arg(QString::fromStdString(info->firmware)).arg(info->protocolVersion).arg(info->policyVersion).arg(info->generation);
+    if (bridgeSession_->stats().accepted) identity += QStringLiteral("\nОтримано коректне DLC-читання.");
+    else identity += QStringLiteral("\nІніціалізація не розпізнає ECU.");
+    const auto error = !bridgeClient_->error().empty() ? bridgeClient_->error() : bridgeSession_->error();
+    if (!error.empty()) identity += QStringLiteral("\nОБМІН ЗАБЛОКОВАНО: ") + QString::fromStdString(error);
+    deviceInfo_->setText(identity); deviceInfo_->setStyleSheet(error.empty() ? QStringLiteral("color:#91a5ba;") : QStringLiteral("color:#ff7e7e;"));
+    capabilities_->setText(QStringLiteral("USB handshake перевіряє протокол мосту. Це не підтвердження Nano чи ECU. Початок читань — окремою кнопкою нового експерименту."));
+    bridgeScenario_->setEnabled(info.has_value());
+    for (QWidget* widget : std::array<QWidget*, 8>{bridgeSilence_, bridgeDelay_, bridgeGap_, bridgeCorrupt_, bridgeTruncate_, bridgeLength_, bridgeHeader_, bridgeTrailing_}) widget->setEnabled(info.has_value());
+    bridgeOuterHex_->setText(QStringLiteral("USB bridge frame · host\nTX: %1\nRX (останній фрагмент): %2").arg(bridgeOuterTx_, bridgeOuterRx_));
+    bridgeInnerHex_->setText(QStringLiteral("DLC · повідомлено мостом\nОстанній завершений result\nTX: %1\nRX: %2\nЧитання: %3\nПеревірка: %4\nФормула: %5")
+        .arg(bridgeInnerTx_, bridgeInnerRx_, bridgeInnerRead_, bridgeInnerCheck_, bridgeInnerFormula_));
+    bridgeInnerHex_->setToolTip(bridgeInnerFormula_);
+    const auto& timing = bridgeClient_->diagnostics();
+    bridgeTiming_->setText(QStringLiteral("Час пристрою · відносний\nTX %1 мс · RX %2 мс\nНайбільша пауза %3 мс\n%4\nЧас ПК і пристрою не синхронізовано.")
+        .arg(timing.txElapsedMs).arg(timing.rxElapsedMs).arg(timing.maxGapMs).arg(QString::fromStdString(timing.summary)));
+    bridgeTiming_->setToolTip(QStringLiteral("Свіжість відраховується консервативно від початку запиту на ПК. Поріг Stale — 1000 мс, приховування — 3000 мс. ECT може коротко ставати Stale між читаннями через перевірку кінця DLC-відповіді; фактичні частоти й давність показані внизу."));
+    for (auto* trace : {bridgeOuterHex_, bridgeInnerHex_, bridgeTiming_}) trace->setMinimumHeight(trace->heightForWidth(240));
+    const auto& stats = bridgeSession_->stats();
+    const auto& channels = bridgeSession_->model().channels();
+    const auto age = [&](Channel channel) { const auto& reading = channels[channelIndex(channel)]; return reading.lastValid ? QString::number(now() - *reading.lastValid) + QStringLiteral(" мс") : QStringLiteral("—"); };
+    statistics_->setText(QStringLiteral("RPM %1 Гц / %2 · ECT %3 Гц / %4 · TPS %5 Гц / %6 · Прийнято %7 · Журнал: %8")
+        .arg(stats.channelHz[0], 0, 'f', 1).arg(age(Channel::Rpm)).arg(stats.channelHz[2], 0, 'f', 1).arg(age(Channel::Coolant)).arg(stats.channelHz[4], 0, 'f', 1).arg(age(Channel::Throttle)).arg(stats.accepted).arg(recorder_.active() ? QStringLiteral("ЗАПИС") : QStringLiteral("зупинено")));
+}
 RecordingMetadata MainWindow::recordingMetadata() const {
+    if (bridgeSelected()) {
+        RecordingMetadata metadata{dlc::scenarioId(static_cast<dlc::Scenario>(bridgeScenario_->currentIndex())), 0};
+        metadata.formatVersion = 3; metadata.wireProtocol = "honda-dlc"; metadata.profile = "honda-dlc-kerpz-obd1-reference-v1";
+        metadata.profileVersion = 1; metadata.evidenceStatus = "reference-derived; hardware-unverified"; metadata.fixtureClass = "reference-derived";
+        metadata.fixtureId = metadata.scenario; metadata.transport = bridgeSerialSelected() ? "serial" : "in-memory-embedded-bridge";
+        metadata.outerProtocol = "hondadash-dlc-bridge-lab-v1"; metadata.backend = "virtual"; metadata.physicalDlcEnabled = false;
+        metadata.hardwareVerified = false; metadata.liveEnabled = false; metadata.firmware.clear();
+        metadata.endpoint = "unrecognized";
+        if (bridgeClient_->info()) {
+            const auto& info = *bridgeClient_->info();
+            metadata.endpoint = info.identity; metadata.bridgeIdentity = info.identity;
+            metadata.firmware = info.firmware;
+            metadata.bridgeVersion = info.protocolVersion; metadata.readPolicyVersion = info.policyVersion;
+        }
+        if (bridgeSerialSelected()) { metadata.port = port_->currentData().toString().toStdString(); metadata.baud = 115200; }
+        return metadata;
+    }
     if (dlcSelected()) {
         RecordingMetadata metadata{dlc::scenarioId(static_cast<dlc::Scenario>(dlcScenario_->currentIndex())), 0};
         metadata.formatVersion = 3; metadata.wireProtocol = "honda-dlc"; metadata.profile = "honda-dlc-kerpz-obd1-reference-v1";
@@ -451,12 +631,19 @@ bool MainWindow::startRecording(const std::filesystem::path& directory) {
     if (!recorder_.start(directory, recordingMetadata())) return false;
     // A mid-session log declares profile availability without re-emitting old
     // values. lastValid begins only when a subsequent real partial read arrives.
+    if (bridgeSelected()) return recorder_.enqueueSample(dlc::unavailable(now(), bridgeSession_->id()));
     if (dlcSelected()) return recorder_.enqueueSample(dlc::unavailable(now(), dlcSession_.id()));
     return true;
 }
 void MainWindow::advance(Time amount) {
     const Time end = managedNow_ + amount;
-    while (managedNow_ < end) { managedNow_ = std::min(end, managedNow_ + 10); tickSessions(); refreshDashboard(); }
+    // Preserve every 10 ms executor tick and refresh at every assertion boundary.
+    // The long history check needs no more than 20 simulated paints per second;
+    // normal interactive rendering still uses the 16 ms Qt timer.
+    while (managedNow_ < end) {
+        managedNow_ = std::min(end, managedNow_ + 10); tickSessions();
+        if (managedNow_ == end || managedNow_ - lastPaint_ >= 50) refreshDashboard();
+    }
 }
 void MainWindow::markOffscreenScreenshot() {
     offscreenScreenshot_ = true; refreshDashboard();
@@ -655,6 +842,105 @@ QJsonObject MainWindow::smokeTest(const QString& screenshotPath) {
     const auto bootstrap = midLines.size() > 1 ? QJsonDocument::fromJson(midLines[1]).object() : QJsonObject{};
     check(QStringLiteral("dlc_mid_session_journal_never_replays_old_valid_values"), recorder_.error().empty() && previousRpmTime && *previousRpmTime < recordingStartTime && bootstrap.value(QStringLiteral("updated_mask")).toInt() == 127 && !midLines.value(1).contains("\"quality\":\"Valid\"") && midLines.value(1).contains("\"quality\":\"Unsupported\"") && midLines.value(1).contains("honda-dlc-kerpz-obd1-reference-v1") && midBytes.contains("\"quality\":\"Valid\""));
     check(QStringLiteral("dlc_final_close_stops_active_session_and_recorder"), dlcSession_.state() == dlc::State::Stopped && !recorder_.active());
+    QJsonArray bridgeScreenshots;
+    show(); source_->setCurrentIndex(source_->findData(3));
+    check(QStringLiteral("bridge_mode_is_separate_native_source_with_permanent_warning"), bridgeSelected() && !bridgeSerialSelected() && port_->isHidden() && !bridgeClient_->info() && session_.state() == SessionState::Stopped && dlcSession_.state() == dlc::State::Stopped && warning_->text().contains(QStringLiteral("ТЕСТОВИЙ МІСТ — ВІРТУАЛЬНИЙ ECU — ФІЗИЧНИЙ DLC ВИМКНЕНО")));
+    check(QStringLiteral("bridge_requires_handshake_before_explicit_experiment"), !bridgeNewExperiment_->isEnabled() && !bridgeScenario_->isEnabled() && !tachometer_->reading().value);
+    start_->click(); advance(300);
+    check(QStringLiteral("bridge_handshake_alone_never_starts_dlc_or_invents_samples"), bridgeClient_->state() == bridge::State::Ready && bridgeClient_->info() && bridgeClient_->info()->backend == 1 && !bridgeClient_->info()->physicalDlcEnabled && bridgeSession_->stats().accepted == 0 && !tachometer_->reading().value && bridgeNewExperiment_->isEnabled() && bridgeInnerTx_.isEmpty());
+    check(QStringLiteral("bridge_v3_recording_started"), startRecording(filePath(recordingParent + QStringLiteral("/Міст на ПК"))));
+    bridgeNewExperiment_->click(); advance(100);
+    check(QStringLiteral("bridge_init_wait_does_not_claim_ecu_recognition"), bridgeSession_->stats().accepted == 0 && !tachometer_->reading().value && deviceInfo_->text().contains(QStringLiteral("Ініціалізація не розпізнає ECU")));
+    advance(2600);
+    check(QStringLiteral("bridge_embedded_full_path_decodes_fixture_A"), bridgeSession_->state() == dlc::State::Polling && valueIs(Channel::Rpm, 750) && valueIs(Channel::Coolant, 61) && valueIs(Channel::Throttle, 32) && deviceInfo_->text().contains(QStringLiteral("Отримано коректне DLC-читання")));
+    bool bridgeUnknownChannels = true;
+    for (const auto channel : {Channel::Speed, Channel::Intake, Channel::Map, Channel::Voltage}) {
+        const auto& reading = cards_[channelIndex(channel)]->reading();
+        bridgeUnknownChannels = bridgeUnknownChannels && !reading.value && reading.reason == "Не визначено для цього профілю";
+    }
+    check(QStringLiteral("bridge_does_not_fall_back_to_M1_values_for_undefined_channels"), bridgeUnknownChannels && session_.state() == SessionState::Stopped && dlcSession_.state() == dlc::State::Stopped);
+    const auto bridgeRpmBefore = activeModel().channels()[0].lastValid;
+    std::optional<Time> coolantBeforeRpm;
+    std::size_t coolantPlotBefore{};
+    for (int i = 0; i < 150 && activeModel().channels()[0].lastValid == bridgeRpmBefore; ++i) {
+        coolantBeforeRpm = activeModel().channels()[2].lastValid; coolantPlotBefore = chart_->sampleCount(Channel::Coolant); advance(10);
+    }
+    check(QStringLiteral("bridge_partial_rpm_does_not_refresh_coolant_or_plot"), activeModel().channels()[0].lastValid != bridgeRpmBefore && activeModel().channels()[2].lastValid == coolantBeforeRpm && chart_->sampleCount(Channel::Coolant) == coolantPlotBefore);
+    bridgeScenario_->setCurrentIndex(1);
+    check(QStringLiteral("bridge_raw_set_change_waits_for_outer_and_inner_byte_exchange"), valueIs(Channel::Rpm, 750));
+    advance(2400);
+    check(QStringLiteral("bridge_embedded_full_path_decodes_fixture_B"), valueIs(Channel::Rpm, 1500) && valueIs(Channel::Coolant, 89) && valueIs(Channel::Throttle, 75));
+    check(QStringLiteral("bridge_hex_separates_USB_envelope_from_reported_DLC_bytes"), bridgeOuterTx_.startsWith(QStringLiteral("A5 5A")) && !bridgeOuterRx_.isEmpty() && bridgeInnerTx_.startsWith(QStringLiteral("20 05")) && bridgeInnerRx_.startsWith(QStringLiteral("00")) && bridgeOuterHex_->text().contains(QStringLiteral("USB bridge frame")) && bridgeInnerHex_->text().contains(QStringLiteral("DLC · повідомлено мостом")) && bridgeTiming_->text().contains(QStringLiteral("не синхронізовано")));
+    check(QStringLiteral("bridge_trace_context_matches_reported_TX_not_next_pending_read"),
+        (bridgeInnerTx_.startsWith(QStringLiteral("20 05 00")) && bridgeInnerRead_.startsWith(QStringLiteral("RPM"))) ||
+        (bridgeInnerTx_.startsWith(QStringLiteral("20 05 10")) && bridgeInnerRead_.startsWith(QStringLiteral("ECT"))) ||
+        (bridgeInnerTx_.startsWith(QStringLiteral("20 05 14")) && bridgeInnerRead_.startsWith(QStringLiteral("TPS"))));
+    bridgeCorrupt_->click(); advance(1000);
+    check(QStringLiteral("bridge_DLC_checksum_failure_blocks_polling_with_explicit_restart"), bridgeSession_->state() == dlc::State::Faulted && bridgeClient_->state() == bridge::State::Faulted && !bridgeSession_->error().empty() && bridgeNewExperiment_->isEnabled() && !start_->isEnabled());
+    const auto bridgeAcceptedAtFault = bridgeSession_->stats().accepted;
+    advance(1500);
+    check(QStringLiteral("bridge_fault_preserves_old_values_as_stale_without_new_samples"), tachometer_->reading().quality == Quality::Stale && bridgeSession_->stats().accepted == bridgeAcceptedAtFault);
+    advance(2200);
+    check(QStringLiteral("bridge_fault_eventually_hides_old_value"), !tachometer_->reading().value);
+    bridgeNewExperiment_->click(); advance(2600);
+    check(QStringLiteral("bridge_explicit_new_experiment_recovers_via_embedded_byte_path"), bridgeSession_->state() == dlc::State::Polling && valueIs(Channel::Rpm, 1500) && valueIs(Channel::Coolant, 89) && valueIs(Channel::Throttle, 75));
+    bridgeGap_->setValue(60); advance(1100);
+    check(QStringLiteral("bridge_interbyte_fault_is_not_hidden_by_USB_result_delivery"), bridgeSession_->state() == dlc::State::Faulted && bridgeClient_->state() == bridge::State::Faulted);
+    bridgeGap_->setValue(0); bridgeNewExperiment_->click(); advance(2600);
+    bridgeTrailing_->click(); advance(1100);
+    check(QStringLiteral("bridge_valid_reply_plus_trailing_bytes_blocks_exchange"), bridgeSession_->state() == dlc::State::Faulted && bridgeClient_->state() == bridge::State::Faulted);
+    bridgeNewExperiment_->click(); advance(2600);
+    bridgeScenario_->setCurrentIndex(0); advance(2400);
+    for (const QSize size : {QSize(1024, 600), QSize(1280, 720)}) {
+        resize(size); settleControlLayout();
+        check(QStringLiteral("bridge_layout_%1x%2").arg(size.width()).arg(size.height()), centralWidget()->width() <= size.width() && centralWidget()->height() <= size.height() && tachometer_->width() >= 240 && tachometer_->height() >= 245 && chart_->height() >= 118 && controlPanel_->width() <= controlScroll_->viewport()->width());
+        if (!screenshotPath.isEmpty()) {
+            const QFileInfo screenshotInfo(screenshotPath);
+            const auto path = screenshotInfo.dir().filePath(screenshotInfo.completeBaseName() + QStringLiteral("-bridge-%1x%2.png").arg(size.width()).arg(size.height()));
+            bridgeScreenshots.append(path); check(QStringLiteral("bridge_screenshot_%1_saved").arg(size.width()), grab().save(path));
+            if (size.width() == 1280) {
+                controlScroll_->verticalScrollBar()->setValue(controlScroll_->verticalScrollBar()->maximum()); settleControlLayout();
+                const auto tracePath = screenshotInfo.dir().filePath(screenshotInfo.completeBaseName() + QStringLiteral("-bridge-trace.png"));
+                bridgeScreenshots.append(tracePath);
+                check(QStringLiteral("bridge_trace_labels_fit_their_contents"), bridgeOuterHex_->height() >= bridgeOuterHex_->heightForWidth(bridgeOuterHex_->width()) && bridgeInnerHex_->height() >= bridgeInnerHex_->heightForWidth(bridgeInnerHex_->width()) && bridgeTiming_->height() >= bridgeTiming_->heightForWidth(bridgeTiming_->width()));
+                check(QStringLiteral("bridge_two_level_trace_screenshot_saved"), grab().save(tracePath));
+                controlScroll_->verticalScrollBar()->setValue(0);
+            }
+        }
+    }
+    close();
+    check(QStringLiteral("bridge_close_stops_all_sessions_and_recording"), bridgeSession_->state() == dlc::State::Stopped && bridgeClient_->state() == bridge::State::Disconnected && !recorder_.active() && !timer_->isActive());
+    QFile bridgeRawFile(pathString(recorder_.directory() / "raw.jsonl"));
+    const auto bridgeOpened = bridgeRawFile.open(QIODevice::ReadOnly);
+    const auto bridgeBytes = bridgeOpened ? bridgeRawFile.readAll() : QByteArray{};
+    check(QStringLiteral("bridge_journal_preserves_outer_inner_faults_boundaries_and_partial_updates"), recorder_.error().empty() && bridgeBytes.contains("\"format_version\":3") && bridgeBytes.contains("\"source\":\"simulation\"") && bridgeBytes.contains("\"outer_protocol\":\"hondadash-dlc-bridge-lab-v1\"") && bridgeBytes.contains("\"backend\":\"virtual\"") && bridgeBytes.contains("\"physical_dlc_enabled\":false") && bridgeBytes.contains("\"kind\":\"usb_tx\"") && bridgeBytes.contains("\"kind\":\"usb_rx\"") && bridgeBytes.contains("\"kind\":\"bridge_dlc_rx\"") && bridgeBytes.contains("bridge_boundary") && bridgeBytes.contains("transaction_fault") && bridgeBytes.contains("\"updated_mask\":"));
+    bridgeRawFile.close();
+    show(); start_->click(); advance(300);
+    check(QStringLiteral("bridge_reconnect_requires_new_explicit_experiment_without_old_values"), bridgeClient_->state() == bridge::State::Ready && bridgeSession_->stats().accepted == 0 && !tachometer_->reading().value);
+    bridgeNewExperiment_->click(); advance(2600);
+    check(QStringLiteral("bridge_mid_session_recording_started"), startRecording(filePath(recordingParent + QStringLiteral("/Міст mid-session"))));
+    advance(1600); close();
+    QFile bridgeMidFile(pathString(recorder_.directory() / "raw.jsonl"));
+    const bool bridgeMidOpened = bridgeMidFile.open(QIODevice::ReadOnly);
+    const auto bridgeMidBytes = bridgeMidOpened ? bridgeMidFile.readAll() : QByteArray{};
+    const auto bridgeMidLines = bridgeMidBytes.split('\n');
+    check(QStringLiteral("bridge_mid_session_recording_does_not_replay_old_values_as_fresh"), recorder_.error().empty() && bridgeMidLines.value(1).contains("\"updated_mask\":127") && !bridgeMidLines.value(1).contains("\"quality\":\"Valid\"") && bridgeMidBytes.contains("\"quality\":\"Valid\""));
+    bridgeMidFile.close();
+    show(); source_->setCurrentIndex(0); source_->setCurrentIndex(source_->findData(3));
+    check(QStringLiteral("bridge_source_switch_cancels_old_context_and_model"), bridgeClient_->state() == bridge::State::Disconnected && !bridgeClient_->info() && !tachometer_->reading().value && chart_->sampleCount() == 0);
+#ifdef HONDADASH_WITH_SERIAL
+    bridgeBackend_->setCurrentIndex(bridgeBackend_->findData(1)); port_->setCurrentIndex(0);
+    check(QStringLiteral("bridge_USB_requires_explicit_port_without_auto_open_or_fallback"), bridgeSerialSelected() && !start_->isEnabled() && bridgeClient_->state() == bridge::State::Disconnected && !bridgeClient_->info() && !tachometer_->reading().value);
+    port_->addItem(QStringLiteral("GUI smoke · bridge відсутній порт"), QStringLiteral("HondaDash_BRIDGE_SMOKE_NONEXISTENT_PORT_6491")); port_->setCurrentIndex(port_->count() - 1);
+    start_->click(); advance(200);
+    check(QStringLiteral("bridge_USB_missing_port_is_visible_and_never_becomes_native_bridge"), bridgeClient_->state() == bridge::State::Faulted && !bridgeClient_->info() && !bridgeClient_->error().empty() && !tachometer_->reading().value && !bridgeNewExperiment_->isEnabled());
+    stop_->click(); bridgeBackend_->setCurrentIndex(0);
+#else
+    check(QStringLiteral("bridge_simulation_only_has_native_backend_without_SerialPort"), bridgeBackend_->count() == 1 && bridgeBackend_->currentData().toInt() == 0);
+#endif
+    for (int i = 0; i < 5; ++i) { start_->click(); advance(300); bridgeNewExperiment_->click(); advance(800); stop_->click(); }
+    check(QStringLiteral("bridge_repeated_start_stop_cancels_context_and_clears_readings"), bridgeClient_->state() == bridge::State::Disconnected && bridgeSession_->state() == dlc::State::Stopped && !tachometer_->reading().value);
+    close();
     return {{QStringLiteral("format_version"), 1}, {QStringLiteral("application"), QStringLiteral("HondaDash")},
         {QStringLiteral("profile"), QStringLiteral("synthetic-demo-v1")}, {QStringLiteral("passed"), passed},
         {QStringLiteral("result"), passed ? QStringLiteral("pass") : QStringLiteral("fail")},
@@ -664,7 +950,7 @@ QJsonObject MainWindow::smokeTest(const QString& screenshotPath) {
         {QStringLiteral("layout_geometry"), layoutGeometry},
         {QStringLiteral("accepted_samples_final_session"), static_cast<qint64>(accepted)}, {QStringLiteral("screenshot"), screenshotPath},
         {QStringLiteral("screenshot_1024x600"), screenshot1024}, {QStringLiteral("screenshot_usb_unconnected"), screenshotUsb},
-        {QStringLiteral("dlc_screenshots"), dlcScreenshots}, {QStringLiteral("real_ecu_verified"), false},
+        {QStringLiteral("dlc_screenshots"), dlcScreenshots}, {QStringLiteral("bridge_screenshots"), bridgeScreenshots}, {QStringLiteral("real_ecu_verified"), false},
         {QStringLiteral("offscreen_font_loaded"), qApp->property("offscreen_font_loaded").toBool()}};
 }
 void MainWindow::keyPressEvent(QKeyEvent* event) {
@@ -672,5 +958,5 @@ void MainWindow::keyPressEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Escape && isFullScreen()) { showNormal(); event->accept(); return; }
     QMainWindow::keyPressEvent(event);
 }
-void MainWindow::closeEvent(QCloseEvent* event) { timer_->stop(); session_.stop(now()); dlcSession_.stop(now()); recorder_.stop(); event->accept(); }
+void MainWindow::closeEvent(QCloseEvent* event) { timer_->stop(); session_.stop(now()); dlcSession_.stop(now()); bridgeSession_->stop(now()); bridgeClient_->disconnect(now()); recorder_.stop(); refreshDashboard(); event->accept(); }
 }

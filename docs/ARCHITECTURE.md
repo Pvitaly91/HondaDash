@@ -1,11 +1,20 @@
-# Архітектура M0/M1 та M2a
+# Архітектура M0/M1, M2a та M2b
 
 M2a додає незалежну стандартну C++20 бібліотеку `hondadash_dlc`:
 `dlc::Session → encoder → OfflineLink → ScriptedHondaEcu → fragmented RX →
-parser → profile decoder → Model → widgets/Recorder`. Honda Session не
-приймає transport-параметр і структурно не може відкрити COM. Спільними
+parser → profile decoder → Model → widgets/Recorder`. M2b відокремлює
+Session від OfflineLink через вузький `dlc::Link`; default constructor
+залишає M2a offline. Ін'єкція `bridge::Client` додає тільки розпізнаний
+virtual bridge, не довільний serial tunnel. Спільними
 лишаються optional measurements, RawEvent, widgets і bounded recording.
 Деталі: [HONDA_DLC_PROTOCOL.md](HONDA_DLC_PROTOCOL.md).
+
+Шлях M2b: `dlc::Session → bridge::Client → outer codec → Transport →
+BridgeEndpoint → TransactionEngine → DlcPort → VirtualHondaEcu → Result →
+outer parser/identity/context checks → M2a parser/decoder → Model/Recorder`.
+NativeTransport компілює ті самі embedded sources, що AVR. SerialTransport
+обгортає тільки USB. DLC engine не залежить від Qt/host clocks; фізичного
+DlcPort немає. Деталі: [NANO_DLC_BRIDGE_ARCHITECTURE.md](NANO_DLC_BRIDGE_ARCHITECTURE.md).
 
 Sample має updatedMask (усі канали за замовчуванням для M0/M1), source,
 reasons та політику числового діапазону. Незмінені канали не змінюють

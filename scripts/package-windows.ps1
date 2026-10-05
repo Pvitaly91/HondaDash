@@ -96,10 +96,11 @@ $runtimeStatement = if ($missingRuntime.Count -eq 0) {
     'Перед запуском потрібен Microsoft Visual C++ Redistributable 2015–2022 x64 (версія не старіша за використаний MSVC 2022). Відсутні app-local DLL: ' + ($missingRuntime -join ', ') + '. Інсталятор vc_redist.x64.exe, якщо доданий windeployqt, треба встановити окремо.'
 }
 @"
-HondaDash M2a — запуск під Windows x64
+HondaDash M2b — запуск під Windows x64
 
 M1: вбудована емуляція або синтетична Nano через USB.
 M2a: окремий Honda DLC reference-профіль, тільки програмний відповідач.
+M2b: тестовий міст на ПК або Nano USB, тільки віртуальний ECU.
 Фізичні Nano/USB, електричний DLC та реальний ECU: NOT VERIFIED.
 Реальних captures немає; Valid у лабораторії не підтверджує сумісність ECU.
 
@@ -124,6 +125,14 @@ HEX-інспектор показує справжні байти reference-фо
 Recording v3 зберігає часткові оновлення, давність і всі пошкоджені RX.
 Докази, профіль, невизначеності й чекліст: HONDA_DLC_*.md поруч із програмою.
 
+Honda DLC — тестовий міст: виберіть «Міст на ПК», натисніть «Старт» для
+handshake, потім явно «Новий експеримент». USB backend потребує окремої
+nano_dlc_bridge_lab firmware та явно вибраного порту; Nano M1 відхиляється.
+Постійний напис: ТЕСТОВИЙ МІСТ — ВІРТУАЛЬНИЙ ECU — ФІЗИЧНИЙ DLC ВИМКНЕНО.
+Два HEX-рівні відділяють USB від повідомлених мостом DLC bytes. Fault/timeout
+зупиняє DLC; новий експеримент очищує лише програмний ECU. Деталі та ручний
+чекліст: NANO_DLC_BRIDGE_TESTING.md, протокол і архітектура поруч.
+
 Автоматична перевірка з PowerShell:
 .\HondaDash.exe --smoke-test --report smoke.json --screenshot dashboard.png
 Успіх підтверджує report із passed=true і код завершення 0.
@@ -135,7 +144,7 @@ THIRD_PARTY_NOTICES.md і папка licenses. Ліцензію HondaDash вла
 Copy-Item -LiteralPath (Join-Path $repository 'docs/THIRD_PARTY_NOTICES.md') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $repository 'docs/NANO_USB_TESTING.md') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $repository 'docs/SYNTHETIC_DEVICE_EXTENSION.md') -Destination $stage
-foreach ($document in @('HONDA_DLC_EVIDENCE.md', 'HONDA_DLC_PROTOCOL.md', 'HONDA_DLC_REFERENCE_PROFILE.md', 'HONDA_DLC_OFFLINE_TESTING.md')) {
+foreach ($document in @('HONDA_DLC_EVIDENCE.md', 'HONDA_DLC_PROTOCOL.md', 'HONDA_DLC_REFERENCE_PROFILE.md', 'HONDA_DLC_OFFLINE_TESTING.md', 'NANO_DLC_BRIDGE_PROTOCOL.md', 'NANO_DLC_BRIDGE_ARCHITECTURE.md', 'NANO_DLC_BRIDGE_TESTING.md')) {
     Copy-Item -LiteralPath (Join-Path $repository "docs/$document") -Destination $stage
 }
 $licenses = Join-Path $repository 'docs/licenses'

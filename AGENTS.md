@@ -5,6 +5,10 @@ HondaDash — окремий C++20/Qt Widgets проєкт. M1 використ�
 Фізичний USB не означає вимірювання автомобіля; hardware status окремий.
 M2a додає окремий offline-only Honda DLC reference-профіль. Він не має
 доступу до SerialTransport або Nano M1; hardware_verified=false і live_enabled=false.
+M2b окремо дозволяє DLC Link через власний розпізнаний virtual bridge на ПК
+або Nano USB. Лише identity `hondadash-dlc-bridge-lab-v1`, backend=virtual,
+physical_dlc_enabled=false, exact policy1. Це не дозволяє фізичного DLC,
+іншої firmware, raw tunnel чи передавання Honda bytes до Nano M1.
 Не переносити сюди HondaEcu, WPF/.NET, ROM, код або ресурси Hondash.
 
 - Перш ніж змінювати файли, перевірити git status та локальні інструкції;
@@ -27,7 +31,11 @@ M2a додає окремий offline-only Honda DLC reference-профіль. �
 - Відповідь reference DLC не має адреси/ID: після timeout/error зупинити
   опитування, зберегти пізні RX у журналі. Parser reset не очищує offline link.
   Новий offline experiment не є доказом recovery фізичного ECU.
-- Qt SerialPort 6.8.3 дозволений лише в транспортній Qt-обгортці M1.
+- Qt SerialPort 6.8.3 дозволений лише в транспортній Qt-обгортці M1 і
+  окремого розпізнаного M2b virtual bridge. USB/DLC deadlines незалежні;
+  DLC 300/200/50ms належать embedded engine після DLC TX-complete.
+  ABORT/HELLO/parser reset не очищують queued ECU RX; лише явний новий
+  лабораторний експеримент. Пізні RX журналюються без прив'язки до read.
   Session/model/protocol залишаються стандартним C++20; simulation-only
   збірка повинна працювати без SerialPort.
 - Не додавати QML, Qt Charts, WebEngine,
@@ -62,3 +70,7 @@ M2a додає окремий offline-only Honda DLC reference-профіль. �
 переписування приладів, моделі та журналювання.
 Evidence і межі M2a: `docs/HONDA_DLC_EVIDENCE.md`,
 `docs/HONDA_DLC_PROTOCOL.md`, `docs/HONDA_DLC_REFERENCE_PROFILE.md`.
+Контракт M2b: `docs/NANO_DLC_BRIDGE_PROTOCOL.md`,
+`docs/NANO_DLC_BRIDGE_ARCHITECTURE.md`, `docs/NANO_DLC_BRIDGE_TESTING.md`.
+M2b постійно показує «ТЕСТОВИЙ МІСТ — ВІРТУАЛЬНИЙ ECU — ФІЗИЧНИЙ DLC ВИМКНЕНО».
+Build/upload завжди розрізняють `synthetic` і `bridge-lab`; auto-upload заборонений.
