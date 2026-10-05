@@ -3,6 +3,9 @@
 Це внутрішній тестовий request/response протокол HondaDash. Він не є
 підтвердженим протоколом Honda DLC, емуляцією ECU, процесора чи OEM firmware.
 Команди, діапазони й масштабування нижче створено лише для програмного M0.
+M1 зберігає цей wire format і golden fixtures та використовує їх також
+для Nano synthetic endpoint. Додаткові команди й правила ініціалізації —
+у [SYNTHETIC_DEVICE_EXTENSION.md](SYNTHETIC_DEVICE_EXTENSION.md).
 
 ## Кадр
 

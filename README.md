@@ -1,11 +1,11 @@
-# HondaDash — M0
+# HondaDash — M1
 
 Незалежна настільна панель параметрів двигуна: C++20, Qt 6 Widgets,
-власні прилади й графік через QPainter. Перша версія працює без автомобіля,
-ECU, Arduino, драйверів і COM-портів.
+власні прилади й графік через QPainter. Вбудована емуляція працює без
+обладнання; USB Serial підтримує синтетичний endpoint класичної Nano.
 
-**M0 працює тільки з програмним емулятором.
-Сумісність із реальним Honda ECU не перевірена.**
+**Обидва джерела генерують синтетичні дані. Фізичний Nano/USB: NOT VERIFIED.
+Honda ECU/DLC сумісність не реалізована.**
 
 `synthetic-demo-v1` — наш тестовий байтовий протокол. Він не є підтвердженим
 Honda DLC, емуляцією процесора ECU або заводської прошивки. Усі діапазони,
@@ -32,7 +32,7 @@ Honda DLC, емуляцією процесора ECU або заводської
 
 Зафіксоване середовище: **Qt 6.8.3, MSVC 2022 x64, CMake 3.31.6**.
 Потрібна Visual Studio 2022 з компонентом Desktop development with C++,
-Windows SDK та Qt `msvc2022_64`. Python використовується лише для
+Windows SDK та Qt `msvc2022_64` з модулем SerialPort 6.8.3. Python використовується лише для
 встановлення інструментів у CI; застосунок його не використовує.
 
 Відкрийте PowerShell у корені репозиторію:
@@ -82,7 +82,7 @@ Redistributable, його версія має бути не старішою з�
 
 CI використовує Ubuntu 22.04, Qt 6.8.3 для Linux (`gcc_64`), CMake 3.31.6
 та Ninja 1.11.1. Для локальної збірки потрібні GCC із підтримкою C++20,
-Ninja, Qt 6.8.3 Widgets і системні залежності Qt.
+Ninja, Qt 6.8.3 Widgets + SerialPort і системні залежності Qt.
 
 На Ubuntu, окрім зафіксованих Qt/CMake, потрібні системні пакети:
 
@@ -142,10 +142,13 @@ Offscreen-знімок підтверджує рендеринг віджета;
 
 [GitHub Actions](https://github.com/Pvitaly91/HondaDash/actions) складає
 Windows Debug/Release та Linux GUI/логіку. Успішний Windows job додає
-artifact `HondaDash-windows-x64` з ZIP, тестовими звітами та знімком.
+окремі artifacts `HondaDash-windows-x64`, `HondaDash-windows-test-reports`,
+`HondaDash-linux-test-reports` та `HondaDash-nano-firmware` (HEX/ELF/map/size).
 Наявність workflow сама по собі не підтверджує, що конкретний запуск успішний;
 перевіряйте статус відповідного commit у Actions.
 
+- [Завантаження Nano та USB-чекліст](docs/NANO_USB_TESTING.md)
+- [Розширення synthetic endpoint](docs/SYNTHETIC_DEVICE_EXTENSION.md)
 - [Архітектура](docs/ARCHITECTURE.md)
 - [Повний синтетичний протокол і golden fixtures](docs/DEMO_PROTOCOL.md)
 - [Автоматичні та ручні перевірки](docs/TESTING.md)
@@ -153,10 +156,44 @@ artifact `HondaDash-windows-x64` з ZIP, тестовими звітами та 
 - [Third-party notices](docs/THIRD_PARTY_NOTICES.md)
 - [Правила розвитку проєкту](AGENTS.md)
 
-M0 не реалізує USB/SerialPort, Honda DLC, firmware Nano, записи в ECU,
+M1 не реалізує Honda DLC, записи в ECU,
 скидання помилок, Android або відтворення журналів. Частота опитування
 10 Гц є налаштуванням симуляції. Таймер перемальовування приблизно 16 мс
 є ціллю плавності, а не заявою про виміряні 60 FPS.
 
 Ліцензію всього проєкту власник поки не обрав. Ліцензійні тексти Qt та її
 включених залежностей у `docs/licenses` стосуються цих сторонніх компонентів.
+
+## Nano USB та simulation-only
+
+USB-режим працює через той самий parser/Session/Model/Recorder. Виберіть
+джерело USB, оновіть список портів і явно виберіть порт. Відкриття порту
+ще не означає розпізнавання: GUI очікує запуск firmware, HELLO та INFO.
+Постійний напис: «ЕМУЛЯЦІЯ НА ПРИСТРОЇ — ECU НЕ ПІДКЛЮЧЕНО».
+Усі журнали мають source=simulation, окремий transport та firmware metadata.
+
+```powershell
+# Лише складання, без upload; завантажує точні CLI 1.2.2 / AVR Boards 1.8.6
+./scripts/build-firmware.ps1 -Bootstrap
+```
+
+Скрипт складає обидва `arduino:avr:nano:cpu=atmega328` / `atmega328old`.
+Flash/SRAM, HEX/ELF, linker map та stack assessment — `build/firmware/`.
+Upload виконується лише окремою командою з конкретним портом згідно
+[інструкції Nano](docs/NANO_USB_TESTING.md); перед upload закрийте порт
+у HondaDash і Serial Monitor. Потрібен тільки USB, без зовнішніх проводів.
+
+GUI без залежності SerialPort:
+
+```powershell
+cmake -S . -B build/windows-simulation -G "Visual Studio 17 2022" -A x64 `
+  -DHONDADASH_WITH_SERIAL=OFF -DCMAKE_PREFIX_PATH='C:/Qt/6.8.3/msvc2022_64'
+cmake --build build/windows-simulation --config Release --parallel
+ctest --test-dir build/windows-simulation -C Release --output-on-failure
+```
+
+На Linux аналогічно додайте `-DHONDADASH_WITH_SERIAL=OFF`; для логічних
+бібліотек без Qt також `-DHONDADASH_BUILD_GUI=OFF`. Базові fixtures M0
+залишено незмінними. Нові host тести збирають справжній embedded endpoint,
+а Linux PTY тест використовує справжній QSerialPort. Ці перевірки та AVR
+компіляція не підтверджують роботу USB-чипа або фізичної плати.

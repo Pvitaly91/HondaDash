@@ -1,4 +1,4 @@
-name: Build and test M0
+name: Build and test M1
 
 on:
   push:
@@ -22,6 +22,7 @@ jobs:
       - uses: jurplel/install-qt-action@v4.3.0
         with:
           version: '6.8.3'
+          modules: qtserialport
           arch: win64_msvc2022_64
           aqtversion: '==3.3.0'
           py7zrversion: '==1.0.0'
@@ -30,6 +31,16 @@ jobs:
       - name: Build Debug and Release, run all tests
         shell: pwsh
         run: ./scripts/build-windows.ps1 -QtPath $env:QT_ROOT_DIR
+      - name: Simulation-only without SerialPort
+        shell: pwsh
+        run: |
+          cmake -S . -B build/windows-simulation -G "Visual Studio 17 2022" -A x64 -DHONDADASH_WITH_SERIAL=OFF "-DCMAKE_PREFIX_PATH=$env:QT_ROOT_DIR" -DCMAKE_DISABLE_FIND_PACKAGE_Qt6SerialPort=TRUE
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cmake --build build/windows-simulation --config Release --parallel
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $env:PATH = "$env:QT_ROOT_DIR/bin;$env:PATH"
+          ctest --test-dir build/windows-simulation -C Release --output-on-failure --output-junit "$PWD/build/windows-simulation/ctest.xml"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Deploy and verify extracted Windows package
         shell: pwsh
         run: ./scripts/package-windows.ps1 -QtPath $env:QT_ROOT_DIR
@@ -40,7 +51,14 @@ jobs:
           if-no-files-found: error
           path: |
             dist/HondaDash-windows-x64.zip
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: HondaDash-windows-test-reports
+          if-no-files-found: error
+          path: |
             dist/reports/
+            build/windows-simulation/ctest.xml
             build/windows/reports/
             build/windows/Testing/Temporary/LastTest.log
             build/windows/smoke*.json
@@ -60,6 +78,7 @@ jobs:
       - uses: jurplel/install-qt-action@v4.3.0
         with:
           version: '6.8.3'
+          modules: qtserialport
           aqtversion: '==3.3.0'
           py7zrversion: '==1.0.0'
           setup-python: false
@@ -86,3 +105,30 @@ jobs:
             build/linux/*smoke*.json
             build/linux/smoke*.png
             build/linux/*offscreen*.png
+
+  firmware:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.10'
+      - name: Arduino CLI 1.2.2, AVR Boards 1.8.6, both Nano bootloaders
+        run: bash scripts/build-firmware.sh --bootstrap
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: HondaDash-nano-firmware
+          if-no-files-found: error
+          path: |
+            build/firmware/**/*.ino.hex
+            build/firmware/**/*.ino.elf
+            build/firmware/**/*.map
+            build/firmware/**/*.json
+            build/firmware/**/*.txt
+            build/firmware/**/*.su
+            build/firmware/**/*.o
+            build/firmware/**/*.a
+            docs/licenses/firmware/
+            firmware/nano_synthetic/

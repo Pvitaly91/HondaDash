@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param(
     [string]$QtPath = $env:QT_ROOT_DIR,
     [ValidateSet('Debug', 'Release')][string[]]$Configuration = @('Debug', 'Release')
@@ -25,7 +25,7 @@ try {
     Assert-NativeExit 'CMake version check'
     & (Join-Path $qtRoot 'bin/qmake.exe') -query QT_VERSION
     Assert-NativeExit 'Qt version check'
-    & cmake --preset windows "-DCMAKE_PREFIX_PATH=$qtRoot"
+    & cmake --preset windows "-DCMAKE_PREFIX_PATH=$qtRoot" -DHONDADASH_WITH_SERIAL=ON
     Assert-NativeExit 'Windows configuration'
     $reports = Join-Path $repository 'build/windows/reports'
     New-Item -ItemType Directory -Path $reports -Force | Out-Null

@@ -20,10 +20,14 @@
 #include <QPushButton>
 #include <QScrollArea>
 #include <QSpinBox>
+#include <QStringList>
 #include <QTimer>
 #include <QTemporaryDir>
 #include <QVBoxLayout>
 #include <QVariant>
+#ifdef HONDADASH_WITH_SERIAL
+#include <QSerialPortInfo>
+#endif
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
@@ -33,9 +37,11 @@ namespace {
 QString sessionName(SessionState state) {
     switch (state) {
     case SessionState::Stopped: return QStringLiteral("Зупинено");
-    case SessionState::Handshaking: return QStringLiteral("Ініціалізація емулятора");
+    case SessionState::Opening: return QStringLiteral("Відкриття порту");
+    case SessionState::BootWaiting: return QStringLiteral("Очікування запуску пристрою");
+    case SessionState::Handshaking: return QStringLiteral("Перевірка HELLO + INFO");
     case SessionState::Running: return QStringLiteral("Обмін працює");
-    case SessionState::Faulted: return QStringLiteral("Немає відповіді на HELLO");
+    case SessionState::Faulted: return QStringLiteral("Помилка з’єднання");
     }
     return {};
 }
@@ -55,7 +61,10 @@ QString pathString(const std::filesystem::path& path) {
 }
 QLabel* label(const QString& text) { auto* result = new QLabel(text); result->setWordWrap(true); return result; }
 }
-MainWindow::MainWindow(bool managedTime, QWidget* parent) : QMainWindow(parent), managedTime_(managedTime) {
+MainWindow::MainWindow(bool managedTime, QWidget* parent) : QMainWindow(parent), session_(memoryTransport_), managedTime_(managedTime) {
+#ifdef HONDADASH_WITH_SERIAL
+    serialTransport_ = std::make_unique<SerialTransport>([this] { return now(); });
+#endif
     injectedQualities_.fill(Quality::Valid);
     setWindowTitle(QStringLiteral("HondaDash · synthetic-demo-v1"));
     resize(1280, 720); setMinimumSize(980, 560);
@@ -74,7 +83,7 @@ MainWindow::MainWindow(bool managedTime, QWidget* parent) : QMainWindow(parent),
     auto* root = new QWidget;
     auto* layout = new QVBoxLayout(root); layout->setContentsMargins(12, 10, 12, 10); layout->setSpacing(8);
     auto* top = new QHBoxLayout;
-    auto* title = label(QStringLiteral("HONDA<span style='color:#51d3ba'>DASH</span>  <span style='font-size:10px;color:#91a5ba'>M0 · synthetic-demo-v1</span>"));
+    auto* title = label(QStringLiteral("HONDA<span style='color:#51d3ba'>DASH</span>  <span style='font-size:10px;color:#91a5ba'>M1 · synthetic-demo-v1</span>"));
     title->setTextFormat(Qt::RichText); title->setStyleSheet(QStringLiteral("font-size:19px;font-weight:bold;"));
     top->addWidget(title, 1);
     auto* fullscreen = new QPushButton(QStringLiteral("На весь екран · F11"));
@@ -108,9 +117,30 @@ MainWindow::MainWindow(bool managedTime, QWidget* parent) : QMainWindow(parent),
     connect(chartChannel_, &QComboBox::currentIndexChanged, this, [this](int index) { chart_->setChannel(static_cast<Channel>(index)); });
     body->addLayout(dashboard, 1);
     auto* controls = new QWidget; controls->setMinimumWidth(240); controls->setMaximumWidth(278);
+    controlPanel_ = controls;
     auto* controlLayout = new QVBoxLayout(controls); controlLayout->setContentsMargins(3, 0, 3, 0); controlLayout->setSpacing(8);
     auto* controlTitle = label(QStringLiteral("КЕРУВАННЯ ЕМУЛЯТОРОМ")); controlTitle->setStyleSheet(QStringLiteral("font-weight:bold;color:#51d3ba;"));
     controlLayout->addWidget(controlTitle);
+    source_ = new QComboBox; source_->setObjectName(QStringLiteral("source"));
+    source_->addItem(QStringLiteral("Вбудований емулятор"));
+#ifdef HONDADASH_WITH_SERIAL
+    source_->addItem(QStringLiteral("USB Serial · тестова Nano"));
+#endif
+    controlLayout->addWidget(source_);
+    auto* portRow = new QHBoxLayout;
+    port_ = new QComboBox; port_->setObjectName(QStringLiteral("serialPort"));
+    port_->setMinimumWidth(120); port_->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    refreshPorts_ = new QPushButton(QStringLiteral("Оновити")); refreshPorts_->setObjectName(QStringLiteral("refreshPorts"));
+    portRow->addWidget(port_, 1); portRow->addWidget(refreshPorts_); controlLayout->addLayout(portRow);
+    portDetails_ = label({}); portDetails_->setStyleSheet(QStringLiteral("color:#91a5ba;font-size:10px;")); controlLayout->addWidget(portDetails_);
+    deviceInfo_ = label({}); deviceInfo_->setObjectName(QStringLiteral("deviceInfo")); controlLayout->addWidget(deviceInfo_);
+    capabilities_ = label({}); capabilities_->setObjectName(QStringLiteral("capabilities"));
+    capabilities_->setStyleSheet(QStringLiteral("color:#91a5ba;font-size:10px;")); controlLayout->addWidget(capabilities_);
+    connect(source_, &QComboBox::currentIndexChanged, this, [this] { changeSource(); });
+    connect(refreshPorts_, &QPushButton::clicked, this, [this] { refreshPorts(); });
+    connect(port_, &QComboBox::currentIndexChanged, this, [this] {
+        portDetails_->setText(port_->currentData(Qt::ToolTipRole).toString()); refreshDashboard();
+    });
     scenario_ = new QComboBox; scenario_->setObjectName(QStringLiteral("scenario"));
     scenario_->addItems({QStringLiteral("Запалювання · двигун зупинено"), QStringLiteral("Холостий хід"), QStringLiteral("Демонстраційний цикл"), QStringLiteral("Ручне керування")});
     scenario_->setCurrentIndex(2); controlLayout->addWidget(scenario_);
@@ -124,11 +154,10 @@ MainWindow::MainWindow(bool managedTime, QWidget* parent) : QMainWindow(parent),
     connect(stop_, &QPushButton::clicked, this, [this] { stopSession(); });
     auto* seedLayout = new QHBoxLayout; seedLayout->addWidget(label(QStringLiteral("Seed")));
     seed_ = new QSpinBox; seed_->setRange(0, 2147483647); seed_->setValue(42); seedLayout->addWidget(seed_); controlLayout->addLayout(seedLayout);
-    session_.emulator().setSeed(42);
-    session_.emulator().setScenario(Scenario::Demo, 0);
-    connect(seed_, &QSpinBox::valueChanged, this, [this](int value) { session_.emulator().setSeed(static_cast<std::uint32_t>(value)); });
-    auto* manualBox = new QGroupBox(QStringLiteral("Ручні значення · після відповіді"));
-    auto* form = new QFormLayout(manualBox); form->setContentsMargins(9, 17, 9, 8); form->setSpacing(5);
+    session_.setScenario(2, 42);
+    connect(seed_, &QSpinBox::valueChanged, this, [this](int value) { session_.setScenario(static_cast<std::uint8_t>(scenario_->currentIndex()), static_cast<std::uint32_t>(value)); });
+    manualBox_ = new QGroupBox(QStringLiteral("Ручні значення · після відповіді"));
+    auto* form = new QFormLayout(manualBox_); form->setContentsMargins(9, 17, 9, 8); form->setSpacing(5);
     const std::array<double, ChannelCount> defaults{850, 0, 80, 23, 0, 30, 14.1};
     const std::array<QString, ChannelCount> shortNames{QStringLiteral("Оберти"),QStringLiteral("Швидкість"),QStringLiteral("Рідина"),QStringLiteral("Впуск"),QStringLiteral("Дросель"),QStringLiteral("Тиск"),QStringLiteral("Напруга")};
     for (std::size_t i = 0; i < ChannelCount; ++i) {
@@ -136,40 +165,40 @@ MainWindow::MainWindow(bool managedTime, QWidget* parent) : QMainWindow(parent),
         auto* spin = new QDoubleSpinBox; manual_[i] = spin;
         spin->setObjectName(QStringLiteral("manual_%1").arg(i)); spin->setRange(info.min, info.max); spin->setDecimals(info.decimals);
         spin->setSingleStep(i == 0 ? 100 : i == 6 ? .1 : 1); spin->setValue(defaults[i]); spin->setSuffix(QStringLiteral(" ") + channelUnit(channel));
-        session_.emulator().setManual(channel, spin->value());
         form->addRow(shortNames[i], spin);
-        connect(spin, &QDoubleSpinBox::valueChanged, this, [this, channel](double value) { session_.emulator().setManual(channel, value); });
+        connect(spin, &QDoubleSpinBox::valueChanged, this, [this] { applyManual(); });
     }
-    manualBox->setVisible(false); controlLayout->addWidget(manualBox);
-    connect(scenario_, &QComboBox::currentIndexChanged, this, [this, manualBox](int index) {
-        session_.emulator().setScenario(static_cast<Scenario>(index), now()); manualBox->setVisible(index == 3);
+    applyManual();
+    manualBox_->setVisible(false); controlLayout->addWidget(manualBox_);
+    connect(scenario_, &QComboBox::currentIndexChanged, this, [this](int index) {
+        session_.setScenario(static_cast<std::uint8_t>(index), static_cast<std::uint32_t>(seed_->value())); manualBox_->setVisible(index == 3);
     });
     auto* faultBox = new QGroupBox(QStringLiteral("Несправності"));
     auto* faultLayout = new QVBoxLayout(faultBox); faultLayout->setContentsMargins(9, 17, 9, 8); faultLayout->setSpacing(6);
     silence_ = new QCheckBox(QStringLiteral("Не відповідати")); silence_->setObjectName(QStringLiteral("silence")); faultLayout->addWidget(silence_);
-    connect(silence_, &QCheckBox::toggled, this, [this](bool enabled) { session_.emulator().faults().silent = enabled; });
+    connect(silence_, &QCheckBox::toggled, this, [this](bool enabled) { desiredFaults_.silent = enabled; session_.setFaults(desiredFaults_); });
     auto* delayRow = new QHBoxLayout; delayRow->addWidget(label(QStringLiteral("Затримка")));
     delay_ = new QSpinBox; delay_->setRange(0, 5000); delay_->setSuffix(QStringLiteral(" мс")); delayRow->addWidget(delay_); faultLayout->addLayout(delayRow);
-    connect(delay_, &QSpinBox::valueChanged, this, [this](int value) { session_.emulator().faults().delayMs = static_cast<Time>(value); });
-    auto* corrupt = new QPushButton(QStringLiteral("Пошкодити наступну CRC")); faultLayout->addWidget(corrupt);
-    connect(corrupt, &QPushButton::clicked, this, [this] { session_.emulator().faults().corruptNext = true; });
-    auto* truncate = new QPushButton(QStringLiteral("Обірвати наступний пакет")); faultLayout->addWidget(truncate);
-    connect(truncate, &QPushButton::clicked, this, [this] { session_.emulator().faults().truncateNext = true; });
-    auto* qualityChannel = new QComboBox; for (const auto& name : shortNames) qualityChannel->addItem(name); faultLayout->addWidget(qualityChannel);
-    auto* quality = new QComboBox; quality->addItems({QStringLiteral("Коректний"), QStringLiteral("Не підтримується"), QStringLiteral("Некоректний")}); faultLayout->addWidget(quality);
-    const auto applyQuality = [this, qualityChannel, quality] {
+    connect(delay_, &QSpinBox::valueChanged, this, [this](int value) { desiredFaults_.delayMs = static_cast<std::uint16_t>(value); session_.setFaults(desiredFaults_); });
+    corrupt_ = new QPushButton(QStringLiteral("Пошкодити наступну CRC")); faultLayout->addWidget(corrupt_);
+    connect(corrupt_, &QPushButton::clicked, this, [this] { auto fault = desiredFaults_; fault.corruptNext = true; session_.setFaults(fault); });
+    truncate_ = new QPushButton(QStringLiteral("Обірвати наступний пакет")); faultLayout->addWidget(truncate_);
+    connect(truncate_, &QPushButton::clicked, this, [this] { auto fault = desiredFaults_; fault.truncateNext = true; session_.setFaults(fault); });
+    qualityChannel_ = new QComboBox; for (const auto& name : shortNames) qualityChannel_->addItem(name); faultLayout->addWidget(qualityChannel_);
+    quality_ = new QComboBox; quality_->addItems({QStringLiteral("Коректний"), QStringLiteral("Не підтримується"), QStringLiteral("Некоректний")}); faultLayout->addWidget(quality_);
+    const auto applyQuality = [this] {
         const std::array<Quality, 3> types{Quality::Valid, Quality::Unsupported, Quality::Invalid};
-        const auto channel = static_cast<Channel>(qualityChannel->currentIndex());
-        const auto selectedQuality = types[static_cast<std::size_t>(quality->currentIndex())];
+        const auto channel = static_cast<Channel>(qualityChannel_->currentIndex());
+        const auto selectedQuality = types[static_cast<std::size_t>(quality_->currentIndex())];
         injectedQualities_[channelIndex(channel)] = selectedQuality;
-        session_.emulator().setChannelQuality(channel, selectedQuality);
+        session_.setQualities(injectedQualities_);
     };
-    connect(quality, &QComboBox::currentIndexChanged, this, [applyQuality](int) { applyQuality(); });
-    connect(qualityChannel, &QComboBox::currentIndexChanged, this, [this, qualityChannel, quality] {
-        const auto selected = injectedQualities_[static_cast<std::size_t>(qualityChannel->currentIndex())];
-        quality->blockSignals(true);
-        quality->setCurrentIndex(selected == Quality::Unsupported ? 1 : selected == Quality::Invalid ? 2 : 0);
-        quality->blockSignals(false);
+    connect(quality_, &QComboBox::currentIndexChanged, this, [applyQuality](int) { applyQuality(); });
+    connect(qualityChannel_, &QComboBox::currentIndexChanged, this, [this] {
+        const auto selected = injectedQualities_[static_cast<std::size_t>(qualityChannel_->currentIndex())];
+        quality_->blockSignals(true);
+        quality_->setCurrentIndex(selected == Quality::Unsupported ? 1 : selected == Quality::Invalid ? 2 : 0);
+        quality_->blockSignals(false);
     });
     controlLayout->addWidget(faultBox);
     record_ = new QPushButton(QStringLiteral("Почати запис CSV + JSONL")); record_->setObjectName(QStringLiteral("record")); controlLayout->addWidget(record_);
@@ -177,7 +206,11 @@ MainWindow::MainWindow(bool managedTime, QWidget* parent) : QMainWindow(parent),
     recordStatus_ = label(QStringLiteral("Журнал: зупинено")); recordStatus_->setObjectName(QStringLiteral("recordStatus"));
     recordStatus_->setTextInteractionFlags(Qt::TextSelectableByMouse); recordStatus_->setStyleSheet(QStringLiteral("color:#91a5ba;")); controlLayout->addWidget(recordStatus_);
     controlLayout->addStretch();
-    auto* scroll = new QScrollArea; scroll->setWidgetResizable(true); scroll->setWidget(controls); scroll->setMinimumWidth(250); scroll->setMaximumWidth(290);
+    auto* scroll = new QScrollArea; scroll->setWidgetResizable(true); scroll->setWidget(controls);
+    // Reserve the existing sidebar width, including its vertical scrollbar.
+    // Shrinking the viewport to 242 px can violate the controls' minimum width.
+    scroll->setFixedWidth(290);
+    controlScroll_ = scroll;
     body->addWidget(scroll); layout->addLayout(body, 1);
     auto* footer = new QHBoxLayout;
     sessionStatus_ = label({}); sessionStatus_->setMinimumWidth(130); footer->addWidget(sessionStatus_);
@@ -188,12 +221,78 @@ MainWindow::MainWindow(bool managedTime, QWidget* parent) : QMainWindow(parent),
     clock_.start(); timer_ = new QTimer(this); timer_->setTimerType(Qt::PreciseTimer); timer_->setInterval(16);
     connect(timer_, &QTimer::timeout, this, [this] { session_.tick(now()); refreshDashboard(); });
     if (!managedTime_) timer_->start();
+    refreshPorts();
     refreshDashboard();
 }
 MainWindow::~MainWindow() { session_.stop(now()); recorder_.stop(); }
 Time MainWindow::now() const { return managedTime_ ? managedNow_ : static_cast<Time>(std::max<qint64>(0, clock_.elapsed())); }
-void MainWindow::startSession() { chart_->clear(); session_.start(now()); refreshDashboard(); }
+bool MainWindow::serialSelected() const { return source_->currentIndex() == 1; }
+void MainWindow::refreshPorts() {
+    const auto selected = port_->currentData().toString();
+    port_->blockSignals(true); port_->clear();
+    port_->addItem(QStringLiteral("Оберіть порт…"), QString{});
+#ifdef HONDADASH_WITH_SERIAL
+    for (const auto& info : QSerialPortInfo::availablePorts()) {
+        port_->addItem(info.portName(), info.systemLocation());
+        QString details = info.description().isEmpty() ? QStringLiteral("Без опису") : info.description();
+        if (!info.manufacturer().isEmpty()) details += QStringLiteral(" · ") + info.manufacturer();
+        details += QStringLiteral("\n") + info.systemLocation();
+        if (info.hasVendorIdentifier()) details += QStringLiteral(" · VID %1").arg(info.vendorIdentifier(), 4, 16, QLatin1Char('0'));
+        if (info.hasProductIdentifier()) details += QStringLiteral(" · PID %1").arg(info.productIdentifier(), 4, 16, QLatin1Char('0'));
+        if (!info.serialNumber().isEmpty()) details += QStringLiteral("\nS/N ") + info.serialNumber();
+        details += QStringLiteral("\n115200 · 8N1 · без flow control");
+        port_->setItemData(port_->count() - 1, details, Qt::ToolTipRole);
+    }
+#endif
+    const int selectedIndex = selected.isEmpty() ? 0 : port_->findData(selected);
+    port_->setCurrentIndex(std::max(0, selectedIndex)); port_->blockSignals(false);
+    portDetails_->setText(port_->currentData(Qt::ToolTipRole).toString());
+    refreshDashboard();
+}
+void MainWindow::changeSource() {
+    session_.stop(now()); recorder_.stop(); chart_->clear();
+    SessionSettings settings;
+#ifdef HONDADASH_WITH_SERIAL
+    if (serialSelected()) { session_.setTransport(*serialTransport_); settings.bootDelayMs = 2000; }
+    else
+#endif
+        session_.setTransport(memoryTransport_);
+    session_.setSettings(settings);
+    refreshDashboard();
+}
+void MainWindow::applyManual() {
+    std::array<double, ChannelCount> values{};
+    for (std::size_t i = 0; i < ChannelCount; ++i) values[i] = manual_[i]->value();
+    session_.setManual(values);
+}
+void MainWindow::startSession() {
+    if (serialSelected() && port_->currentData().toString().isEmpty()) return;
+    session_.stop(now());
+#ifdef HONDADASH_WITH_SERIAL
+    if (serialSelected()) serialTransport_->setPortName(port_->currentData().toString().toStdString());
+#endif
+    chart_->clear(); session_.start(now()); refreshDashboard();
+}
 void MainWindow::stopSession() { session_.stop(now()); refreshDashboard(); }
+void MainWindow::updateCapabilities(const std::optional<DeviceInfo>& info) {
+    const auto flags = info ? info->capabilities : serialSelected() ? 0 : CapabilityScenario | CapabilityManual | CapabilityFaults | CapabilityQuality;
+    scenario_->setEnabled((flags & CapabilityScenario) != 0); seed_->setEnabled(scenario_->isEnabled());
+    manualBox_->setEnabled((flags & CapabilityManual) != 0);
+    for (QWidget* widget : std::array<QWidget*, 4>{silence_, delay_, corrupt_, truncate_}) widget->setEnabled((flags & CapabilityFaults) != 0);
+    qualityChannel_->setEnabled((flags & CapabilityQuality) != 0); quality_->setEnabled(qualityChannel_->isEnabled());
+    const auto explanation = QStringLiteral("Пристрій не оголосив підтримку цієї команди.");
+    for (QWidget* widget : std::array<QWidget*, 9>{scenario_, seed_, manualBox_, silence_, delay_, corrupt_, truncate_, qualityChannel_, quality_})
+        widget->setToolTip(widget->isEnabled() ? QString{} : explanation);
+    if (!info && serialSelected()) capabilities_->setText(QStringLiteral("Порт ще не розпізнано. Команди доступні лише після HELLO + INFO."));
+    else {
+        QStringList unsupported;
+        if ((flags & CapabilityScenario) == 0) unsupported.append(QStringLiteral("сценарії/seed"));
+        if ((flags & CapabilityManual) == 0) unsupported.append(QStringLiteral("ручні значення"));
+        if ((flags & CapabilityFaults) == 0) unsupported.append(QStringLiteral("несправності"));
+        if ((flags & CapabilityQuality) == 0) unsupported.append(QStringLiteral("якість каналів"));
+        capabilities_->setText(unsupported.isEmpty() ? QStringLiteral("Сценарії, ручні значення й несправності доступні.") : QStringLiteral("Не підтримується: ") + unsupported.join(QStringLiteral(", ")) + QStringLiteral("."));
+    }
+}
 void MainWindow::refreshDashboard() {
     const auto currentTime = now(); const double elapsed = static_cast<double>(currentTime - lastPaint_); lastPaint_ = currentTime;
     const auto& measurements = session_.model().channels();
@@ -202,6 +301,7 @@ void MainWindow::refreshDashboard() {
         if (i == 0) tachometer_->setReading(reading, elapsed); else cards_[i]->setReading(reading);
     }
     chart_->setNow(currentTime); sessionStatus_->setText(QStringLiteral("Сесія: ") + sessionName(session_.state()));
+    sessionStatus_->setToolTip(QString::fromStdString(session_.error()));
     sessionStatus_->setStyleSheet(session_.state() == SessionState::Running ? QStringLiteral("color:#51d3ba;") : QStringLiteral("color:#ffca79;"));
     const auto& stats = session_.stats(); std::optional<Time> newest;
     for (const auto& reading : measurements) if (reading.lastValid && (!newest || *reading.lastValid > *newest)) newest = reading.lastValid;
@@ -210,8 +310,23 @@ void MainWindow::refreshDashboard() {
     const auto recordState = !error.isEmpty() ? QStringLiteral("ПОМИЛКА") : recorder_.active() ? QStringLiteral("ЗАПИС") : QStringLiteral("зупинено");
     statistics_->setText(QStringLiteral("%1 відп./с · Давність: %2 · Тайм-аути: %3 · Пошкоджені: %4 · Прийнято: %5 · Журнал: %6")
         .arg(stats.responseHz, 0, 'f', 1).arg(age).arg(stats.timeouts).arg(stats.corrupt).arg(stats.accepted).arg(recordState));
-    start_->setEnabled(session_.state() == SessionState::Stopped || session_.state() == SessionState::Faulted);
+    const bool stopped = session_.state() == SessionState::Stopped || session_.state() == SessionState::Faulted;
+    const bool usb = serialSelected();
+    source_->setEnabled(stopped); port_->setEnabled(stopped); refreshPorts_->setEnabled(stopped);
+    port_->setVisible(usb); refreshPorts_->setVisible(usb); portDetails_->setVisible(usb);
+    start_->setText(usb ? QStringLiteral("Підключити") : QStringLiteral("Старт"));
+    stop_->setText(usb ? QStringLiteral("Від’єднати") : QStringLiteral("Стоп"));
+    start_->setEnabled(stopped && (!usb || !port_->currentData().toString().isEmpty()));
     stop_->setEnabled(session_.state() != SessionState::Stopped);
+    warning_->setText(usb ? QStringLiteral("ЕМУЛЯЦІЯ НА ПРИСТРОЇ — ECU НЕ ПІДКЛЮЧЕНО") : QStringLiteral("ЕМУЛЯЦІЯ — не підключено до автомобіля"));
+    if (offscreenScreenshot_) warning_->setText(warning_->text() + QStringLiteral(" · знімок offscreen (без звичайного GUI)"));
+    const auto& info = session_.deviceInfo();
+    QString identity = info ? QStringLiteral("%1 · firmware %2").arg(QString::fromStdString(info->endpoint), QString::fromStdString(info->firmware)) : usb ? QStringLiteral("Тестовий пристрій не розпізнано") : QStringLiteral("Синтетичний профіль у пам’яті ПК");
+    if (session_.state() == SessionState::Running) identity += QStringLiteral("\nПристрій розпізнано; свіжість показників — унизу.");
+    if (!session_.error().empty()) identity += QStringLiteral("\nПОМИЛКА: ") + QString::fromStdString(session_.error());
+    deviceInfo_->setText(identity);
+    deviceInfo_->setStyleSheet(session_.error().empty() ? QStringLiteral("color:#91a5ba;") : QStringLiteral("color:#ff7e7e;"));
+    updateCapabilities(info);
     QString recordingText = QStringLiteral("Журнал: ") + QString::fromUtf8(recorder_.status().c_str());
     if (recorder_.active()) {
         const auto directory = recorder_.directory();
@@ -221,13 +336,21 @@ void MainWindow::refreshDashboard() {
     recordStatus_->setStyleSheet(error.isEmpty() ? QStringLiteral("color:#91a5ba;") : QStringLiteral("color:#ff7e7e;"));
     record_->setText(recorder_.active() ? QStringLiteral("Зупинити запис") : QStringLiteral("Почати запис CSV + JSONL"));
 }
+RecordingMetadata MainWindow::recordingMetadata() const {
+    static constexpr std::array<const char*, 4> scenarios{"ignition", "idle", "demo", "manual"};
+    RecordingMetadata metadata{scenarios[static_cast<std::size_t>(scenario_->currentIndex())], static_cast<std::uint32_t>(seed_->value())};
+    metadata.transport = serialSelected() ? "serial" : "in-memory";
+    if (session_.deviceInfo()) { metadata.endpoint = session_.deviceInfo()->endpoint; metadata.firmware = session_.deviceInfo()->firmware; }
+    else if (serialSelected()) { metadata.endpoint = "unrecognized"; metadata.firmware.clear(); }
+    if (serialSelected()) { metadata.port = port_->currentData().toString().toStdString(); metadata.baud = 115200; }
+    return metadata;
+}
 void MainWindow::toggleRecording() {
     if (recorder_.active()) recorder_.stop();
     else {
         const auto directory = QFileDialog::getExistingDirectory(this, QStringLiteral("Папка для журналів HondaDash"), QDir::homePath());
         if (directory.isEmpty()) return;
-        static constexpr std::array<const char*, 4> scenarios{"ignition", "idle", "demo", "manual"};
-        recorder_.start(filePath(directory), {scenarios[static_cast<std::size_t>(scenario_->currentIndex())], static_cast<std::uint32_t>(seed_->value())});
+        recorder_.start(filePath(directory), recordingMetadata());
     }
     refreshDashboard();
 }
@@ -236,18 +359,57 @@ void MainWindow::advance(Time amount) {
     while (managedNow_ < end) { managedNow_ = std::min(end, managedNow_ + 10); session_.tick(managedNow_); refreshDashboard(); }
 }
 void MainWindow::markOffscreenScreenshot() {
-    warning_->setText(QStringLiteral("ЕМУЛЯЦІЯ — не підключено до автомобіля · знімок offscreen (без звичайного Windows GUI)"));
+    offscreenScreenshot_ = true; refreshDashboard();
+}
+void MainWindow::settleControlLayout() {
+    // Managed smoke advances no Qt event loop. Apply the real layouts directly
+    // so wrapped text and a newly needed scrollbar are represented in its PNGs.
+    layout()->activate();
+    centralWidget()->layout()->activate();
+    for (int pass = 0; pass < 2; ++pass) {
+        const int width = std::min(controlPanel_->maximumWidth(), controlScroll_->viewport()->width());
+        auto* layout = controlPanel_->layout(); layout->invalidate();
+        controlPanel_->resize(width, layout->totalHeightForWidth(width));
+        layout->activate();
+    }
 }
 QJsonObject MainWindow::smokeTest(const QString& screenshotPath) {
     QJsonArray checks; bool passed = true;
+    QJsonArray layoutGeometry;
+    QString screenshotUsb;
     const auto check = [&](const QString& name, bool success) { checks.append(QJsonObject{{QStringLiteral("name"), name}, {QStringLiteral("passed"), success}}); passed = passed && success; };
     check(QStringLiteral("managed_clock_enabled"), managedTime_);
     QFontMetrics metrics(QFont(QStringLiteral("Segoe UI"), 11));
     bool readableGlyphs = true;
     for (const QChar character : QStringLiteral("HondaDash0123456789ЕМУЛЯЦІЯЇЄҐобхв")) readableGlyphs = readableGlyphs && metrics.inFont(character);
     check(QStringLiteral("font_supports_dashboard_text"), readableGlyphs);
+    check(QStringLiteral("builtin_warning_always_visible"), warning_->text().contains(QStringLiteral("ЕМУЛЯЦІЯ — не підключено до автомобіля")));
+#ifdef HONDADASH_WITH_SERIAL
+    source_->setCurrentIndex(1);
+    check(QStringLiteral("usb_selection_requires_explicit_port_and_handshake"), session_.state() == SessionState::Stopped && !session_.deviceInfo() && !start_->isEnabled() && !scenario_->isEnabled() && deviceInfo_->text().contains(QStringLiteral("не розпізнано")));
+    check(QStringLiteral("usb_emulation_warning_visible"), warning_->text().contains(QStringLiteral("ЕМУЛЯЦІЯ НА ПРИСТРОЇ — ECU НЕ ПІДКЛЮЧЕНО")));
+    refreshPorts_->click();
+    check(QStringLiteral("port_refresh_keeps_transport_closed_and_no_automatic_selection"), session_.state() == SessionState::Stopped && port_->currentData().toString().isEmpty() && !start_->isEnabled());
+    port_->addItem(QStringLiteral("GUI smoke · відсутній порт"), QStringLiteral("HondaDash_SMOKE_NONEXISTENT_PORT_91C7EBD4"));
+    port_->setCurrentIndex(port_->count() - 1); start_->click(); advance(100);
+    check(QStringLiteral("missing_port_reports_error_without_recognizing_device"), session_.state() == SessionState::Faulted && !session_.error().empty() && !session_.deviceInfo() && !tachometer_->reading().value);
+    if (!screenshotPath.isEmpty()) {
+        const QFileInfo screenshotInfo(screenshotPath);
+        screenshotUsb = screenshotInfo.dir().filePath(screenshotInfo.completeBaseName() + QStringLiteral("-usb-unconnected.png"));
+        settleControlLayout();
+        check(QStringLiteral("usb_unconnected_screenshot_saved"), grab().save(screenshotUsb));
+    }
+    stop_->click();
+    check(QStringLiteral("disconnect_stops_usb_attempt"), session_.state() == SessionState::Stopped);
+    source_->setCurrentIndex(0);
+    check(QStringLiteral("source_switch_returns_to_builtin_controls"), !serialSelected() && scenario_->isEnabled() && start_->isEnabled());
+#endif
     scenario_->setCurrentIndex(3); start_->click(); advance(500);
     check(QStringLiteral("decoded_data_in_real_widgets"), session_.state() == SessionState::Running && tachometer_->reading().quality == Quality::Valid && tachometer_->reading().value.has_value() && chart_->sampleCount() > 0);
+    check(QStringLiteral("firmware_identity_requires_info_and_source_is_locked_while_running"), session_.deviceInfo().has_value() && !deviceInfo_->text().contains(QStringLiteral("не розпізнано")) && !source_->isEnabled());
+    stop_->click(); memoryTransport_.emulator().setCapabilities(CapabilityScenario); start_->click(); advance(500);
+    check(QStringLiteral("unsupported_controls_disabled_with_explanation"), scenario_->isEnabled() && !manualBox_->isEnabled() && !silence_->isEnabled() && !quality_->isEnabled() && capabilities_->text().contains(QStringLiteral("Не підтримується")) && !manualBox_->toolTip().isEmpty());
+    stop_->click(); memoryTransport_.emulator().setCapabilities(CapabilityScenario | CapabilityManual | CapabilityFaults | CapabilityQuality); start_->click(); advance(500);
     bool allChannelsPresented = true;
     for (std::size_t i = 0; i < ChannelCount; ++i) {
         const auto& displayed = i == 0 ? tachometer_->reading() : cards_[i]->reading();
@@ -267,14 +429,19 @@ QJsonObject MainWindow::smokeTest(const QString& screenshotPath) {
     check(QStringLiteral("restored_byte_response_updates_widgets"), tachometer_->reading().quality == Quality::Valid && tachometer_->reading().value && *tachometer_->reading().value == 2800);
     const auto samplesBeforeStop = session_.stats().accepted;
     for (int i = 0; i < 5; ++i) { stop_->click(); start_->click(); advance(300); stop_->click(); }
-    check(QStringLiteral("repeated_start_stop_cancels_deliveries"), session_.state() == SessionState::Stopped && session_.pendingDeliveries() == 0);
+    check(QStringLiteral("repeated_start_stop_cancels_deliveries"), session_.state() == SessionState::Stopped && memoryTransport_.pendingDeliveries() == 0);
     scenario_->setCurrentIndex(1); start_->click(); advance(1000);
     advance(70000);
     check(QStringLiteral("history_is_bounded_after_long_managed_run"), chart_->sampleCount() == HistoryChart::Capacity && session_.stats().accepted > HistoryChart::Capacity);
     QString screenshot1024;
     for (const QSize size : {QSize(1024, 600), QSize(1280, 720)}) {
-        resize(size); centralWidget()->layout()->activate();
-        check(QStringLiteral("layout_%1x%2").arg(size.width()).arg(size.height()), centralWidget()->width() <= size.width() && centralWidget()->height() <= size.height() && tachometer_->width() >= 240 && tachometer_->height() >= 245 && chart_->height() >= 118);
+        resize(size); settleControlLayout();
+        layoutGeometry.append(QJsonObject{{QStringLiteral("requested_width"), size.width()}, {QStringLiteral("requested_height"), size.height()},
+            {QStringLiteral("central_width"), centralWidget()->width()}, {QStringLiteral("central_height"), centralWidget()->height()},
+            {QStringLiteral("tachometer_width"), tachometer_->width()}, {QStringLiteral("tachometer_height"), tachometer_->height()},
+            {QStringLiteral("chart_height"), chart_->height()}, {QStringLiteral("controls_width"), controlPanel_->width()},
+            {QStringLiteral("viewport_width"), controlScroll_->viewport()->width()}});
+        check(QStringLiteral("layout_%1x%2").arg(size.width()).arg(size.height()), centralWidget()->width() <= size.width() && centralWidget()->height() <= size.height() && tachometer_->width() >= 240 && tachometer_->height() >= 245 && chart_->height() >= 118 && controlPanel_->width() <= controlScroll_->viewport()->width());
         if (size.width() == 1024 && !screenshotPath.isEmpty()) {
             const QFileInfo screenshotInfo(screenshotPath);
             screenshot1024 = screenshotInfo.dir().filePath(screenshotInfo.completeBaseName() + QStringLiteral("-1024x600.png"));
@@ -289,16 +456,16 @@ QJsonObject MainWindow::smokeTest(const QString& screenshotPath) {
     check(QStringLiteral("Escape_leaves_fullscreen"), !isFullScreen());
     QTemporaryDir recordingTemporaryDirectory;
     const auto recordingParent = recordingTemporaryDirectory.path() + QStringLiteral("/перевірка журналу з пробілами");
-    const bool recordingStarted = recordingTemporaryDirectory.isValid() && recorder_.start(filePath(recordingParent), {"idle", static_cast<std::uint32_t>(seed_->value())});
+    const bool recordingStarted = recordingTemporaryDirectory.isValid() && recorder_.start(filePath(recordingParent), recordingMetadata());
     check(QStringLiteral("recording_started_with_unicode_space_path"), recordingStarted);
     advance(400);
     check(QStringLiteral("active_recording_visible_in_dashboard"), recorder_.active() && statistics_->text().contains(QStringLiteral("Журнал: ЗАПИС")));
     bool saved = false;
-    if (!screenshotPath.isEmpty()) saved = grab().save(screenshotPath);
+    if (!screenshotPath.isEmpty()) { settleControlLayout(); saved = grab().save(screenshotPath); }
     if (!screenshotPath.isEmpty()) check(QStringLiteral("actual_widget_screenshot_saved"), saved);
     const auto accepted = session_.stats().accepted;
     close();
-    check(QStringLiteral("close_stops_session_and_recording"), session_.state() == SessionState::Stopped && session_.pendingDeliveries() == 0 && !timer_->isActive() && !recorder_.active());
+    check(QStringLiteral("close_stops_session_and_recording"), session_.state() == SessionState::Stopped && memoryTransport_.pendingDeliveries() == 0 && !timer_->isActive() && !recorder_.active());
     QFile csv(pathString(recorder_.directory() / "measurements.csv"));
     QFile raw(pathString(recorder_.directory() / "raw.jsonl"));
     const bool csvOpened = csv.open(QIODevice::ReadOnly), rawOpened = raw.open(QIODevice::ReadOnly);
@@ -306,14 +473,17 @@ QJsonObject MainWindow::smokeTest(const QString& screenshotPath) {
     const QByteArray rawBytes = rawOpened ? raw.readAll() : QByteArray{};
     csv.close(); raw.close();
     check(QStringLiteral("GUI_session_callbacks_record_decoded_csv_and_raw_bytes"), recorder_.error().empty() && csvBytes.contains(",Valid") && csvBytes.count('\n') >= 3 && rawBytes.contains("\"kind\":\"TX\"") && rawBytes.contains("\"kind\":\"RX\"") && rawBytes.contains("\"kind\":\"stop\""));
+    check(QStringLiteral("recording_identifies_transport_endpoint_and_firmware"), rawBytes.contains("\"transport\":\"in-memory\"") && rawBytes.contains("\"endpoint\":") && rawBytes.contains("\"firmware\":"));
     return {{QStringLiteral("format_version"), 1}, {QStringLiteral("application"), QStringLiteral("HondaDash")},
         {QStringLiteral("profile"), QStringLiteral("synthetic-demo-v1")}, {QStringLiteral("passed"), passed},
         {QStringLiteral("result"), passed ? QStringLiteral("pass") : QStringLiteral("fail")},
         {QStringLiteral("clock"), QStringLiteral("managed monotonic milliseconds")}, {QStringLiteral("platform"), QGuiApplication::platformName()},
         {QStringLiteral("offscreen"), QGuiApplication::platformName() == QStringLiteral("offscreen")},
-        {QStringLiteral("checks"), checks}, {QStringLiteral("accepted_samples_before_stop"), static_cast<qint64>(samplesBeforeStop)},
+        {QStringLiteral("physical_usb_verified"), false}, {QStringLiteral("checks"), checks}, {QStringLiteral("accepted_samples_before_stop"), static_cast<qint64>(samplesBeforeStop)},
+        {QStringLiteral("layout_geometry"), layoutGeometry},
         {QStringLiteral("accepted_samples_final_session"), static_cast<qint64>(accepted)}, {QStringLiteral("screenshot"), screenshotPath},
-        {QStringLiteral("screenshot_1024x600"), screenshot1024}, {QStringLiteral("offscreen_font_loaded"), qApp->property("offscreen_font_loaded").toBool()}};
+        {QStringLiteral("screenshot_1024x600"), screenshot1024}, {QStringLiteral("screenshot_usb_unconnected"), screenshotUsb},
+        {QStringLiteral("offscreen_font_loaded"), qApp->property("offscreen_font_loaded").toBool()}};
 }
 void MainWindow::keyPressEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_F11) { isFullScreen() ? showNormal() : showFullScreen(); event->accept(); return; }

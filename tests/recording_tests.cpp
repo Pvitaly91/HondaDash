@@ -60,7 +60,7 @@ void outputAndLifecycle() {
     const auto raw = readFile(firstDirectory / "raw.jsonl");
     require(csv.find("1250,7,19,0,Valid,,Unsupported,-20.5,Valid,,Invalid,12.5,Valid,101.2,Valid,13.8,Valid\n") != std::string::npos,
             "CSV optional values, zero, negative temperature or locale failed");
-    require(csv.find("\"format_version\":1") != std::string::npos && csv.find("\"source\":\"simulation\"") != std::string::npos,
+    require(csv.find("\"format_version\":2") != std::string::npos && csv.find("\"source\":\"simulation\"") != std::string::npos,
             "CSV metadata missing");
     require(raw.find("\"profile\":\"synthetic-demo-v1\"") != std::string::npos &&
             raw.find("\"seed\":42") != std::string::npos && raw.find("\"voltage\":\"V\"") != std::string::npos,

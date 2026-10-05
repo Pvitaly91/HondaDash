@@ -1,93 +1,94 @@
-# Архітектура M0
+# Архітектура M1
 
-Усе виконується в одному застосунку. In-memory транспорт доставляє
-реальні байти фрагментами; окремий процес, TCP або віртуальний COM
-не потрібні. Внутрішня логіка не залежить від GUI.
+Настільний C++20 Session не залежить від Qt, Windows API або Emulator.
+Він отримує Transport за посиланням; transport живе довше за Session.
+Усі операції сесії/транспорту виконує один потік. Qt SerialPort 6.8.3
+належить тільки бібліотеці hondadash_serial; UI використовує Widgets.
 
 ```mermaid
 flowchart LR
-  Timer[Qt timer: monotonic tick] --> Session[Session: one pending request]
-  Session --> Encode[Request encoder]
-  Encode --> Transport[Bounded in-memory deliveries]
-  Transport --> ECU[Synthetic ECU request parser]
-  ECU --> Response[Encoded response]
-  Response --> Fragments[Fragmented byte deliveries]
-  Fragments --> Parser[Stream parser and checksum]
-  Parser --> Match[Session/request match]
-  Match --> Decode[Snapshot decoder]
-  Decode --> Model[Per-channel model]
-  Model --> UI[QPainter dashboard]
-  Decode --> CSV[Recorder CSV worker]
-  Session --> Raw[Recorder raw JSONL worker]
-  Controls[UI controls] --> ECU
+  Controls[Керування UI] --> Session
+  Session --> Encoder
+  Encoder --> Transport
+  Transport --> Memory[InMemoryTransport / Emulator]
+  Transport --> USB[QSerialPort / Nano]
+  Memory --> Parser
+  USB --> Parser
+  Parser --> Session
+  Session --> Decoder
+  Decoder --> Model
+  Model --> Dashboard
+  Session --> Recorder
 ```
 
-## Компоненти й залежності
+## Стан і часові межі
 
-| Каталог | Відповідальність | Залежності |
-|---|---|---|
-| `core` | Семантика каналів, одиниці, optional значення, достовірність і свіжість | стандартний C++20 |
-| `protocol` | Wire frame, CRC, payload encode/decode, обмежений потоковий парсер | core, C++20 |
-| `emulator` | Сценарії, seed, ручний стан, байтові відповіді та fault injection | core/protocol, C++20 |
-| `application` | HELLO, polling, deadline, session/request identity, доставка фрагментів | core/protocol/emulator, C++20 |
-| `recording` | Унікальна папка, метадані, CSV/JSONL, bounded worker queue | core/application event types, C++20/threads |
-| `ui` | Qt timers, controls, layouts, tachometer, cards, plot, CLI smoke | усі бібліотеки, Qt Widgets |
+Stopped → Opening → BootWaiting → Handshaking (HELLO + INFO) → Running.
+Невідновна помилка переводить у Faulted і закриває transport. Припинення
+не запускає інший порт або автоматичну програмну симуляцію.
 
-Сесія створює байтовий HELLO перед READ_SNAPSHOT. Максимум один запит
-очікує відповідь; polling не накопичує запити під час затримки.
-HELLO має максимум три спроби, deadline запиту — 300 мс, нормальний
-інтервал READ_SNAPSHOT — 100 мс. Після тайм-ауту snapshot не ретранслюється
-як той самий запит: наступне опитування має новий request id.
-Пізні, повторні й старі session id відкидаються.
+USB UI задає bootDelayMs=2000; in-memory — 0. handshakeDeadlineMs=5000
+охоплює відкриття, запуск та обидві перевірки. HELLO має до трьох спроб,
+без повторного відкриття порту. timeoutMs=300 — бюджет відповіді одного
+запиту, pollMs=100 — інтервал snapshot. txTimeoutMs=500 починається від
+прийняття кадру локальною TX-чергою. Response timeout починається лише
+після спорожнення власної черги та Qt bytesToWrite; це не ACK пристрою.
+TX timeout завершує сесію, тому недовідправлений кадр не перекривається
+наступним. Timeout snapshot дозволяє наступне опитування; timeout control
+або INFO завершує сесію з видимою невизначеністю стану команди.
 
-Фізичний час у session/model передає caller як `Time` у монотонних мс.
-UI отримує його через QElapsedTimer. Системна дата потрібна лише для
-іменування/метаданих файлів; зміна дати не змінює timeout чи freshness.
-Stop прибирає pending запит і deliveries; новий Start створює іншу сесію.
+Один pending request спільний для HELLO, INFO, controls та READ. Чотири
+слоти desired state об'єднують часті зміни до останніх значень; revisions
+зберігають зміни, що прийшли під час очікування ACK. Controls чергуються
+з належними snapshot, щоб не витісняти опитування. ACK не є вимірюванням.
+Непідтримувані capability команди не відправляються; UI їх вимикає.
 
-## Модель і відображення
+Stop/reset очищує parser, pending та модель до NoData. Start закриває
+старий transport і створює нову identity. Callbacks мають generation і
+weak lifetime guard; callback попереднього запуску або знищеного Session
+не діє. SerialTransport додатково створює новий QSerialPort на кожен Start.
 
-Кожен канал зберігає optional число, Quality, час останнього Valid,
-session/request id і source. `NoData`, `Unsupported`, `Invalid` мають
-окрему семантику. `Valid` після 1000 мс без коректного оновлення стає
-`Stale`; після 3000 мс current повертає відсутність, а останнє вимірювання
-залишається доступним для діагностики. Обидва пороги — іменовані settings.
+Session ID — ненульовий 32-bit лічильник із випадковим початком процесу
+(std::random_device); генератор ін'єктується в тестах. Це зменшує ризик
+збігу після перезапуску, але не є криптографічним доказом або абсолютною
+гарантією у просторі 32 bit. Повтор попередньої identity/нуль відхиляється.
+Request ID зростає без wrap; вичерпання вимагає перепідключення.
+Error 3 після reset endpoint викликає нову identity та HELLO на відкритому
+порту; підтверджені одноразові faults повторно не озброюються.
 
-Час кадру віджета не є часом вимірювання. Стрілка інтерполює лише
-відображення прийнятого значення, а цифрові числа й CSV використовують
-декодовані значення. Графік зберігає обмежену історію приблизно 60 с
-і залишає розрив на відсутніх даних. Частота даних 10 Гц і таймер
-анімації приблизно 16 мс — окремі налаштування.
+## Обмеження та serial I/O
 
-## Запис
+Serial: 115200, 8N1, no flow control; власний TX ≤256, Qt TX ≤128 байтів,
+Qt RX buffer ≤4096. Один write на pump, RX до1024 байтів за callback,
+фрагменти ≤256. Частковий/нульовий write продовжується асинхронно через
+bytesWritten/таймер; blocking wait, sleep/processEvents відсутні.
+Помилки параметрів, доступу, переповнення й I/O видимі та закривають порт.
+DTR установлюється один раз після відкриття, RTS=false; це може reset Nano.
+Відсутність modem control на PTY має окрему діагностику; політика DTR
+не гарантує однакового reset для всіх USB-перетворювачів.
 
-Start запису асинхронно відкриває унікальну `recording-<unix-ms>-<suffix>`
-папку всередині вибраної користувачем папки. `start()` повідомляє
-прийняття операції; відкриття файлів та подальші помилки worker видно
-через `status()`/`error()`. Диск не виконує роботу у Qt event loop.
-Stop запису дренує прийняті елементи, flush/close і join; так само
-працює завершення вікна. Черга має 256 елементів за замовчуванням.
-Повна черга зупиняє приймання й показує помилку; прийняті елементи
-дренуються. Помилка запису зупиняє worker і залишається видимою.
+InMemoryTransport окремо володіє Emulator і фрагментами доставки; межа256
+фрагментів, переповнення завершує сесію. Він також реалізує M1 controls
+і duplicate policy. Embedded Endpoint використовує фіксовані буфери79/158,
+без heap; його endpoint.cpp збирається C++11 для AVR і для host tests.
 
-Файли UTF-8, LF, decimal point `.` незалежно від Windows locale:
+## Модель, UI і журнал
 
-- `measurements.csv`: перший рядок `# <metadata JSON>`, далі header і
-  `time_ms,session_id,request_id`, потім value/state для кожного каналу.
-  Порожнє value означає відсутність; нуль залишається `0`.
-- `raw.jsonl`: перший рядок metadata, потім одна JSON подія на рядок:
-  `time_ms`, `session_id`, `request_id`, `kind`, `detail`, `bytes_hex`.
-  TX/RX містять точні фрагменти; шум і пошкоджені RX також зберігаються.
+Model та прилади M0 збережено: сім optional каналів, NoData/Valid/Stale/
+Unsupported/Invalid, stale після1000мс, приховування після3000мс. UI
+показує лише прийнятий snapshot; графік обмежений і з розривами без даних.
+Час firmware millis() і монотонний час ПК мають різні початки; timestamp
+вимірювання — час отримання на ПК. Системний час потрібен лише журналу.
 
-Метадані: `format_version=1`, `app_version=0.1.0`, `source=simulation`,
-`profile=synthetic-demo-v1`, scenario, seed, `created_unix_ms`,
-`clock=monotonic_ms`, одиниці `rpm,km/h,degC,degC,%,kPa,V`.
-`time_ms` не є Unix timestamp. Replay UI ще не реалізовано; записи
-зберігають порядок та фрагментацію для подальшого відтворення.
+Recorder має bounded256 worker queue; disk I/O поза GUI. Переповнення,
+open/write помилки видимі. UTF-8 CSV та JSONL з decimal point незалежним
+від locale. Порожнє value означає відсутність; нуль залишається числом.
 
-## Подальша заміна транспорту
-
-Майбутній USB/Nano adapter повинен доставляти фрагменти байтів через
-той самий session/parser шлях. Підтверджений Honda protocol/profile
-додається окремо від synthetic-demo-v1. Прилади, freshness модель
-та recording API не повинні залежати від COM-порту чи конкретного ECU.
+Format_version=2, app_version=0.2.0, source=simulation завжди, навіть USB.
+Метадані: profile, scenario/seed на початку запису, transport(in-memory/
+serial), endpoint, firmware, port, baud, created_unix_ms, clock, units.
+Початок запису до handshake має endpoint=unrecognized; ready event згодом
+фіксує розпізнану identity. Зміни controls видно у TX/ACK raw events.
+TX_QUEUED — намір Session передати кадр; TX — точні байти, прийняті I/O;
+TX_DRAINED — черги спорожнені; RX — всі фрагменти до parser, включно
+з пошкодженими. ACK пристрою залишається окремою протокольною відповіддю.

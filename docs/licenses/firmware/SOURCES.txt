@@ -1,0 +1,24 @@
+Original licence texts and copyright notices for the Nano firmware build.
+Fetched/copied 2026-10-05. HondaDash's project licence remains owner-selected.
+
+LGPL-2.1.txt
+https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt
+
+ArduinoCore-avr-1.8.6-copyright-notices.txt
+Unmodified opening comment blocks copied from the installed Arduino AVR Boards
+1.8.6 cores/arduino files named in the notice. Original sources:
+https://github.com/arduino/ArduinoCore-avr/tree/1.8.6/cores/arduino
+
+avr-libc-2.0.0-LICENSE.txt
+https://raw.githubusercontent.com/avrdudes/avr-libc/avr-libc-2_0_0-release/LICENSE
+Installed avr/include/avr/version.h identifies avr-libc 2.0.0 (20150208).
+
+GCC-7.3.0-COPYING3.txt
+https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-7.3.0/COPYING3
+
+GCC-7.3.0-COPYING.RUNTIME.txt
+https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-7.3.0/COPYING.RUNTIME
+
+Tool package: arduino:avr-gcc@7.3.0-atmel3.6.1-arduino7
+Pinned AVR platform: arduino:avr@1.8.6
+Pinned CLI: 1.2.2 (build tool, not linked into firmware).

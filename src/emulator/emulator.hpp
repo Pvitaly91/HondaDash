@@ -26,6 +26,8 @@ public:
     Scenario scenario() const { return scenario_; }
     void setSeed(std::uint32_t seed) { seed_ = seed; }
     std::uint32_t seed() const { return seed_; }
+    void setCapabilities(std::uint16_t value) { capabilities_ = value; }
+    std::uint16_t capabilities() const { return capabilities_; }
     void setManual(Channel channel, double value);
     void setChannelQuality(Channel channel, Quality quality);
     FaultSettings& faults() { return faults_; }
@@ -39,6 +41,7 @@ private:
     Scenario scenario_{Scenario::Demo};
     Time epoch_{};
     std::uint32_t seed_{1};
+    std::uint16_t capabilities_{15};
     std::array<double, ChannelCount> manual_{};
     std::array<Quality, ChannelCount> qualities_{};
     FaultSettings faults_;

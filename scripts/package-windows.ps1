@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param(
     [string]$QtPath = $env:QT_ROOT_DIR,
     [ValidateSet('Release')][string]$Configuration = 'Release',
@@ -64,7 +64,7 @@ if ($vsRoot) {
         }
     }
 }
-foreach ($required in @('Qt6Core.dll', 'Qt6Gui.dll', 'Qt6Widgets.dll', 'platforms/qwindows.dll')) {
+foreach ($required in @('Qt6Core.dll', 'Qt6Gui.dll', 'Qt6Widgets.dll', 'Qt6SerialPort.dll', 'platforms/qwindows.dll')) {
     if (-not (Test-Path -LiteralPath (Join-Path $stage $required))) { throw "Incomplete deployment: $required missing." }
 }
 
@@ -96,10 +96,10 @@ $runtimeStatement = if ($missingRuntime.Count -eq 0) {
     'Перед запуском потрібен Microsoft Visual C++ Redistributable 2015–2022 x64 (версія не старіша за використаний MSVC 2022). Відсутні app-local DLL: ' + ($missingRuntime -join ', ') + '. Інсталятор vc_redist.x64.exe, якщо доданий windeployqt, треба встановити окремо.'
 }
 @"
-HondaDash M0 — запуск під Windows x64
+HondaDash M1 — запуск під Windows x64
 
-M0 працює тільки з програмним емулятором.
-Сумісність із реальним Honda ECU не перевірена.
+M1: вбудована емуляція або синтетична Nano через USB.
+Фізичний Nano/USB тест: NOT VERIFIED. Сумісність із Honda ECU не реалізована.
 
 Розпакуйте весь ZIP в одну папку та запустіть HondaDash.exe.
 Не переносіть EXE окремо від DLL і папки platforms.
@@ -111,6 +111,8 @@ $runtimeStatement
 після 3 с. Відновіть відповіді та дочекайтеся нового вимірювання.
 Запис: виберіть папку через кнопку запису, потім зупиніть запис.
 F11 — повний екран; Esc — вихід із повного екрана.
+USB: окремо завантажте firmware, виберіть джерело USB та конкретний порт.
+Інструкція і hardware-чекліст: NANO_USB_TESTING.md. Build і GUI не роблять auto-upload.
 
 Автоматична перевірка з PowerShell:
 .\HondaDash.exe --smoke-test --report smoke.json --screenshot dashboard.png
@@ -121,6 +123,8 @@ THIRD_PARTY_NOTICES.md і папка licenses. Ліцензію HondaDash вла
 репозиторію поки не обрав.
 "@ | Set-Content -LiteralPath (Join-Path $stage 'README.txt') -Encoding utf8
 Copy-Item -LiteralPath (Join-Path $repository 'docs/THIRD_PARTY_NOTICES.md') -Destination $stage
+Copy-Item -LiteralPath (Join-Path $repository 'docs/NANO_USB_TESTING.md') -Destination $stage
+Copy-Item -LiteralPath (Join-Path $repository 'docs/SYNTHETIC_DEVICE_EXTENSION.md') -Destination $stage
 $licenses = Join-Path $repository 'docs/licenses'
 if (-not (Test-Path -LiteralPath $licenses)) { throw 'Third-party license texts are missing from docs/licenses.' }
 Copy-Item -LiteralPath $licenses -Destination (Join-Path $stage 'licenses') -Recurse

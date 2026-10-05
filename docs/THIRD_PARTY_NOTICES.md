@@ -1,4 +1,4 @@
-# Third-party notices — HondaDash M0
+# Third-party notices — HondaDash M1
 
 HondaDash uses the unmodified **Qt 6.8.3** QtCore, QtGui and QtWidgets
 shared libraries and their platform/image/style plugins. Qt copyright
@@ -44,3 +44,50 @@ the accompanying dependency inspection report.
 HondaDash contains no OEM ROM, Honda proprietary assets, Hondash code,
 third-party UI artwork or additional application runtime framework.
 The repository owner has not chosen a licence for the project itself.
+
+## Nano firmware components (M1)
+
+The separately built Nano firmware statically links the unmodified Arduino AVR
+core **1.8.6**, including HardwareSerial, Print's binary write interface, the
+millis timer, and startup code. These files are distributed under
+**LGPL-2.1-or-later** with copyright notices from Nicholas Zambetti, David A.
+Mellis, the Arduino project and other original contributors. Original file
+header notices and the complete LGPL-2.1 text are in `licenses/firmware/`.
+No text print routine is used on the binary protocol channel.
+
+The fixed Arduino compiler package `7.3.0-atmel3.6.1-arduino7` provides
+**avr-libc 2.0.0** (BSD-style licence; its complete original LICENSE is included)
+and **GCC 7.3.0 libgcc** (GPLv3 with the GCC Runtime Library Exception 3.1;
+both complete original texts are included). These are embedded firmware
+components, not additional Windows runtime dependencies.
+
+Corresponding unmodified source and original licensing references:
+
+- [Arduino AVR core 1.8.6](https://github.com/arduino/ArduinoCore-avr/tree/1.8.6)
+- [Arduino AVR toolchain build/source recipes](https://github.com/arduino/toolchain-avr)
+- [avr-libc 2.0.0 source](https://github.com/avrdudes/avr-libc/tree/avr-libc-2_0_0-release)
+- [GCC 7.3.0 source and runtime exception](https://github.com/gcc-mirror/gcc/tree/releases/gcc-7.3.0)
+
+The build scripts retain the firmware sketch object files, Arduino core archive,
+ELF, linker map and full memory reports in each firmware build directory. Retain
+those files and the firmware notice bundle with distributed firmware to support
+inspection and relinking against modified compatible Arduino core sources.
+The repository's firmware source and pinned build scripts describe the complete
+sketch build; the Arduino core sources installed by the CLI remain unmodified.
+The generated `with_bootloader.hex`, if present in a raw Arduino build tree, is
+not the upload artifact recommended here: use `nano_synthetic.ino.hex` only.
+No bootloader binary, fuse change or EEPROM write is part of HondaDash's build
+or upload instructions. These third-party texts do not choose a licence for
+HondaDash's own source.
+
+## Qt SerialPort 6.8.3 (M1 full desktop build)
+
+The full build dynamically links the unmodified QtSerialPort 6.8.3 module.
+Its original license texts are included in `licenses/qtserialport-6.8.3/`
+(`docs/licenses/qtserialport-6.8.3/` in the repository). The source copyright
+notices include Denis Shienkov, Sergey Belyashov, Laszlo Papp, Andre Hartmann,
+The Qt Company and other contributors, as recorded in the source files.
+The module's LGPL-3.0-only option is used alongside QtBase's shared-library
+terms above; its files also offer commercial/GPL alternatives.
+Corresponding unmodified source: [Qt SerialPort v6.8.3](https://github.com/qt/qtserialport/tree/v6.8.3).
+Simulation-only builds omit this module entirely.

@@ -1,110 +1,312 @@
 #include "application/session.hpp"
-#include <cmath>
+#include "transport/in_memory_transport.hpp"
 #include <iostream>
 #include <stdexcept>
-
 using namespace hd;
 namespace {
-void check(bool ok,const char* why) { if(!ok) throw std::runtime_error(why); }
-void advance(Session& s,Time& now,Time duration) { const Time end=now+duration; for(;now<end;++now) s.tick(now); s.tick(now); }
-Sample sampleFor(std::uint32_t session,std::uint32_t request,double rpm,Time now) {
-    Sample s{}; s.session=session;s.request=request;s.time=now;
-    s.values={rpm,42.5,80.,-12.3,25.,100.,14.2};s.qualities.fill(Quality::Valid);return s;
+void check(bool ok, const char *why) {
+    if (!ok)
+        throw std::runtime_error(why);
 }
-void pipelineAndManual() {
-    Session s;Time now=0;
-    s.emulator().setScenario(Scenario::Manual);
-    s.emulator().setManual(Channel::Rpm,800);
-    std::uint64_t tx=0,rx=0,accepted=0;
-    s.onRaw=[&](const RawEvent& e){if(e.kind=="TX")++tx;if(e.kind=="RX")++rx;};
-    s.onSample=[&](const Sample& sample){++accepted;check(sample.session==s.id(),"sample session");};
-    s.start(now);check(!s.model().current(Channel::Rpm,now),"no slider bypass before response");
-    advance(s,now,200);
-    check(s.state()==SessionState::Running,"HELLO through stream");
-    check(s.model().current(Channel::Rpm,now)==800.,"full request byte emulator byte parser sample path");
-    s.emulator().setManual(Channel::Rpm,3500);
-    check(s.model().current(Channel::Rpm,now)==800.,"manual write cannot touch model");
-    advance(s,now,150);
-    check(s.model().current(Channel::Rpm,now)==3500.,"manual value appears via next snapshot");
-    check(tx>=3&&rx>tx&&accepted>=2,"normal transport genuinely fragments replies");
-    s.emulator().setManual(Channel::Rpm,0);
-    advance(s,now,150);
-    check(s.model().current(Channel::Rpm,now)==0.,"zero RPM valid");
-    s.emulator().setChannelQuality(Channel::Coolant,Quality::Unsupported);
-    s.emulator().setChannelQuality(Channel::Intake,Quality::Invalid);
-    advance(s,now,150);
-    check(s.model().channels()[2].quality==Quality::Unsupported&&!s.model().current(Channel::Coolant,now),"per-channel Unsupported");
-    check(s.model().channels()[3].quality==Quality::Invalid&&!s.model().current(Channel::Intake,now),"per-channel Invalid");
-    check(s.model().channels()[0].quality==Quality::Valid,"independent channel quality");
+void advance(Session &s, Time &n, Time d) {
+    auto end = n + d;
+    for (; n < end; ++n)
+        s.tick(n);
+    s.tick(n);
 }
-void staleAndRecovery() {
-    Session s; Time now=0;s.start(now);advance(s,now,300);
-    const auto last=s.model().channels()[0].lastValid;
-    check(last.has_value(),"initial fresh value");
-    s.emulator().faults().silent=true;advance(s,now,1500);
-    check(s.model().channels()[0].quality==Quality::Stale,"Valid to Stale");
-    check(s.model().current(Channel::Rpm,now).has_value(),"stale briefly shown");
-    check(s.model().channels()[0].lastValid==last,"silence doesn't change timestamp");
-    advance(s,now,2000);
-    check(!s.model().current(Channel::Rpm,now),"old value hidden after threshold");
-    check(s.stats().timeouts>0&&s.stats().responseHz==0,"timeout and actual response frequency");
-    s.emulator().faults().silent=false;advance(s,now,500);
-    check(s.model().channels()[0].quality==Quality::Valid&&s.model().current(Channel::Rpm,now),"recovered valid byte response");
-}
-void damagedPackets() {
-    Session s;Time now=0;s.start(now);advance(s,now,80);
-    const auto last=s.model().channels()[0].lastValid;
-    s.emulator().faults().corruptNext=true;
-    advance(s,now,130);
-    check(s.stats().corrupt>0,"CRC failure counted");
-    check(s.model().channels()[0].lastValid==last,"bad checksum cannot refresh model");
-    advance(s,now,400);check(s.model().channels()[0].lastValid>last,"CRC recovery");
-    const auto before=s.stats().timeouts;
-    s.emulator().faults().truncateNext=true;advance(s,now,650);
-    check(s.stats().timeouts>before,"truncated response times out");
-    check(s.model().channels()[0].quality==Quality::Valid,"resynchronized after truncation");
-}
-void matchingAndLifecycle() {
-    Session s;Time now=0;std::uint32_t active=0;std::vector<std::uint32_t> timedOut;
-    s.onRaw=[&](const RawEvent& e){if(e.kind=="TX")active=e.request;if(e.kind=="timeout")timedOut.push_back(e.request);};
-    s.start(now);advance(s,now,100);
-    const auto accepted=s.stats().accepted;
-    s.receive(encode(Frame{SnapshotResponse,s.id(),2,encodeSnapshot(sampleFor(s.id(),2,9999,now))}),now);
-    check(s.stats().accepted==accepted,"duplicate ignored");
-    s.emulator().faults().silent=true;advance(s,now,10);
-    const auto request=active;const auto oldSession=s.id();
-    advance(s,now,400);check(!timedOut.empty(),"controlled timeout");
-    const auto before=s.stats().accepted;
-    s.receive(encode(Frame{SnapshotResponse,s.id(),request,encodeSnapshot(sampleFor(s.id(),request,9999,now))}),now);
-    check(s.stats().accepted==before,"late response ignored");
-    s.emulator().faults().silent=false;s.start(now);advance(s,now,50);
-    s.receive(encode(Frame{SnapshotResponse,oldSession,active,encodeSnapshot(sampleFor(oldSession,active,9999,now))}),now);
-    check(s.model().current(Channel::Rpm,now)!=9999.,"previous session cannot update");
-    for(int i=0;i<200;++i) {
-        s.emulator().faults().delayMs=1000;
-        s.start(now);advance(s,now,20);s.stop(now);
-        check(s.pendingDeliveries()==0,"stop cancels pending delivery callbacks");
-        check(s.state()==SessionState::Stopped&&!s.model().current(Channel::Rpm,now),"stop clears live model");
+const std::array<double, 7> manual{3500, 42.5, 80, -12.3, 25, 100, 14.2};
+// Retains copied callbacks intentionally: tests Session's own lifecycle guard,
+// independently of a well-behaved transport's cancellation implementation.
+struct Fake : Transport {
+    TransportCallbacks cb;
+    bool open{}, drain{true}, reply{};
+    std::size_t queued{};
+    std::vector<Frame> requests;
+    Parser parser;
+    void start(TransportCallbacks c, Time n) override {
+        cb = std::move(c);
+        open = true;
+        cb.opened(n);
     }
-    s.emulator().faults().delayMs=0;s.start(now);advance(s,now,100);
-    check(s.state()==SessionState::Running&&s.stats().accepted>0,"repeat start recovery");
+    void close() override {
+        open = false;
+        queued = 0;
+    }
+    bool send(std::span<const std::uint8_t> b, Time n) override {
+        auto f = parser.feed(b);
+        requests.insert(requests.end(), f.begin(), f.end());
+        queued = b.size();
+        if (drain) {
+            queued = 0;
+            cb.sent(n);
+        }
+        return true;
+    }
+    void tick(Time) override {}
+    bool isOpen() const override { return open; }
+    std::size_t pendingBytes() const override { return queued; }
+    std::string name() const override { return "test"; }
+    void response(std::uint8_t type, std::vector<std::uint8_t> p, Time n) {
+        auto f = requests.back();
+        cb.received(encode({type, f.session, f.request, std::move(p)}), n);
+    }
+};
+void pipeline() {
+    InMemoryTransport t;
+    Session s(t);
+    Time n = 0;
+    s.setScenario(3, 42);
+    s.setManual(manual);
+    unsigned tx = 0, rx = 0;
+    s.onRaw = [&](const RawEvent &e) {
+        tx += e.kind == "TX";
+        rx += e.kind == "RX";
+    };
+    s.start(n);
+    check(!s.model().current(Channel::Rpm, n), "no slider bypass");
+    advance(s, n, 300);
+    check(s.state() == SessionState::Running && s.deviceInfo()->endpoint == "desktop-emulator", "HELLO+INFO");
+    for (unsigned i = 0; i < 7; ++i)
+        check(s.model().current(static_cast<Channel>(i), n) == manual[i], "exact seven values");
+    auto values = manual;
+    values[0] = 0;
+    s.setManual(values);
+    check(s.model().current(Channel::Rpm, n) == 3500, "control not measurement");
+    advance(s, n, 200);
+    check(s.model().current(Channel::Rpm, n) == 0, "valid zero");
+    std::array<Quality, 7> q;
+    q.fill(Quality::Valid);
+    q[2] = Quality::Unsupported;
+    q[3] = Quality::Invalid;
+    s.setQualities(q);
+    advance(s, n, 250);
+    check(s.model().channels()[2].quality == Quality::Unsupported && !s.model().current(Channel::Coolant, n),
+          "unsupported");
+    check(s.model().channels()[3].quality == Quality::Invalid && !s.model().current(Channel::Intake, n),
+          "invalid");
+    check(rx > tx && tx > 5, "fragmented raw path");
+    for (int i = 0; i < 10000; ++i) {
+        values[0] = i % 12000;
+        s.setManual(values);
+    }
+    advance(s, n, 300);
+    check(s.model().current(Channel::Rpm, n) == 9999, "bounded latest desired state");
 }
-void limitsAndHandshake() {
-    Session s;Time now=0;s.emulator().faults().silent=true;s.start(now);advance(s,now,1000);
-    check(s.state()==SessionState::Faulted&&s.stats().timeouts==3,"bounded handshake retry");
-    check(s.pendingDeliveries()==0,"failed handshake no callbacks");
-    s.emulator().faults().silent=false;s.start(now);advance(s,now,100);
-    s.emulator().faults().delayMs=1000000;
-    advance(s,now,100000);
-    check(s.pendingDeliveries()<=256,"long virtual load bounded delivery queue");
-    check(s.stats().accepted<=2,"late load cannot invent sample");
-    s.stop(now);check(s.pendingDeliveries()==0,"stop clears long-delay queue");
-    s.emulator().faults().delayMs=0;s.start(now);advance(s,now,600000);
-    check(s.stats().accepted>5900&&s.pendingDeliveries()<32,"ten simulated minutes stable bounded 10Hz polling");
+void freshnessFaults() {
+    InMemoryTransport t;
+    Session s(t);
+    Time n = 0;
+    s.start(n);
+    advance(s, n, 300);
+    s.setFaults({true, 0, false, false});
+    advance(s, n, 500);
+    auto last = s.model().channels()[0].lastValid;
+    advance(s, n, 1200);
+    check(s.model().channels()[0].quality == Quality::Stale && s.model().current(Channel::Rpm, n),
+          "stale temporarily displayed");
+    advance(s, n, 2100);
+    check(!s.model().current(Channel::Rpm, n) && s.model().channels()[0].lastValid == last,
+          "hide old data without refresh");
+    s.setFaults({});
+    advance(s, n, 600);
+    check(s.model().channels()[0].quality == Quality::Valid, "restore command reaches silent endpoint");
+    auto corrupt = s.stats().corrupt;
+    s.setFaults({false, 0, true, false});
+    advance(s, n, 700);
+    check(s.stats().corrupt > corrupt && s.state() == SessionState::Running,
+          "once CRC leaves ACK intact and recovers");
+    auto timeouts = s.stats().timeouts;
+    s.setFaults({false, 0, false, true});
+    advance(s, n, 800);
+    check(s.stats().timeouts > timeouts && s.model().channels()[0].quality == Quality::Valid,
+          "truncate timeout and resync");
+    s.setFaults({false, 700, false, false});
+    advance(s, n, 5000);
+    check(!s.model().current(Channel::Rpm, n) && s.stats().ignored > 0, "late frames cannot refresh");
+    s.setFaults({});
+    advance(s, n, 1500);
+    check(s.model().current(Channel::Rpm, n).has_value(), "recover delayed stream");
 }
+void lifecycleLoad() {
+    InMemoryTransport t, other;
+    Session s(t);
+    Time n = 0;
+    for (unsigned i = 0; i < 200; ++i) {
+        s.setTransport(i % 2 ? t : other);
+        auto old = s.id();
+        s.start(n);
+        check(s.id() != old, "new identity");
+        advance(s, n, 50);
+        s.stop(n);
+        check(!s.model().current(Channel::Rpm, n) && t.pendingDeliveries() == 0 &&
+                  other.pendingDeliveries() == 0,
+              "stop cancels and clears");
+    }
+    s.setTransport(t);
+    s.start(n);
+    advance(s, n, 600000);
+    check(s.stats().accepted > 5900 && t.pendingDeliveries() < 32, "ten minutes bounded polling");
+    s.stop(n);
+    t.emulator().faults().delayMs = 1000000;
+    s.start(n);
+    advance(s, n, 100000);
+    check(s.state() == SessionState::Faulted && !s.error().empty(), "overflow visibly terminates");
 }
+void responseMatching() {
+    Fake wire;
+    Session session(wire);
+    session.start(0); session.tick(0);
+    std::string profile="synthetic-demo-v1";
+    std::vector<std::uint8_t> hello{1}; hello.insert(hello.end(),profile.begin(),profile.end());
+    wire.response(HelloResponse,hello,1); session.tick(1);
+    wire.response(GetDeviceInfo|0x80,{1,1,0,2,0,15,0,'d','e','s','k','t','o','p','-','e','m','u','l','a','t','o','r'},2);
+    session.tick(2);
+    const auto request=wire.requests.back();
+    Sample sample; sample.values={9999,42.5,80,-12.3,25,100,14.2}; sample.qualities.fill(Quality::Valid);
+    auto payload=encodeSnapshot(sample);
+    wire.cb.received(encode({SnapshotResponse,request.session+1,request.request,payload}),3);
+    wire.cb.received(encode({SnapshotResponse,request.session,request.request+1,payload}),3);
+    check(session.stats().accepted==0,"foreign session/request cannot update");
+    wire.response(SnapshotResponse,{1},3);
+    check(session.stats().corrupt>0 && session.stats().accepted==0,"invalid snapshot cannot refresh");
+    auto response=encode({SnapshotResponse,request.session,request.request,payload});
+    wire.cb.received(response,4); wire.cb.received(response,5);
+    check(session.stats().accepted==1 && session.model().current(Channel::Rpm,5)==9999,"only first valid matching response accepted");
+    session.tick(102);
+    wire.response(SnapshotResponse,payload,402);
+    check(session.stats().accepted==1,"response exactly at deadline rejected");
+    session.tick(402);
+    wire.cb.received(response,403);
+    check(session.stats().accepted==1 && session.stats().ignored>=4,"old request cannot refresh new pending");
+}
+void deadlinesAndGuards() {
+    Fake t;
+    std::uint32_t id = 100;
+    SessionSettings config;
+    config.bootDelayMs = 2000;
+    config.handshakeDeadlineMs = 4000;
+    Session s(t, config, {}, [&] { return ++id; });
+    Time n = 0;
+    s.start(n);
+    auto old = t.cb;
+    advance(s, n, 1999);
+    check(t.requests.empty() && s.state() == SessionState::BootWaiting, "nonblocking boot phase");
+    advance(s, n, 1);
+    check(t.requests.size() == 1, "hello after boot");
+    advance(s, n, 1000);
+    check(s.state() == SessionState::Faulted && t.requests.size() == 3, "bounded hello no reopen");
+    s.start(n);
+    auto current = s.id();
+    old.opened(n);
+    old.error("old error", n);
+    old.received(encode({SnapshotResponse, current, 1, {}}), n);
+    check(s.id() == current && s.state() == SessionState::BootWaiting, "all old callbacks ignored");
+    s.stop(n);
+    s.setSettings({});
+    t.drain = false;
+    s.start(n);
+    advance(s, n, 600);
+    check(s.state() == SessionState::Faulted && s.error().find("TX") != std::string::npos,
+          "TX zero progress deadline");
+    auto copied = t.cb;
+    {
+        Fake local;
+        Session temporary(local);
+        temporary.start(0);
+        copied = local.cb;
+    }
+    copied.error("after destruction", n); // ASan-friendly lifetime guard
+    Fake bad;
+    Session incompatible(bad);
+    incompatible.start(0);
+    incompatible.tick(0);
+    bad.response(HelloResponse, {1, 'b', 'a', 'd'}, 1);
+    check(incompatible.state() == SessionState::Faulted && incompatible.stats().accepted == 0,
+          "wrong profile stops polling");
+    Fake info;
+    Session wrongEndpoint(info);
+    wrongEndpoint.start(0);
+    wrongEndpoint.tick(0);
+    std::string profile = "synthetic-demo-v1";
+    std::vector<std::uint8_t> hello{1};
+    hello.insert(hello.end(), profile.begin(), profile.end());
+    info.response(HelloResponse, hello, 1);
+    wrongEndpoint.tick(1);
+    info.response(GetDeviceInfo | 0x80, {1, 2, 0, 2, 0, 15, 0, 'x'}, 2);
+    check(wrongEndpoint.state() == SessionState::Faulted, "wrong endpoint");
+    Fake late;
+    late.drain = false;
+    SessionSettings txSettings;
+    txSettings.txTimeoutMs = 50;
+    Session lateTx(late, txSettings);
+    lateTx.start(0);
+    lateTx.tick(0);
+    late.queued = 0;
+    late.cb.sent(50);
+    check(lateTx.state() == SessionState::Faulted, "sent at TX deadline cannot revive expired request");
+    Fake total;
+    SessionSettings totalSettings;
+    totalSettings.handshakeDeadlineMs = 100;
+    Session totalDeadline(total, totalSettings);
+    totalDeadline.start(0);
+    totalDeadline.tick(0);
+    total.response(HelloResponse, hello, 1);
+    totalDeadline.tick(1);
+    total.response(GetDeviceInfo | 0x80, {1,   1,   0,   2,   0,   15,  0,   'd', 'e', 's', 'k', 't',
+                                          'o', 'p', '-', 'e', 'm', 'u', 'l', 'a', 't', 'o', 'r'},
+                   100);
+    check(totalDeadline.state() == SessionState::Faulted, "INFO at total handshake deadline rejected");
+    Fake reentrant;
+    Session cancelled(reentrant);
+    cancelled.onRaw = [&](const RawEvent &e) {
+        if (e.kind == "TX_QUEUED" || e.kind == "stop")
+            cancelled.stop(e.time);
+    };
+    cancelled.start(0);
+    cancelled.tick(0);
+    check(reentrant.requests.empty() && cancelled.state() == SessionState::Stopped,
+          "stop from TX event prevents old send and recursive stop");
+    cancelled.onRaw = [&](const RawEvent &e) {
+        if (e.kind == "start")
+            cancelled.stop(e.time);
+    };
+    cancelled.start(1);
+    check(!reentrant.open && cancelled.state() == SessionState::Stopped,
+          "stop during start cannot leave invisible open transport");
+    InMemoryTransport memory;
+    unsigned oldRx = 0, newRx = 0;
+    TransportCallbacks initial;
+    initial.opened = [](Time) {};
+    initial.sent = [](Time) {};
+    initial.raw = [&](const std::string &k, auto, Time time) {
+        if (k == "RX") {
+            TransportCallbacks next;
+            next.received = [&](auto, Time) { ++newRx; };
+            memory.start(next, time);
+        }
+    };
+    initial.received = [&](auto, Time) { ++oldRx; };
+    memory.start(initial, 0);
+    memory.send(encode({Hello, 55, 1, {}}), 0);
+    memory.tick(0);
+    check(oldRx == 0 && newRx == 0, "memory old RX cannot cross reconnect from raw callback");
+    Fake ids;
+    Session repeated(ids, {}, {}, [] { return 42; });
+    repeated.start(0);
+    repeated.start(1);
+    check(repeated.state() == SessionState::Faulted, "reject repeated injected identity");
+}
+} // namespace
 int main() {
-    try { pipelineAndManual(); staleAndRecovery(); damagedPackets(); matchingAndLifecycle(); limitsAndHandshake();
-        std::cout<<"session: 5 scenario groups passed (controlled clock, full byte path)\n";return 0;
-    } catch(const std::exception& e) {std::cerr<<"session test failed: "<<e.what()<<'\n';return 1;}
+    try {
+        pipeline();
+        freshnessFaults();
+        lifecycleLoad();
+        deadlinesAndGuards();
+        responseMatching();
+        std::cout << "session: pipeline, faults, lifecycle/load, deadlines/guards passed\n";
+    } catch (const std::exception &e) {
+        std::cerr << e.what() << '\n';
+        return 1;
+    }
 }

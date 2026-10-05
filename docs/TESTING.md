@@ -1,125 +1,98 @@
-# Перевірки M0
+# Перевірки M1
 
-## Автоматичний набір
+## Команди
 
 ```powershell
 ./scripts/build-windows.ps1 -QtPath '<Qt 6.8.3 msvc2022_64>'
+./scripts/package-windows.ps1 -QtPath '<Qt 6.8.3 msvc2022_64>'
+./scripts/build-firmware.ps1 -Bootstrap
 ```
 
 ```bash
 cmake --preset linux -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
 cmake --build build/linux --parallel 2
 QT_QPA_PLATFORM=offscreen ctest --test-dir build/linux --output-on-failure
+bash scripts/build-firmware.sh --bootstrap
 ```
 
-CTest запускає protocol/model/emulator, session integration, recording
-та GUI smoke. Логічні перевірки не потребують GUI, мережі або пристроїв.
-Для headless збірки доступне `-DHONDADASH_BUILD_GUI=OFF`.
+GUI без SerialPort: `-DHONDADASH_WITH_SERIAL=OFF`; додатковий
+`-DHONDADASH_BUILD_GUI=OFF` прибирає Qt цілком. CI перевіряє simulation-only
+з `CMAKE_DISABLE_FIND_PACKAGE_Qt6SerialPort=TRUE`. У CI немає приховування
+failures через continue-on-error. Тести не відкривають перераховані фізичні
+порти: Windows перевіряє лише явно неіснуючий порт; Linux створює власний PTY.
 
-| Група | Що підтверджує |
+## Що перевіряють тести
+
+| Група | Доказ |
 |---|---|
-| Protocol/model/emulator | Незалежні golden bytes, CRC, масштабування семи каналів, межі та від’ємні температури, zero/Unsupported/Invalid, версія/довжина, fragmentation/coalescing/noise/truncation/resync, bounded parser, детермінізм сценаріїв, freshness |
-| Session integration | HELLO та snapshot через повний байтовий шлях, timeout, late/duplicate/old session, обрив/відновлення, ручний стан після відповіді, bounded deliveries, повторні Start/Stop |
-| Recording | UTF-8 Unicode/space paths, CSV optional/zero/negative числа, locale-independent decimal point, JSON escaping і точні corrupt RX bytes, метадані, collision avoidance, flush/restart, відкриття/запис/queue overflow |
-| GUI smoke | Справжній QWidget застосунок, прийняті дані, ручна зміна обертів через session, втрата/відновлення, штатне завершення та screenshot |
+| core | Незмінні M0 golden fixtures; CRC/endian/scaled words усіх каналів, framing/noise/coalescing/truncation/resync, bounds, сценарії та freshness |
+| session | Реальний byte pipeline з InMemoryTransport; ACK без вимірювання, coalescing controls, silence/Stale/hide/restore, CRC/truncate/late, IDs, boot phase, TX та загальні deadline включно з точною межею, старі callbacks і reentrancy, 200 start/stop та 10 модельних хвилин |
+| in_memory | Контракт потоку й фрагментація без змішування кадрів; bounded queue та M1 protocol edge cases |
+| recording | UTF-8/Unicode/space paths, CSV optional/zero/negative, locale, JSON escaping, точні corrupt RX, metadata, collision/restart/flush, disk та queue errors |
+| embedded | Той самий endpoint.cpp, що для AVR: незалежні golden bytes, 79-байтовий кадр, всі фрагментації, склеювання, noise/CRC/length/version, до-HELLO error, duplicate/conflict, overflow, всі сценарії/controls, одноразові faults, 36000 reads, millis wrap |
+| session_embedded | Production Session/encoder → embedded dispatcher → production parser/decoder/model/Recorder; сім відомих scaled values, reset/re-HELLO, control ACK, silence/restore, delayed snapshot Busy/restore, одноразові faults, 100 reconnect та 10 модельних хвилин |
+| serial | Production Qt QIODevice pump: partial/zero write, buffers, timeout, errors, disconnect TX/RX, reconnect усередині callbacks, cancellation, відсутній QSerialPort |
+| serial_pty (Linux) | Справжній QSerialPort ↔ системний openpty ↔ embedded Endpoint: HELLO/INFO, сім ручних каналів, CRC, silence/restore, firmware reset, reconnect та OS hangup |
+| gui_smoke | Реальні QWidget/прилади/графік, джерела, порт/handshake, capability gating, USB warning, missing port, M0 сценарії/freshness/запис, fullscreen/resize/start-stop |
 
-Логіка deadline перевіряється керованим монотонним часом. Recording
-overflow test блокує worker явним test gate, а не припущенням про
-планування ОС; п’ятисекундний guard лише не дозволяє завислому тесту
-тримати CI необмежено. WriteHook детерміновано відтворює помилку диска.
+Логічні тести мають керований монотонний час. OS/GUI перевірки використовують
+event loop та обмежені реальні deadlines. PTY тест не замінює Nano/USB-chip.
+AVR compilation не доводить роботу фізичної плати.
 
-GUI smoke виконує модельні переходи справжньої сесії та перевіряє
-результат; він не просто чекає кілька секунд. Звіт має `passed`,
-`result`, список checks та ознаку platform/offscreen. При порушенні
-перевірки застосунок повертає ненульовий exit code.
+## Пакет та візуальна перевірка
 
-## Windows пакет
+Windows package містить Qt6SerialPort.dll, інші Qt DLL, Windows plugin,
+ліцензійні тексти та app-local VC143 CRT. Скрипт створює ZIP, розпаковує в
+нову папку і запускає саме розпакований EXE з очищеними Qt variables та PATH,
+що містить лише пакет і Windows. Перевіряються passed=true, platform=windows,
+offscreen=false, exit code0; зберігаються фактичні screenshots1024×600/1280×720.
 
-```powershell
-./scripts/package-windows.ps1 -QtPath '<Qt 6.8.3 msvc2022_64>'
-```
+Windows offscreen smoke використовує встановлений Segoe UI для читабельної
+української; шрифт не розповсюджується. Linux screenshots мають позначення
+offscreen. Додаткова бажана незалежна перевірка — чиста Windows10/11 VM без
+Qt/VS. Її не слід вважати виконаною лише через очищений PATH.
 
-Перевірка виконується після `Expand-Archive` у новій папці, з очищеними
-Qt environment variables й PATH лише package/Windows. Скрипт перевіряє
-код завершення, `passed=true` в JSON та наявність screenshot; відсутність
-Qt DLL/plugin, MSVC dependency inspection tool чи license bundle є
-помилкою, а не skip. Прямі MSVC imports EXE та всіх DLL записуються
-у `dist/reports/windows-dependencies.txt`. README пакета оголошує
-Redistributable prerequisite, якщо runtime DLL не app-local.
+## Фактичне середовище та статус
 
-Ця перевірка на машині збірки не доводить відсутності потрібного
-Redistributable на чистій Windows. Остаточна ручна перевірка для
-розповсюдження: VM Windows 10/11 x64 без Qt/VS, встановлення оголошеного
-runtime за потреби, розпакування всього ZIP і запуск.
+Базовий M0 commit0ffe65335863b922a79ed21b9a34b7a502db0739 перед змінами:
+Windows Release4/4 CTest PASS (`build/windows/m1-baseline.xml`).
+Локальні інструменти M1: Qt/SerialPort6.8.3, CMake3.31.6,
+MSVC19.34.31948.0; Linux WSL Ubuntu24.04.3, GCC13.3.0, Ninja1.11.1.
+CI окремо використовує Windows2022 та Ubuntu22.04; compiler patch version
+конкретного CI запуску міститься в його логах.
 
-## Ручний чекліст
+Arduino CLI1.2.2 (commit c11b9dd5), Arduino AVR Boards1.8.6,
+avr-g++7.3.0 (`7.3.0-atmel3.6.1-arduino7`). Обидва Nano FQBN складено.
+Фактичний Flash5736 байтів; .data108 + .bss711 =819 SRAM, включно з
+HardwareSerial/default UART buffers. Залишок статичної SRAM1229 не є
+доказом stack safety. Budget1536 перевіряється скриптами; окремі stack
+reports та обмеження наведено в NANO_USB_TESTING.md.
 
-1. Розпакувати Windows ZIP, запустити HondaDash.exe. Видно постійний
-   напис «ЕМУЛЯЦІЯ — не підключено до автомобіля».
-2. Start у сценарії демонстрації: після HELLO є вимірювання всіх каналів,
-   видно стан сесії, прийняту частоту відповідей, давність і counters.
-   Прискорений прогрів позначено демонстраційним.
-3. Manual: змінити оберти та інші поля; значення приймаються тільки
-   після наступної коректної відповіді. Запалювання зупиненого двигуна
-   показує 0 об/хв як Valid.
-4. Вимкнути відповіді. Після >1 с побачити Stale текст/колір; після >3 с
-   числа сховані, графік має розрив, timeout counter збільшується.
-5. Відновити відповіді: нова вибірка повертає Valid. Затримати відповідь
-   понад deadline, потім прибрати затримку: пізня відповідь не освіжає
-   модель, наступна актуальна працює.
-6. Зіпсувати CRC наступної відповіді та обірвати наступний пакет.
-   Переконатися, що поганий пакет не підставляє нове число й не змінює
-   час останнього Valid; наступний правильний пакет відновлює парсер.
-7. Позначити окремий канал Unsupported, потім Invalid: видно стан цього
-   каналу, він не перетворюється на нуль і не псує решту каналів.
-8. Записати до папки з пробілами й українськими літерами. Stop запису,
-   відкрити CSV і JSONL: decoded числа, відсутні порожні values,
-   identities/time/metadata, сирі fragments включно з corrupt RX.
-9. Повторити Start/Stop, перемкнути сценарій і seed, перевірити 1024×600,
-   1280×720, масштаб 100%/150%, F11/Esc. Закрити під час сесії/запису.
+Локальні докази зберігаються в build/windows/reports, build/linux-local,
+build/windows-simulation, dist/reports та build/firmware. CI публікує
+окремі Windows ZIP, desktop test reports/screenshots і firmware artifacts.
+Workflow-файл сам по собі не доводить успіх; перевіряйте запуск для commit.
+Build outputs не комітяться.
 
-## Облік доказів
+**Фізична Nano/USB: NOT VERIFIED. Windows COM end-to-end з платою:
+NOT VERIFIED.** Host/PTY/build не перекласифіковуються як hardware test.
+Ручні USB reset/disconnect/reconnect — окремий необов'язковий апаратний
+чекліст у [NANO_USB_TESTING.md](NANO_USB_TESTING.md).
 
-Windows offscreen-тест завантажує встановлені в ОС Segoe UI шрифти,
-щоб читабельно намалювати український текст без native font database.
-Шрифти не входять до репозиторію чи ZIP. JSON перевіряє підтримку
-ASCII та українських символів; `platform=windows, offscreen=false`
-окремо позначає перевірку розпакованого пакета з Windows plugin.
+## Коротка ручна перевірка без плати
 
-GitHub workflow складає Windows Debug і Release на `windows-2022`,
-Linux на `ubuntu-22.04`; Qt 6.8.3 та CMake 3.31.6 зафіксовані.
-Windows artifacts містять ZIP, JUnit, smoke JSON, dependency report і
-знімок Windows platform plugin. Linux screenshot позначено offscreen.
+1. Розпакуйте ZIP, виберіть вбудовану емуляцію, натисніть Старт.
+2. Перевірте сім каналів, чотири сценарії, ручні RPM та коректний нуль.
+3. Вимкніть відповіді: Stale після1с, приховані числа після3с, розрив графіка.
+4. Відновіть відповіді; окремо перевірте CRC, truncation, затримку, якості.
+5. Запишіть CSV/JSONL у папку з українськими літерами, перевірте
+   source=simulation, transport=in-memory і сирі байти.
+6. Повторіть Start/Stop, зміну джерела, F11/Esc і зміну розміру вікна.
 
-Фактичні local/CI результати, compiler patch versions та commit SHA
-повідомляються у звіті конкретного запуску. Не вважати цей опис або
-workflow-файл доказом пройдених перевірок. У M0 не перевірено реальні
-ECU, електричний інтерфейс, Nano/USB або продуктивність 60 FPS.
-
-Підтвердження локальної робочої сесії 5 жовтня 2026: Windows x64,
-MSVC **19.34.31948.0** (Visual Studio 2022), Qt **6.8.3**, CMake **3.31.6**.
-Фінальний `scripts/build-windows.ps1` зібрав Debug і Release: обидва
-набори **4/4 CTest** пройшли (core, session, recording, GUI offscreen).
-Debug: 21,23 с; Release: 2,49 с. Фінальний ZIP пройшов усі 21 GUI
-перевірку після розпакування: `platform=windows`, `offscreen=false`,
-очищені Qt environment і PATH. У пакет додано VC143 CRT DLL версії
-14.42.34433; системні Universal CRT DLL залишаються частиною Windows.
-Перевірено й переглянуто знімки 1024×600 та 1280×720.
-Додатковий запуск розпакованої копії з `QT_SCALE_FACTOR=1.5` пройшов
-21/21 GUI перевірку: обидва логічні розміри, читабельність знімків,
-байтові вимірювання та запис журналу. Знімок логічного 1024×600 вікна
-при цьому має 1536×900 фізичних пікселів. Звіт:
-`dist/reports/package-scale-150.json`.
-
-Linux: реальна збірка тих самих бібліотек і GUI у WSL Ubuntu **24.04.3**,
-GCC **13.3.0**, Qt **6.8.3**, CMake **3.31.6**, Ninja **1.11.1**.
-Release **4/4 CTest** пройшли, загальний час 8,11 с; GUI виконувався
-offscreen. Залежності встановлено локально; CI окремо використовує
-Ubuntu 22.04. Linux desktop із фізичним дисплеєм не перевірено.
-
-Локальні докази: `build/windows/reports/ctest-*.xml`,
-`build/windows/smoke-*.json/png`, `dist/reports/package-smoke.json`,
-`dist/reports/package-windows*.png`, `dist/reports/windows-dependencies.txt`,
-`build/linux-local/junit-linux.xml`, `build/linux-local/smoke-Release.json`.
-Build/ZIP/журнали не входять до Git. Ці фактичні локальні результати
-не підміняють окремий статус запуску GitHub Actions.
+Підсумок локального M1 запуску 5 жовтня 2026: Windows Debug **8/8**,
+Release **8/8**, simulation-only Release **7/7**; Linux Release **9/9**,
+simulation-only Release **7/7** — PASS. Розпакований Windows ZIP пройшов
+GUI smoke з `platform=windows`, `offscreen=false`, `passed=true` та
+Qt6SerialPort.dll; фактичні PNG1024×600,1280×720 і USB-unconnected переглянуто.
+Debug8/8:47,94с, Release8/8:3,09с; Linux9/9:7,47с. Ці локальні результати
+не підміняють окремий статус GitHub Actions для опублікованого commit.

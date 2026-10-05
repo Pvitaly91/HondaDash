@@ -45,9 +45,12 @@ std::string metadataJson(const RecordingMetadata& metadata) {
     out.imbue(std::locale::classic());
     const auto wallTime = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
-    out << "{\"kind\":\"metadata\",\"format_version\":1,\"app_version\":\"0.1.0\","
+    out << "{\"kind\":\"metadata\",\"format_version\":2,\"app_version\":\"0.2.0\","
            "\"source\":\"simulation\",\"profile\":\"synthetic-demo-v1\",\"scenario\":"
         << jsonString(metadata.scenario) << ",\"seed\":" << metadata.seed
+        << ",\"transport\":" << jsonString(metadata.transport) << ",\"endpoint\":" << jsonString(metadata.endpoint)
+        << ",\"firmware\":" << jsonString(metadata.firmware) << ",\"port\":" << jsonString(metadata.port)
+        << ",\"baud\":" << metadata.baud
         << ",\"created_unix_ms\":" << wallTime << ",\"clock\":\"monotonic_ms\",\"units\":{";
     for (std::size_t i = 0; i < ChannelCount; ++i) {
         if (i) out << ',';

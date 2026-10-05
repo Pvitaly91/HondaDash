@@ -14,6 +14,8 @@ namespace hd {
 struct RecordingMetadata {
     std::string scenario;
     std::uint32_t seed{};
+    std::string transport{"in-memory"}, endpoint{"desktop-emulator"}, firmware{"0.2.0"}, port;
+    std::uint32_t baud{};
 };
 
 // Disk work runs on one bounded worker. A failed enqueue stops recording and

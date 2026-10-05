@@ -4,7 +4,7 @@
   "configurePresets": [
     {"name": "windows", "generator": "Visual Studio 17 2022", "architecture": "x64", "binaryDir": "${sourceDir}/build/windows", "cacheVariables": {"CMAKE_PREFIX_PATH": "$env{QT_ROOT_DIR}"}},
     {"name": "linux", "generator": "Ninja", "binaryDir": "${sourceDir}/build/linux", "cacheVariables": {"CMAKE_BUILD_TYPE": "Release", "CMAKE_PREFIX_PATH": "$env{QT_ROOT_DIR}"}},
-    {"name": "core-windows", "inherits": "windows", "binaryDir": "${sourceDir}/build/core-windows", "cacheVariables": {"HONDADASH_BUILD_GUI": "OFF"}}
+    {"name": "core-windows", "inherits": "windows", "binaryDir": "${sourceDir}/build/core-windows", "cacheVariables": {"HONDADASH_BUILD_GUI": "OFF", "HONDADASH_WITH_SERIAL": "OFF"}}
   ],
   "buildPresets": [
     {"name": "windows-debug", "configurePreset": "windows", "configuration": "Debug"},

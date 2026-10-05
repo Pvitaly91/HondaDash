@@ -12,3 +12,6 @@ recording-*/
 *.obj
 *.log
 __pycache__/
+*.hex
+*.elf
+*.map

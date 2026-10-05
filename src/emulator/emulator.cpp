@@ -117,7 +117,7 @@ Sample Emulator::snapshot(const Frame& request, Time now) const {
 std::vector<EmulatedReply> Emulator::consume(std::span<const std::uint8_t> requestBytes, Time now) {
     std::vector<EmulatedReply> replies;
     for (const auto& request : parser_.feed(requestBytes)) {
-        if (faults_.silent) continue;
+        if (faults_.silent && request.type == ReadSnapshot) continue;
         Frame response{ErrorResponse, request.session, request.request, {1}};
         if (!request.payload.empty()) {
             response.payload = {2};
@@ -131,15 +131,15 @@ std::vector<EmulatedReply> Emulator::consume(std::span<const std::uint8_t> reque
             response.payload = encodeSnapshot(snapshot(request, now));
         }
         auto bytes = encode(response);
-        if (faults_.corruptNext) {
+        if (faults_.corruptNext && request.type == ReadSnapshot) {
             bytes.back() ^= 0x80;
             faults_.corruptNext = false;
         }
-        if (faults_.truncateNext) {
+        if (faults_.truncateNext && request.type == ReadSnapshot) {
             bytes.resize(bytes.size() / 2);
             faults_.truncateNext = false;
         }
-        replies.push_back({faults_.delayMs, std::move(bytes)});
+        replies.push_back({request.type == ReadSnapshot ? faults_.delayMs : 0, std::move(bytes)});
     }
     return replies;
 }
