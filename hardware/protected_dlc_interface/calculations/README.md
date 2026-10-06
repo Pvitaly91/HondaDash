@@ -5,7 +5,7 @@ resistor/offset/bias/leakage corners and both output-LOW endpoints, then checks
 TX, power and failsafe budgets. Results are `calculations.csv` and the JSON
 summary under ignored `build/electrical/`. A numerical PASS means declared inputs
 satisfy an inequality; it does not turn an allocation into a manufacturer maximum.
-The final source has132 BOM/pad rows and49 conditional calculation checks.
+The final source has135 BOM/pad rows and52 conditional calculation checks.
 **Hardware NOT VERIFIED. Negative DC/off-state protection remains OPEN.**
 
 Revision A source and reports are reproduced separately by `simulation/baseline.py`
@@ -39,7 +39,7 @@ D1 and MOS leakage. The retained M3a responder has its own stricter idle/LOW/edg
 limits; functional fixture A must satisfy both.
 
 For powered-off RX, the10µA input-to-rail allocation plus the direct
-SENSE→R3→R6→V5_F→R11 path gives roughly13.4mV at+16V under those restricted paths.
+SENSE→R3→R6→V5_F→R11 path gives roughly9.1mV at+16V under those restricted paths.
 It is not a complete off-rail leakage guarantee. Input voltage tolerance alone
 does not prove no back-power, and the actual V5_F<0.2V criterion remains physical.
 
@@ -205,10 +205,10 @@ do not raise lateness, disable echo or reinterpret model PASS as AVR execution.
 
 ## Separate battery and USB budgets
 
-Field static allocation is **14.256979mA**: declared ISO DC maximum, comparator
+Field static allocation is **16.733567mA**: declared ISO DC maximum, comparator
 allocation, bleed, RX pullup, reference/gate/miscellaneous load, three timers,
 latches/gates, optical collector, dividers and pressed button. The steady design
-budget is16mA; measured normal field acceptance remains20mA with switching
+budget is18mA; measured normal field acceptance remains20mA with switching
 headroom. The model's2.5mA ISO resistor is not a manufacturer maximum. Startup
 capacitor charging is logged separately from steady draw.
 
@@ -244,3 +244,20 @@ Healthy field loss gives`Ceff*(4.2−2.25)/I >=214.5µs` for Ceff≥2.2µF/load�
 This exceeds the100µs PG release allocation within declared ramps≥100µs. An
 arbitrary externally forced collapse/rail short or violated bounds is OPEN and
 cannot inherit that release claim.
+
+The final three BAT54 field rail clamps add finite diode capacitance/leakage and
+R11 becomes680Ω. Static field allocation16.733567mA fits the18mA steady design
+budget and20mA measured ceiling. Q1 gate HIGH calculation is4.631987V. With the
+added gate capacitances, modeled cutoff RC+logic allocation is0.922638µs, still
+inside the unchanged1µs gate term. Conservative off injection uses
+`(200+13.4+6)µA *680Ω*1.0105 =0.150759V`; the200µA Q1 branch is an adverse
+sensitivity, not its manufacturer nominal leakage or D1's misplaced current.
+D1 leakage returns DRAIN→GND_F; MOS channel leakages are modeled separately.
+
+A pre-clamp+24V/off transient reached gate≈2.8585V, Q1 VGS≈−23.2V and U2 output
+≈−1.65V. The new oracles check actual source-relative VGS and driver output, not
+a proxy gate voltage. Diode0.45V/2µA allocations and thermal/DC qualification
+remain OPEN until measured. The held fixture-load law is now C1 continuous below
+1V and exactly full above1V: u=clip(V5_L/1V,0,1), I=Iextra*(3u²−2u³). This
+removes a nonphysical constant-current discontinuity at zero without changing
+load at any valid≥2.25V logic state or relaxing acceptance limits.

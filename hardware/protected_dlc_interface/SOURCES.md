@@ -178,3 +178,11 @@ at4.5V/−32mA; loaded levels over the held-rail range remain measured acceptanc
 gates. ISO powered-off output injection is an explicit allocation, not a
 manufacturer Ioff guarantee. The healthy field-decay arithmetic does not extend
 supervisor behavior to arbitrary forced hard collapse.
+
+Final D4/D5/D6 reuse BAT54,215 and the original Nexperia Table7 source:0.24V at
+0.1mA,0.32V at1mA,0.40V at10mA and0.50V at30mA are25°C/≤300µs/duty≤0.02
+conditions. None guarantees a10s DC or full-temperature clamp. The model's0.45V
+acceptance allocation,2µA leakage and10pF capacitance retain physical gates.
+R11=680Ω uses the same MRS25 source/order system. D1's worst reverse allocation
+returns to GND_F; Q1/Q2 channel leakage uses separate25°C anchors, with200µA Q1
+adverse sensitivity explicitly identified. No new closed vendor model was imported.

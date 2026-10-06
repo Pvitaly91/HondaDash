@@ -9,9 +9,83 @@ permissions:
   contents: read
 
 jobs:
-  electrical:
+  baseline:
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.10'
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ngspice=42+ds-3build1
+      - name: Reproduce exact revision A and its stuck-TX gap
+        run: python hardware/protected_dlc_interface/simulation/baseline.py --out build/electrical-baseline
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: HondaDash-electrical-baseline-A
+          path: |
+            build/electrical-baseline/*.json
+            build/electrical-baseline/model-A/*.json
+            build/electrical-baseline/model-A/*.csv
+            build/electrical-baseline/model-A/*.md
+            build/electrical-baseline/source/
+  shards:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [electrical, failsafe]
+        shard: [0, 1, 2, 3]
+    env:
+      SHARD_OUT: build/shards/${{ matrix.suite }}-${{ matrix.shard }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.10'
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ngspice=42+ds-3build1
+      - name: Verify schema and record exact shard source
+        run: |
+          python hardware/protected_dlc_interface/design.py --check
+          mkdir -p "$SHARD_OUT"
+          python -c "import os,json,pathlib; p=pathlib.Path(os.environ['SHARD_OUT']); (p.parent/('metadata-'+p.name+'.json')).write_text(json.dumps({'git_sha':os.environ['GITHUB_SHA']}))"
+      - name: Run the complete disjoint case subset
+        run: |
+          if [ '${{ matrix.suite }}' = electrical ]; then
+            python hardware/protected_dlc_interface/simulation/run.py --shard-count 4 --shard-index '${{ matrix.shard }}' --out "$SHARD_OUT"
+          else
+            python hardware/protected_dlc_interface/simulation/failsafe_checks.py --shard-count 4 --shard-index '${{ matrix.shard }}' --out "$SHARD_OUT"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: HondaDash-${{ matrix.suite }}-shard-${{ matrix.shard }}
+          if-no-files-found: error
+          path: |
+            build/shards/metadata-${{ matrix.suite }}-${{ matrix.shard }}.json
+            ${{ env.SHARD_OUT }}/*.json
+            ${{ env.SHARD_OUT }}/*.csv
+            ${{ env.SHARD_OUT }}/*.md
+            ${{ env.SHARD_OUT }}/*.txt
+            ${{ env.SHARD_OUT }}/*/*.cir
+            ${{ env.SHARD_OUT }}/*/*.json
+            ${{ env.SHARD_OUT }}/*/engine.log
+            ${{ env.SHARD_OUT }}/driver-traces/*.csv
+  electrical:
+    needs: [baseline, shards]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,22 +106,19 @@ jobs:
         run: |
           python hardware/protected_dlc_interface/design.py --check
           python hardware/protected_dlc_interface/simulation/run.py --calculations-only --out build/electrical-calculations
-      - name: Run independent A baseline, B electrical and failsafe matrices
-        shell: bash
+      - uses: actions/download-artifact@v4
+        with:
+          name: HondaDash-electrical-baseline-A
+          path: build/electrical-baseline
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: HondaDash-*-shard-*
+          merge-multiple: true
+          path: build/shards
+      - name: Require complete exact coverage and merge checked traces
         run: |
-          mkdir -p build/electrical-batch
-          python hardware/protected_dlc_interface/simulation/baseline.py --out build/electrical-baseline > build/electrical-batch/baseline.log 2>&1 &
-          baseline_pid=$!
-          python hardware/protected_dlc_interface/simulation/run.py --out build/electrical > build/electrical-batch/electrical.log 2>&1 &
-          electrical_pid=$!
-          python hardware/protected_dlc_interface/simulation/failsafe_checks.py --out build/electrical/failsafe > build/electrical-batch/failsafe.log 2>&1 &
-          failsafe_pid=$!
-          result=0
-          for task_pid in "$baseline_pid" "$electrical_pid" "$failsafe_pid"; do
-            if wait "$task_pid"; then :; else result=1; fi
-          done
-          cat build/electrical-batch/baseline.log build/electrical-batch/electrical.log build/electrical-batch/failsafe.log
-          exit "$result"
+          python hardware/protected_dlc_interface/simulation/merge_reports.py --suite electrical --expected-shard-count 4 --require-metadata --inputs build/shards/electrical-0 build/shards/electrical-1 build/shards/electrical-2 build/shards/electrical-3 --out build/electrical
+          python hardware/protected_dlc_interface/simulation/merge_reports.py --suite failsafe --expected-shard-count 4 --require-metadata --inputs build/shards/failsafe-0 build/shards/failsafe-1 build/shards/failsafe-2 build/shards/failsafe-3 --out build/electrical/failsafe
       - name: Numerical edge convergence without relaxing hardware limits
         run: python hardware/protected_dlc_interface/simulation/convergence.py --out build/electrical/convergence
       - name: Reproduce pre-hold USB power-phase design counterexample
@@ -95,7 +166,10 @@ jobs:
             build/electrical-baseline/model-A/calculations.csv
             build/electrical-baseline/model-A/SUMMARY.md
             build/electrical-baseline/source/
-            build/electrical-batch/
+            build/shards/metadata-*.json
+            build/shards/*/summary.json
+            build/shards/*/checks.csv
+            build/shards/*/engine.txt
             build/electrical/summary.json
             build/electrical/checks.csv
             build/electrical/calculations.csv

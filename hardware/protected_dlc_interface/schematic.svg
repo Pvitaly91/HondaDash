@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="5328" viewBox="0 0 2400 5328">
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="5473" viewBox="0 0 2400 5473">
 <rect width="100%" height="100%" fill="#f8fafc"/>
 <style>text{font:15px monospace;fill:#152238}.title{font:bold 23px sans-serif}.ref{font:bold 16px monospace} .pin{stroke:#344d65;stroke-width:2}</style>
 <text x="24" y="35" class="title">HondaDash M3b.1 revision B — independent TX cutoff/latch — NOT VERIFIED</text>
@@ -450,199 +450,209 @@
 <line class="pin" x1="986" x2="1016" y1="2268" y2="2268"/>
 <text x="1023" y="2273" data-pin="3" data-net="SENSE"> 3 — SENSE</text>
 </g>
-<g id="R3" data-mpn="MRS25000C1004FCT00"><rect x="976" y="2307" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="2329" class="ref">R3 MRS25000C1004FCT00</text>
-<text x="986" y="2350">1000000</text>
+<g id="D6" data-mpn="BAT54,215"><rect x="976" y="2307" width="445" height="133" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="2329" class="ref">D6 BAT54,215</text>
+<text x="986" y="2350">Negative gate clamp; 1=A / 2=NC / 3=K</text>
 <line class="pin" x1="986" x2="1016" y1="2367" y2="2367"/>
-<text x="1023" y="2372" data-pin="1" data-net="RX_F"> 1 — RX_F</text>
+<text x="1023" y="2372" data-pin="1" data-net="GND_F"> 1 — GND_F</text>
 <line class="pin" x1="986" x2="1016" y1="2390" y2="2390"/>
-<text x="1023" y="2395" data-pin="2" data-net="SENSE"> 2 — SENSE</text>
+<text x="1023" y="2395" data-pin="2" data-net="NC_D6_2"> 2 — NC_D6_2</text>
+<line class="pin" x1="986" x2="1016" y1="2413" y2="2413"/>
+<text x="1023" y="2418" data-pin="3" data-net="GATE"> 3 — GATE</text>
 </g>
-<g id="R6" data-mpn="MRS25000C2201FCT00"><rect x="976" y="2429" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="2451" class="ref">R6 MRS25000C2201FCT00</text>
-<text x="986" y="2472">2200</text>
-<line class="pin" x1="986" x2="1016" y1="2489" y2="2489"/>
-<text x="1023" y="2494" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="R3" data-mpn="MRS25000C1004FCT00"><rect x="976" y="2452" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="2474" class="ref">R3 MRS25000C1004FCT00</text>
+<text x="986" y="2495">1000000</text>
 <line class="pin" x1="986" x2="1016" y1="2512" y2="2512"/>
-<text x="1023" y="2517" data-pin="2" data-net="RX_F"> 2 — RX_F</text>
+<text x="1023" y="2517" data-pin="1" data-net="RX_F"> 1 — RX_F</text>
+<line class="pin" x1="986" x2="1016" y1="2535" y2="2535"/>
+<text x="1023" y="2540" data-pin="2" data-net="SENSE"> 2 — SENSE</text>
 </g>
-<g id="R11" data-mpn="MRS25000C1001FCT00"><rect x="976" y="2551" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="2573" class="ref">R11 MRS25000C1001FCT00</text>
-<text x="986" y="2594">1000</text>
-<line class="pin" x1="986" x2="1016" y1="2611" y2="2611"/>
-<text x="1023" y="2616" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="R6" data-mpn="MRS25000C2201FCT00"><rect x="976" y="2574" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="2596" class="ref">R6 MRS25000C2201FCT00</text>
+<text x="986" y="2617">2200</text>
 <line class="pin" x1="986" x2="1016" y1="2634" y2="2634"/>
-<text x="1023" y="2639" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1023" y="2639" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="2657" y2="2657"/>
+<text x="1023" y="2662" data-pin="2" data-net="RX_F"> 2 — RX_F</text>
 </g>
-<g id="R14" data-mpn="AC03000004709JAC00"><rect x="976" y="2673" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="2695" class="ref">R14 AC03000004709JAC00</text>
-<text x="986" y="2716">47</text>
-<line class="pin" x1="986" x2="1016" y1="2733" y2="2733"/>
-<text x="1023" y="2738" data-pin="1" data-net="BAT_PLUS"> 1 — BAT_PLUS</text>
+<g id="R11" data-mpn="MRS25000C6800FCT00"><rect x="976" y="2696" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="2718" class="ref">R11 MRS25000C6800FCT00</text>
+<text x="986" y="2739">680</text>
 <line class="pin" x1="986" x2="1016" y1="2756" y2="2756"/>
-<text x="1023" y="2761" data-pin="2" data-net="BAT_LIMITED"> 2 — BAT_LIMITED</text>
+<text x="1023" y="2761" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="2779" y2="2779"/>
+<text x="1023" y="2784" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="R17" data-mpn="MRS25000C1003FCT00"><rect x="976" y="2795" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="2817" class="ref">R17 MRS25000C1003FCT00</text>
-<text x="986" y="2838">100000</text>
-<line class="pin" x1="986" x2="1016" y1="2855" y2="2855"/>
-<text x="1023" y="2860" data-pin="1" data-net="TIMER_DIV"> 1 — TIMER_DIV</text>
+<g id="R14" data-mpn="AC03000004709JAC00"><rect x="976" y="2818" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="2840" class="ref">R14 AC03000004709JAC00</text>
+<text x="986" y="2861">47</text>
 <line class="pin" x1="986" x2="1016" y1="2878" y2="2878"/>
-<text x="1023" y="2883" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1023" y="2883" data-pin="1" data-net="BAT_PLUS"> 1 — BAT_PLUS</text>
+<line class="pin" x1="986" x2="1016" y1="2901" y2="2901"/>
+<text x="1023" y="2906" data-pin="2" data-net="BAT_LIMITED"> 2 — BAT_LIMITED</text>
 </g>
-<g id="R20" data-mpn="MRS25000C1003FCT00"><rect x="976" y="2917" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="2939" class="ref">R20 MRS25000C1003FCT00</text>
-<text x="986" y="2960">100000</text>
-<line class="pin" x1="986" x2="1016" y1="2977" y2="2977"/>
-<text x="1023" y="2982" data-pin="1" data-net="ARM_DIV"> 1 — ARM_DIV</text>
+<g id="R17" data-mpn="MRS25000C1003FCT00"><rect x="976" y="2940" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="2962" class="ref">R17 MRS25000C1003FCT00</text>
+<text x="986" y="2983">100000</text>
 <line class="pin" x1="986" x2="1016" y1="3000" y2="3000"/>
-<text x="1023" y="3005" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1023" y="3005" data-pin="1" data-net="TIMER_DIV"> 1 — TIMER_DIV</text>
+<line class="pin" x1="986" x2="1016" y1="3023" y2="3023"/>
+<text x="1023" y="3028" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="R23" data-mpn="MRS25000C1001FCT00"><rect x="976" y="3039" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="3061" class="ref">R23 MRS25000C1001FCT00</text>
-<text x="986" y="3082">1000</text>
-<line class="pin" x1="986" x2="1016" y1="3099" y2="3099"/>
-<text x="1023" y="3104" data-pin="1" data-net="ARM_BUTTON"> 1 — ARM_BUTTON</text>
+<g id="R20" data-mpn="MRS25000C1003FCT00"><rect x="976" y="3062" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="3084" class="ref">R20 MRS25000C1003FCT00</text>
+<text x="986" y="3105">100000</text>
 <line class="pin" x1="986" x2="1016" y1="3122" y2="3122"/>
-<text x="1023" y="3127" data-pin="2" data-net="ARM_RAW"> 2 — ARM_RAW</text>
+<text x="1023" y="3127" data-pin="1" data-net="ARM_DIV"> 1 — ARM_DIV</text>
+<line class="pin" x1="986" x2="1016" y1="3145" y2="3145"/>
+<text x="1023" y="3150" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="R28" data-mpn="MRS25000C1002FCT00"><rect x="976" y="3161" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="3183" class="ref">R28 MRS25000C1002FCT00</text>
-<text x="986" y="3204">10000</text>
-<line class="pin" x1="986" x2="1016" y1="3221" y2="3221"/>
-<text x="1023" y="3226" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="R23" data-mpn="MRS25000C1001FCT00"><rect x="976" y="3184" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="3206" class="ref">R23 MRS25000C1001FCT00</text>
+<text x="986" y="3227">1000</text>
 <line class="pin" x1="986" x2="1016" y1="3244" y2="3244"/>
-<text x="1023" y="3249" data-pin="2" data-net="USB_BAD"> 2 — USB_BAD</text>
+<text x="1023" y="3249" data-pin="1" data-net="ARM_BUTTON"> 1 — ARM_BUTTON</text>
+<line class="pin" x1="986" x2="1016" y1="3267" y2="3267"/>
+<text x="1023" y="3272" data-pin="2" data-net="ARM_RAW"> 2 — ARM_RAW</text>
 </g>
-<g id="R33" data-mpn="MRS25000C2493FCT00"><rect x="976" y="3283" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="3305" class="ref">R33 MRS25000C2493FCT00</text>
-<text x="986" y="3326">249000</text>
-<line class="pin" x1="986" x2="1016" y1="3343" y2="3343"/>
-<text x="1023" y="3348" data-pin="1" data-net="READY_SET"> 1 — READY_SET</text>
+<g id="R28" data-mpn="MRS25000C1002FCT00"><rect x="976" y="3306" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="3328" class="ref">R28 MRS25000C1002FCT00</text>
+<text x="986" y="3349">10000</text>
 <line class="pin" x1="986" x2="1016" y1="3366" y2="3366"/>
-<text x="1023" y="3371" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1023" y="3371" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="3389" y2="3389"/>
+<text x="1023" y="3394" data-pin="2" data-net="USB_BAD"> 2 — USB_BAD</text>
 </g>
-<g id="C2" data-mpn="C315C104K5R5TA"><rect x="976" y="3405" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="3427" class="ref">C2 C315C104K5R5TA</text>
-<text x="986" y="3448">1e-07</text>
-<line class="pin" x1="986" x2="1016" y1="3465" y2="3465"/>
-<text x="1023" y="3470" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="R33" data-mpn="MRS25000C2493FCT00"><rect x="976" y="3428" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="3450" class="ref">R33 MRS25000C2493FCT00</text>
+<text x="986" y="3471">249000</text>
 <line class="pin" x1="986" x2="1016" y1="3488" y2="3488"/>
-<text x="1023" y="3493" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1023" y="3493" data-pin="1" data-net="READY_SET"> 1 — READY_SET</text>
+<line class="pin" x1="986" x2="1016" y1="3511" y2="3511"/>
+<text x="1023" y="3516" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C5" data-mpn="C315C103K5R5TA"><rect x="976" y="3527" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="3549" class="ref">C5 C315C103K5R5TA</text>
-<text x="986" y="3570">1e-08</text>
-<line class="pin" x1="986" x2="1016" y1="3587" y2="3587"/>
-<text x="1023" y="3592" data-pin="1" data-net="VREF"> 1 — VREF</text>
+<g id="C2" data-mpn="C315C104K5R5TA"><rect x="976" y="3550" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="3572" class="ref">C2 C315C104K5R5TA</text>
+<text x="986" y="3593">1e-07</text>
 <line class="pin" x1="986" x2="1016" y1="3610" y2="3610"/>
-<text x="1023" y="3615" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1023" y="3615" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="3633" y2="3633"/>
+<text x="1023" y="3638" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C8" data-mpn="C340C225K5R5TA"><rect x="976" y="3649" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="3671" class="ref">C8 C340C225K5R5TA</text>
-<text x="986" y="3692">2.2e-06</text>
-<line class="pin" x1="986" x2="1016" y1="3709" y2="3709"/>
-<text x="1023" y="3714" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="C5" data-mpn="C315C103K5R5TA"><rect x="976" y="3672" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="3694" class="ref">C5 C315C103K5R5TA</text>
+<text x="986" y="3715">1e-08</text>
 <line class="pin" x1="986" x2="1016" y1="3732" y2="3732"/>
-<text x="1023" y="3737" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1023" y="3737" data-pin="1" data-net="VREF"> 1 — VREF</text>
+<line class="pin" x1="986" x2="1016" y1="3755" y2="3755"/>
+<text x="1023" y="3760" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C11" data-mpn="C315C222J5G5TA"><rect x="976" y="3771" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="3793" class="ref">C11 C315C222J5G5TA</text>
-<text x="986" y="3814">2.2e-09</text>
-<line class="pin" x1="986" x2="1016" y1="3831" y2="3831"/>
-<text x="1023" y="3836" data-pin="1" data-net="PG_GATE"> 1 — PG_GATE</text>
+<g id="C8" data-mpn="C340C225K5R5TA"><rect x="976" y="3794" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="3816" class="ref">C8 C340C225K5R5TA</text>
+<text x="986" y="3837">2.2e-06</text>
 <line class="pin" x1="986" x2="1016" y1="3854" y2="3854"/>
-<text x="1023" y="3859" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1023" y="3859" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="3877" y2="3877"/>
+<text x="1023" y="3882" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C14" data-mpn="C315C104K5R5TA"><rect x="976" y="3893" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="3915" class="ref">C14 C315C104K5R5TA</text>
-<text x="986" y="3936">1e-07</text>
-<line class="pin" x1="986" x2="1016" y1="3953" y2="3953"/>
-<text x="1023" y="3958" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="C11" data-mpn="C315C222J5G5TA"><rect x="976" y="3916" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="3938" class="ref">C11 C315C222J5G5TA</text>
+<text x="986" y="3959">2.2e-09</text>
 <line class="pin" x1="986" x2="1016" y1="3976" y2="3976"/>
-<text x="1023" y="3981" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1023" y="3981" data-pin="1" data-net="PG_GATE"> 1 — PG_GATE</text>
+<line class="pin" x1="986" x2="1016" y1="3999" y2="3999"/>
+<text x="1023" y="4004" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C17" data-mpn="C315C104K5R5TA"><rect x="976" y="4015" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="4037" class="ref">C17 C315C104K5R5TA</text>
-<text x="986" y="4058">1e-07</text>
-<line class="pin" x1="986" x2="1016" y1="4075" y2="4075"/>
-<text x="1023" y="4080" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="C14" data-mpn="C315C104K5R5TA"><rect x="976" y="4038" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="4060" class="ref">C14 C315C104K5R5TA</text>
+<text x="986" y="4081">1e-07</text>
 <line class="pin" x1="986" x2="1016" y1="4098" y2="4098"/>
-<text x="1023" y="4103" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1023" y="4103" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="4121" y2="4121"/>
+<text x="1023" y="4126" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C21" data-mpn="C315C104K5R5TA"><rect x="976" y="4137" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="4159" class="ref">C21 C315C104K5R5TA</text>
-<text x="986" y="4180">1e-07</text>
-<line class="pin" x1="986" x2="1016" y1="4197" y2="4197"/>
-<text x="1023" y="4202" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="C17" data-mpn="C315C104K5R5TA"><rect x="976" y="4160" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="4182" class="ref">C17 C315C104K5R5TA</text>
+<text x="986" y="4203">1e-07</text>
 <line class="pin" x1="986" x2="1016" y1="4220" y2="4220"/>
-<text x="1023" y="4225" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1023" y="4225" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="4243" y2="4243"/>
+<text x="1023" y="4248" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C24" data-mpn="C315C104K5R5TA"><rect x="976" y="4259" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="4281" class="ref">C24 C315C104K5R5TA</text>
-<text x="986" y="4302">1e-07</text>
-<line class="pin" x1="986" x2="1016" y1="4319" y2="4319"/>
-<text x="1023" y="4324" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="C21" data-mpn="C315C104K5R5TA"><rect x="976" y="4282" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="4304" class="ref">C21 C315C104K5R5TA</text>
+<text x="986" y="4325">1e-07</text>
 <line class="pin" x1="986" x2="1016" y1="4342" y2="4342"/>
-<text x="1023" y="4347" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1023" y="4347" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="4365" y2="4365"/>
+<text x="1023" y="4370" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C27" data-mpn="C315C104K5R5TA"><rect x="976" y="4381" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="4403" class="ref">C27 C315C104K5R5TA</text>
-<text x="986" y="4424">1e-07</text>
-<line class="pin" x1="986" x2="1016" y1="4441" y2="4441"/>
-<text x="1023" y="4446" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="C24" data-mpn="C315C104K5R5TA"><rect x="976" y="4404" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="4426" class="ref">C24 C315C104K5R5TA</text>
+<text x="986" y="4447">1e-07</text>
 <line class="pin" x1="986" x2="1016" y1="4464" y2="4464"/>
-<text x="1023" y="4469" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1023" y="4469" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="4487" y2="4487"/>
+<text x="1023" y="4492" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="J3" data-mpn="project-battery-pads"><rect x="976" y="4503" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="4525" class="ref">J3 project-battery-pads</text>
-<text x="986" y="4546">Battery disconnected to switch OFF</text>
-<line class="pin" x1="986" x2="1016" y1="4563" y2="4563"/>
-<text x="1023" y="4568" data-pin="1" data-net="BAT_PLUS"> 1 — BAT_PLUS</text>
+<g id="C27" data-mpn="C315C104K5R5TA"><rect x="976" y="4526" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="4548" class="ref">C27 C315C104K5R5TA</text>
+<text x="986" y="4569">1e-07</text>
 <line class="pin" x1="986" x2="1016" y1="4586" y2="4586"/>
-<text x="1023" y="4591" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1023" y="4591" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="4609" y2="4609"/>
+<text x="1023" y="4614" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="TP3" data-mpn="project-test-pad"><rect x="976" y="4625" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="4647" class="ref">TP3 project-test-pad</text>
-<text x="986" y="4668">ECU_DATA</text>
-<line class="pin" x1="986" x2="1016" y1="4685" y2="4685"/>
-<text x="1023" y="4690" data-pin="1" data-net="ECU_DATA"> 1 — ECU_DATA</text>
+<g id="J3" data-mpn="project-battery-pads"><rect x="976" y="4648" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="4670" class="ref">J3 project-battery-pads</text>
+<text x="986" y="4691">Battery disconnected to switch OFF</text>
+<line class="pin" x1="986" x2="1016" y1="4708" y2="4708"/>
+<text x="1023" y="4713" data-pin="1" data-net="BAT_PLUS"> 1 — BAT_PLUS</text>
+<line class="pin" x1="986" x2="1016" y1="4731" y2="4731"/>
+<text x="1023" y="4736" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="TP6" data-mpn="project-test-pad"><rect x="976" y="4724" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="4746" class="ref">TP6 project-test-pad</text>
-<text x="986" y="4767">RX_F</text>
-<line class="pin" x1="986" x2="1016" y1="4784" y2="4784"/>
-<text x="1023" y="4789" data-pin="1" data-net="RX_F"> 1 — RX_F</text>
+<g id="TP3" data-mpn="project-test-pad"><rect x="976" y="4770" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="4792" class="ref">TP3 project-test-pad</text>
+<text x="986" y="4813">ECU_DATA</text>
+<line class="pin" x1="986" x2="1016" y1="4830" y2="4830"/>
+<text x="1023" y="4835" data-pin="1" data-net="ECU_DATA"> 1 — ECU_DATA</text>
 </g>
-<g id="TP9" data-mpn="project-test-pad"><rect x="976" y="4823" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="4845" class="ref">TP9 project-test-pad</text>
-<text x="986" y="4866">V5_F</text>
-<line class="pin" x1="986" x2="1016" y1="4883" y2="4883"/>
-<text x="1023" y="4888" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="TP6" data-mpn="project-test-pad"><rect x="976" y="4869" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="4891" class="ref">TP6 project-test-pad</text>
+<text x="986" y="4912">RX_F</text>
+<line class="pin" x1="986" x2="1016" y1="4929" y2="4929"/>
+<text x="1023" y="4934" data-pin="1" data-net="RX_F"> 1 — RX_F</text>
 </g>
-<g id="TP13" data-mpn="project-test-pad"><rect x="976" y="4922" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="4944" class="ref">TP13 project-test-pad</text>
-<text x="986" y="4965">TX_F</text>
-<line class="pin" x1="986" x2="1016" y1="4982" y2="4982"/>
-<text x="1023" y="4987" data-pin="1" data-net="TX_F"> 1 — TX_F</text>
+<g id="TP9" data-mpn="project-test-pad"><rect x="976" y="4968" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="4990" class="ref">TP9 project-test-pad</text>
+<text x="986" y="5011">V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="5028" y2="5028"/>
+<text x="1023" y="5033" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
 </g>
-<g id="TP16" data-mpn="project-test-pad"><rect x="976" y="5021" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="5043" class="ref">TP16 project-test-pad</text>
-<text x="986" y="5064">PG_F</text>
-<line class="pin" x1="986" x2="1016" y1="5081" y2="5081"/>
-<text x="1023" y="5086" data-pin="1" data-net="PG_F"> 1 — PG_F</text>
+<g id="TP13" data-mpn="project-test-pad"><rect x="976" y="5067" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="5089" class="ref">TP13 project-test-pad</text>
+<text x="986" y="5110">TX_F</text>
+<line class="pin" x1="986" x2="1016" y1="5127" y2="5127"/>
+<text x="1023" y="5132" data-pin="1" data-net="TX_F"> 1 — TX_F</text>
 </g>
-<g id="TP19" data-mpn="project-test-pad"><rect x="976" y="5120" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="5142" class="ref">TP19 project-test-pad</text>
-<text x="986" y="5163">LOCKED</text>
-<line class="pin" x1="986" x2="1016" y1="5180" y2="5180"/>
-<text x="1023" y="5185" data-pin="1" data-net="LOCKED"> 1 — LOCKED</text>
+<g id="TP16" data-mpn="project-test-pad"><rect x="976" y="5166" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="5188" class="ref">TP16 project-test-pad</text>
+<text x="986" y="5209">PG_F</text>
+<line class="pin" x1="986" x2="1016" y1="5226" y2="5226"/>
+<text x="1023" y="5231" data-pin="1" data-net="PG_F"> 1 — PG_F</text>
 </g>
-<g id="TP22" data-mpn="project-test-pad"><rect x="976" y="5219" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="5241" class="ref">TP22 project-test-pad</text>
-<text x="986" y="5262">READY_REQ</text>
-<line class="pin" x1="986" x2="1016" y1="5279" y2="5279"/>
-<text x="1023" y="5284" data-pin="1" data-net="READY_REQ"> 1 — READY_REQ</text>
+<g id="TP19" data-mpn="project-test-pad"><rect x="976" y="5265" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="5287" class="ref">TP19 project-test-pad</text>
+<text x="986" y="5308">LOCKED</text>
+<line class="pin" x1="986" x2="1016" y1="5325" y2="5325"/>
+<text x="1023" y="5330" data-pin="1" data-net="LOCKED"> 1 — LOCKED</text>
+</g>
+<g id="TP22" data-mpn="project-test-pad"><rect x="976" y="5364" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="5386" class="ref">TP22 project-test-pad</text>
+<text x="986" y="5407">READY_REQ</text>
+<line class="pin" x1="986" x2="1016" y1="5424" y2="5424"/>
+<text x="1023" y="5429" data-pin="1" data-net="READY_REQ"> 1 — READY_REQ</text>
 </g>
 <g id="U3" data-mpn="LM393BIDR"><rect x="1452" y="710" width="445" height="248" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
 <text x="1462" y="732" class="ref">U3 LM393BIDR</text>
@@ -758,205 +768,215 @@
 <line class="pin" x1="1462" x2="1492" y1="2192" y2="2192"/>
 <text x="1499" y="2197" data-pin="K" data-net="DRAIN"> K — DRAIN</text>
 </g>
-<g id="R1" data-mpn="MRS25000C2203FCT00"><rect x="1452" y="2231" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="2253" class="ref">R1 MRS25000C2203FCT00</text>
-<text x="1462" y="2274">220000</text>
+<g id="D4" data-mpn="BAT54,215"><rect x="1452" y="2231" width="445" height="133" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="2253" class="ref">D4 BAT54,215</text>
+<text x="1462" y="2274">Source-to-field-rail clamp; 1=A / 2=NC / 3=K</text>
 <line class="pin" x1="1462" x2="1492" y1="2291" y2="2291"/>
-<text x="1499" y="2296" data-pin="1" data-net="ECU_DATA"> 1 — ECU_DATA</text>
+<text x="1499" y="2296" data-pin="1" data-net="SINK_RET"> 1 — SINK_RET</text>
 <line class="pin" x1="1462" x2="1492" y1="2314" y2="2314"/>
-<text x="1499" y="2319" data-pin="2" data-net="SENSE"> 2 — SENSE</text>
+<text x="1499" y="2319" data-pin="2" data-net="NC_D4_2"> 2 — NC_D4_2</text>
+<line class="pin" x1="1462" x2="1492" y1="2337" y2="2337"/>
+<text x="1499" y="2342" data-pin="3" data-net="V5_F"> 3 — V5_F</text>
 </g>
-<g id="R4" data-mpn="MRS25000C7872FCT00"><rect x="1452" y="2353" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="2375" class="ref">R4 MRS25000C7872FCT00</text>
-<text x="1462" y="2396">78700</text>
-<line class="pin" x1="1462" x2="1492" y1="2413" y2="2413"/>
-<text x="1499" y="2418" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="R1" data-mpn="MRS25000C2203FCT00"><rect x="1452" y="2376" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="2398" class="ref">R1 MRS25000C2203FCT00</text>
+<text x="1462" y="2419">220000</text>
 <line class="pin" x1="1462" x2="1492" y1="2436" y2="2436"/>
-<text x="1499" y="2441" data-pin="2" data-net="VREF"> 2 — VREF</text>
+<text x="1499" y="2441" data-pin="1" data-net="ECU_DATA"> 1 — ECU_DATA</text>
+<line class="pin" x1="1462" x2="1492" y1="2459" y2="2459"/>
+<text x="1499" y="2464" data-pin="2" data-net="SENSE"> 2 — SENSE</text>
 </g>
-<g id="R7" data-mpn="MRS25000C2200FCT00"><rect x="1452" y="2475" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="2497" class="ref">R7 MRS25000C2200FCT00</text>
-<text x="1462" y="2518">220</text>
-<line class="pin" x1="1462" x2="1492" y1="2535" y2="2535"/>
-<text x="1499" y="2540" data-pin="1" data-net="GATE_DRIVE"> 1 — GATE_DRIVE</text>
+<g id="R4" data-mpn="MRS25000C7872FCT00"><rect x="1452" y="2498" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="2520" class="ref">R4 MRS25000C7872FCT00</text>
+<text x="1462" y="2541">78700</text>
 <line class="pin" x1="1462" x2="1492" y1="2558" y2="2558"/>
-<text x="1499" y="2563" data-pin="2" data-net="GATE"> 2 — GATE</text>
+<text x="1499" y="2563" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="2581" y2="2581"/>
+<text x="1499" y="2586" data-pin="2" data-net="VREF"> 2 — VREF</text>
 </g>
-<g id="R12" data-mpn="AC10000002209JAB00"><rect x="1452" y="2597" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="2619" class="ref">R12 AC10000002209JAB00</text>
-<text x="1462" y="2640">22</text>
-<line class="pin" x1="1462" x2="1492" y1="2657" y2="2657"/>
-<text x="1499" y="2662" data-pin="1" data-net="ECU_DATA"> 1 — ECU_DATA</text>
+<g id="R7" data-mpn="MRS25000C2200FCT00"><rect x="1452" y="2620" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="2642" class="ref">R7 MRS25000C2200FCT00</text>
+<text x="1462" y="2663">220</text>
 <line class="pin" x1="1462" x2="1492" y1="2680" y2="2680"/>
-<text x="1499" y="2685" data-pin="2" data-net="TX_MID"> 2 — TX_MID</text>
+<text x="1499" y="2685" data-pin="1" data-net="GATE_DRIVE"> 1 — GATE_DRIVE</text>
+<line class="pin" x1="1462" x2="1492" y1="2703" y2="2703"/>
+<text x="1499" y="2708" data-pin="2" data-net="GATE"> 2 — GATE</text>
 </g>
-<g id="R15" data-mpn="MRS25000C2003FCT00"><rect x="1452" y="2719" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="2741" class="ref">R15 MRS25000C2003FCT00</text>
-<text x="1462" y="2762">200000</text>
-<line class="pin" x1="1462" x2="1492" y1="2779" y2="2779"/>
-<text x="1499" y="2784" data-pin="1" data-net="TIMER_SET"> 1 — TIMER_SET</text>
+<g id="R12" data-mpn="AC10000002209JAB00"><rect x="1452" y="2742" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="2764" class="ref">R12 AC10000002209JAB00</text>
+<text x="1462" y="2785">22</text>
 <line class="pin" x1="1462" x2="1492" y1="2802" y2="2802"/>
-<text x="1499" y="2807" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1499" y="2807" data-pin="1" data-net="ECU_DATA"> 1 — ECU_DATA</text>
+<line class="pin" x1="1462" x2="1492" y1="2825" y2="2825"/>
+<text x="1499" y="2830" data-pin="2" data-net="TX_MID"> 2 — TX_MID</text>
 </g>
-<g id="R18" data-mpn="MRS25000C2493FCT00"><rect x="1452" y="2841" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="2863" class="ref">R18 MRS25000C2493FCT00</text>
-<text x="1462" y="2884">249000</text>
-<line class="pin" x1="1462" x2="1492" y1="2901" y2="2901"/>
-<text x="1499" y="2906" data-pin="1" data-net="ARM_SET"> 1 — ARM_SET</text>
+<g id="R15" data-mpn="MRS25000C2003FCT00"><rect x="1452" y="2864" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="2886" class="ref">R15 MRS25000C2003FCT00</text>
+<text x="1462" y="2907">200000</text>
 <line class="pin" x1="1462" x2="1492" y1="2924" y2="2924"/>
-<text x="1499" y="2929" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1499" y="2929" data-pin="1" data-net="TIMER_SET"> 1 — TIMER_SET</text>
+<line class="pin" x1="1462" x2="1492" y1="2947" y2="2947"/>
+<text x="1499" y="2952" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="R21" data-mpn="MRS25000C1503FCT00"><rect x="1452" y="2963" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="2985" class="ref">R21 MRS25000C1503FCT00</text>
-<text x="1462" y="3006">150000</text>
-<line class="pin" x1="1462" x2="1492" y1="3023" y2="3023"/>
-<text x="1499" y="3028" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="R18" data-mpn="MRS25000C2493FCT00"><rect x="1452" y="2986" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="3008" class="ref">R18 MRS25000C2493FCT00</text>
+<text x="1462" y="3029">249000</text>
 <line class="pin" x1="1462" x2="1492" y1="3046" y2="3046"/>
-<text x="1499" y="3051" data-pin="2" data-net="PG_F"> 2 — PG_F</text>
+<text x="1499" y="3051" data-pin="1" data-net="ARM_SET"> 1 — ARM_SET</text>
+<line class="pin" x1="1462" x2="1492" y1="3069" y2="3069"/>
+<text x="1499" y="3074" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="R24" data-mpn="MRS25000C2201FCT00"><rect x="1452" y="3085" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="3107" class="ref">R24 MRS25000C2201FCT00</text>
-<text x="1462" y="3128">2200</text>
-<line class="pin" x1="1462" x2="1492" y1="3145" y2="3145"/>
-<text x="1499" y="3150" data-pin="1" data-net="PG_F"> 1 — PG_F</text>
+<g id="R21" data-mpn="MRS25000C1503FCT00"><rect x="1452" y="3108" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="3130" class="ref">R21 MRS25000C1503FCT00</text>
+<text x="1462" y="3151">150000</text>
 <line class="pin" x1="1462" x2="1492" y1="3168" y2="3168"/>
-<text x="1499" y="3173" data-pin="2" data-net="PG_GATE"> 2 — PG_GATE</text>
+<text x="1499" y="3173" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="3191" y2="3191"/>
+<text x="1499" y="3196" data-pin="2" data-net="PG_F"> 2 — PG_F</text>
 </g>
-<g id="R29" data-mpn="MRS25000C1003FCT00"><rect x="1452" y="3207" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="3229" class="ref">R29 MRS25000C1003FCT00</text>
-<text x="1462" y="3250">100000</text>
-<line class="pin" x1="1462" x2="1492" y1="3267" y2="3267"/>
-<text x="1499" y="3272" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="R24" data-mpn="MRS25000C2201FCT00"><rect x="1452" y="3230" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="3252" class="ref">R24 MRS25000C2201FCT00</text>
+<text x="1462" y="3273">2200</text>
 <line class="pin" x1="1462" x2="1492" y1="3290" y2="3290"/>
-<text x="1499" y="3295" data-pin="2" data-net="PG_SENSE_F"> 2 — PG_SENSE_F</text>
+<text x="1499" y="3295" data-pin="1" data-net="PG_F"> 1 — PG_F</text>
+<line class="pin" x1="1462" x2="1492" y1="3313" y2="3313"/>
+<text x="1499" y="3318" data-pin="2" data-net="PG_GATE"> 2 — PG_GATE</text>
 </g>
-<g id="R34" data-mpn="MRS25000C2553FCT00"><rect x="1452" y="3329" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="3351" class="ref">R34 MRS25000C2553FCT00</text>
-<text x="1462" y="3372">255000</text>
-<line class="pin" x1="1462" x2="1492" y1="3389" y2="3389"/>
-<text x="1499" y="3394" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="R29" data-mpn="MRS25000C1003FCT00"><rect x="1452" y="3352" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="3374" class="ref">R29 MRS25000C1003FCT00</text>
+<text x="1462" y="3395">100000</text>
 <line class="pin" x1="1462" x2="1492" y1="3412" y2="3412"/>
-<text x="1499" y="3417" data-pin="2" data-net="READY_DIV"> 2 — READY_DIV</text>
+<text x="1499" y="3417" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="3435" y2="3435"/>
+<text x="1499" y="3440" data-pin="2" data-net="PG_SENSE_F"> 2 — PG_SENSE_F</text>
 </g>
-<g id="C3" data-mpn="C315C104K5R5TA"><rect x="1452" y="3451" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="3473" class="ref">C3 C315C104K5R5TA</text>
-<text x="1462" y="3494">1e-07</text>
-<line class="pin" x1="1462" x2="1492" y1="3511" y2="3511"/>
-<text x="1499" y="3516" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="R34" data-mpn="MRS25000C2553FCT00"><rect x="1452" y="3474" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="3496" class="ref">R34 MRS25000C2553FCT00</text>
+<text x="1462" y="3517">255000</text>
 <line class="pin" x1="1462" x2="1492" y1="3534" y2="3534"/>
-<text x="1499" y="3539" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1499" y="3539" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="3557" y2="3557"/>
+<text x="1499" y="3562" data-pin="2" data-net="READY_DIV"> 2 — READY_DIV</text>
 </g>
-<g id="C6" data-mpn="C340C225K5R5TA"><rect x="1452" y="3573" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="3595" class="ref">C6 C340C225K5R5TA</text>
-<text x="1462" y="3616">2.2e-06</text>
-<line class="pin" x1="1462" x2="1492" y1="3633" y2="3633"/>
-<text x="1499" y="3638" data-pin="1" data-net="LDO_IN"> 1 — LDO_IN</text>
+<g id="C3" data-mpn="C315C104K5R5TA"><rect x="1452" y="3596" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="3618" class="ref">C3 C315C104K5R5TA</text>
+<text x="1462" y="3639">1e-07</text>
 <line class="pin" x1="1462" x2="1492" y1="3656" y2="3656"/>
-<text x="1499" y="3661" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1499" y="3661" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="3679" y2="3679"/>
+<text x="1499" y="3684" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C9" data-mpn="C340C225K5R5TA"><rect x="1452" y="3695" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="3717" class="ref">C9 C340C225K5R5TA</text>
-<text x="1462" y="3738">2.2e-06</text>
-<line class="pin" x1="1462" x2="1492" y1="3755" y2="3755"/>
-<text x="1499" y="3760" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="C6" data-mpn="C340C225K5R5TA"><rect x="1452" y="3718" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="3740" class="ref">C6 C340C225K5R5TA</text>
+<text x="1462" y="3761">2.2e-06</text>
 <line class="pin" x1="1462" x2="1492" y1="3778" y2="3778"/>
-<text x="1499" y="3783" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1499" y="3783" data-pin="1" data-net="LDO_IN"> 1 — LDO_IN</text>
+<line class="pin" x1="1462" x2="1492" y1="3801" y2="3801"/>
+<text x="1499" y="3806" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C12" data-mpn="C315C104K5R5TA"><rect x="1452" y="3817" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="3839" class="ref">C12 C315C104K5R5TA</text>
-<text x="1462" y="3860">1e-07</text>
-<line class="pin" x1="1462" x2="1492" y1="3877" y2="3877"/>
-<text x="1499" y="3882" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="C9" data-mpn="C340C225K5R5TA"><rect x="1452" y="3840" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="3862" class="ref">C9 C340C225K5R5TA</text>
+<text x="1462" y="3883">2.2e-06</text>
 <line class="pin" x1="1462" x2="1492" y1="3900" y2="3900"/>
-<text x="1499" y="3905" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1499" y="3905" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="3923" y2="3923"/>
+<text x="1499" y="3928" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C15" data-mpn="C315C104K5R5TA"><rect x="1452" y="3939" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="3961" class="ref">C15 C315C104K5R5TA</text>
-<text x="1462" y="3982">1e-07</text>
-<line class="pin" x1="1462" x2="1492" y1="3999" y2="3999"/>
-<text x="1499" y="4004" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="C12" data-mpn="C315C104K5R5TA"><rect x="1452" y="3962" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="3984" class="ref">C12 C315C104K5R5TA</text>
+<text x="1462" y="4005">1e-07</text>
 <line class="pin" x1="1462" x2="1492" y1="4022" y2="4022"/>
-<text x="1499" y="4027" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1499" y="4027" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="4045" y2="4045"/>
+<text x="1499" y="4050" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C18" data-mpn="C315C104K5R5TA"><rect x="1452" y="4061" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="4083" class="ref">C18 C315C104K5R5TA</text>
-<text x="1462" y="4104">1e-07</text>
-<line class="pin" x1="1462" x2="1492" y1="4121" y2="4121"/>
-<text x="1499" y="4126" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="C15" data-mpn="C315C104K5R5TA"><rect x="1452" y="4084" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="4106" class="ref">C15 C315C104K5R5TA</text>
+<text x="1462" y="4127">1e-07</text>
 <line class="pin" x1="1462" x2="1492" y1="4144" y2="4144"/>
-<text x="1499" y="4149" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1499" y="4149" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="4167" y2="4167"/>
+<text x="1499" y="4172" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C22" data-mpn="C315C104K5R5TA"><rect x="1452" y="4183" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="4205" class="ref">C22 C315C104K5R5TA</text>
-<text x="1462" y="4226">1e-07</text>
-<line class="pin" x1="1462" x2="1492" y1="4243" y2="4243"/>
-<text x="1499" y="4248" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="C18" data-mpn="C315C104K5R5TA"><rect x="1452" y="4206" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="4228" class="ref">C18 C315C104K5R5TA</text>
+<text x="1462" y="4249">1e-07</text>
 <line class="pin" x1="1462" x2="1492" y1="4266" y2="4266"/>
-<text x="1499" y="4271" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1499" y="4271" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="4289" y2="4289"/>
+<text x="1499" y="4294" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C25" data-mpn="C315C104K5R5TA"><rect x="1452" y="4305" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="4327" class="ref">C25 C315C104K5R5TA</text>
-<text x="1462" y="4348">1e-07</text>
-<line class="pin" x1="1462" x2="1492" y1="4365" y2="4365"/>
-<text x="1499" y="4370" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="C22" data-mpn="C315C104K5R5TA"><rect x="1452" y="4328" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="4350" class="ref">C22 C315C104K5R5TA</text>
+<text x="1462" y="4371">1e-07</text>
 <line class="pin" x1="1462" x2="1492" y1="4388" y2="4388"/>
-<text x="1499" y="4393" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1499" y="4393" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="4411" y2="4411"/>
+<text x="1499" y="4416" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="SW1" data-mpn="B3F-1002-G"><rect x="1452" y="4427" width="445" height="156" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="4449" class="ref">SW1 B3F-1002-G</text>
-<text x="1462" y="4470">Field-side SPST-NO; terminals1/2 and3/4 pairs;…</text>
-<line class="pin" x1="1462" x2="1492" y1="4487" y2="4487"/>
-<text x="1499" y="4492" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="C25" data-mpn="C315C104K5R5TA"><rect x="1452" y="4450" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="4472" class="ref">C25 C315C104K5R5TA</text>
+<text x="1462" y="4493">1e-07</text>
 <line class="pin" x1="1462" x2="1492" y1="4510" y2="4510"/>
-<text x="1499" y="4515" data-pin="2" data-net="V5_F"> 2 — V5_F</text>
+<text x="1499" y="4515" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
 <line class="pin" x1="1462" x2="1492" y1="4533" y2="4533"/>
-<text x="1499" y="4538" data-pin="3" data-net="ARM_BUTTON"> 3 — ARM_BUTTON</text>
-<line class="pin" x1="1462" x2="1492" y1="4556" y2="4556"/>
-<text x="1499" y="4561" data-pin="4" data-net="ARM_BUTTON"> 4 — ARM_BUTTON</text>
+<text x="1499" y="4538" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="B1" data-mpn="522"><rect x="1452" y="4595" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="4617" class="ref">B1 522</text>
-<text x="1462" y="4638">External removable 9V alkaline; accept measure…</text>
+<g id="SW1" data-mpn="B3F-1002-G"><rect x="1452" y="4572" width="445" height="156" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="4594" class="ref">SW1 B3F-1002-G</text>
+<text x="1462" y="4615">Field-side SPST-NO; terminals1/2 and3/4 pairs;…</text>
+<line class="pin" x1="1462" x2="1492" y1="4632" y2="4632"/>
+<text x="1499" y="4637" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
 <line class="pin" x1="1462" x2="1492" y1="4655" y2="4655"/>
-<text x="1499" y="4660" data-pin="+" data-net="BAT_PLUS"> + — BAT_PLUS</text>
+<text x="1499" y="4660" data-pin="2" data-net="V5_F"> 2 — V5_F</text>
 <line class="pin" x1="1462" x2="1492" y1="4678" y2="4678"/>
-<text x="1499" y="4683" data-pin="-" data-net="GND_F"> - — GND_F</text>
+<text x="1499" y="4683" data-pin="3" data-net="ARM_BUTTON"> 3 — ARM_BUTTON</text>
+<line class="pin" x1="1462" x2="1492" y1="4701" y2="4701"/>
+<text x="1499" y="4706" data-pin="4" data-net="ARM_BUTTON"> 4 — ARM_BUTTON</text>
 </g>
-<g id="TP5" data-mpn="project-test-pad"><rect x="1452" y="4717" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="4739" class="ref">TP5 project-test-pad</text>
-<text x="1462" y="4760">VREF</text>
-<line class="pin" x1="1462" x2="1492" y1="4777" y2="4777"/>
-<text x="1499" y="4782" data-pin="1" data-net="VREF"> 1 — VREF</text>
+<g id="B1" data-mpn="522"><rect x="1452" y="4740" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="4762" class="ref">B1 522</text>
+<text x="1462" y="4783">External removable 9V alkaline; accept measure…</text>
+<line class="pin" x1="1462" x2="1492" y1="4800" y2="4800"/>
+<text x="1499" y="4805" data-pin="+" data-net="BAT_PLUS"> + — BAT_PLUS</text>
+<line class="pin" x1="1462" x2="1492" y1="4823" y2="4823"/>
+<text x="1499" y="4828" data-pin="-" data-net="GND_F"> - — GND_F</text>
 </g>
-<g id="TP8" data-mpn="project-test-pad"><rect x="1452" y="4816" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="4838" class="ref">TP8 project-test-pad</text>
-<text x="1462" y="4859">DRAIN</text>
-<line class="pin" x1="1462" x2="1492" y1="4876" y2="4876"/>
-<text x="1499" y="4881" data-pin="1" data-net="DRAIN"> 1 — DRAIN</text>
+<g id="TP5" data-mpn="project-test-pad"><rect x="1452" y="4862" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="4884" class="ref">TP5 project-test-pad</text>
+<text x="1462" y="4905">VREF</text>
+<line class="pin" x1="1462" x2="1492" y1="4922" y2="4922"/>
+<text x="1499" y="4927" data-pin="1" data-net="VREF"> 1 — VREF</text>
 </g>
-<g id="TP12" data-mpn="project-test-pad"><rect x="1452" y="4915" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="4937" class="ref">TP12 project-test-pad</text>
-<text x="1462" y="4958">GND_F</text>
-<line class="pin" x1="1462" x2="1492" y1="4975" y2="4975"/>
-<text x="1499" y="4980" data-pin="1" data-net="GND_F"> 1 — GND_F</text>
+<g id="TP8" data-mpn="project-test-pad"><rect x="1452" y="4961" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="4983" class="ref">TP8 project-test-pad</text>
+<text x="1462" y="5004">DRAIN</text>
+<line class="pin" x1="1462" x2="1492" y1="5021" y2="5021"/>
+<text x="1499" y="5026" data-pin="1" data-net="DRAIN"> 1 — DRAIN</text>
 </g>
-<g id="TP15" data-mpn="project-test-pad"><rect x="1452" y="5014" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="5036" class="ref">TP15 project-test-pad</text>
-<text x="1462" y="5057">ARMED</text>
-<line class="pin" x1="1462" x2="1492" y1="5074" y2="5074"/>
-<text x="1499" y="5079" data-pin="1" data-net="ARMED"> 1 — ARMED</text>
+<g id="TP12" data-mpn="project-test-pad"><rect x="1452" y="5060" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="5082" class="ref">TP12 project-test-pad</text>
+<text x="1462" y="5103">GND_F</text>
+<line class="pin" x1="1462" x2="1492" y1="5120" y2="5120"/>
+<text x="1499" y="5125" data-pin="1" data-net="GND_F"> 1 — GND_F</text>
 </g>
-<g id="TP18" data-mpn="project-test-pad"><rect x="1452" y="5113" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="5135" class="ref">TP18 project-test-pad</text>
-<text x="1462" y="5156">PG_GATE</text>
-<line class="pin" x1="1462" x2="1492" y1="5173" y2="5173"/>
-<text x="1499" y="5178" data-pin="1" data-net="PG_GATE"> 1 — PG_GATE</text>
+<g id="TP15" data-mpn="project-test-pad"><rect x="1452" y="5159" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="5181" class="ref">TP15 project-test-pad</text>
+<text x="1462" y="5202">ARMED</text>
+<line class="pin" x1="1462" x2="1492" y1="5219" y2="5219"/>
+<text x="1499" y="5224" data-pin="1" data-net="ARMED"> 1 — ARMED</text>
 </g>
-<g id="TP21" data-mpn="project-test-pad"><rect x="1452" y="5212" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="5234" class="ref">TP21 project-test-pad</text>
-<text x="1462" y="5255">READY_QUAL</text>
-<line class="pin" x1="1462" x2="1492" y1="5272" y2="5272"/>
-<text x="1499" y="5277" data-pin="1" data-net="READY_QUAL"> 1 — READY_QUAL</text>
+<g id="TP18" data-mpn="project-test-pad"><rect x="1452" y="5258" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="5280" class="ref">TP18 project-test-pad</text>
+<text x="1462" y="5301">PG_GATE</text>
+<line class="pin" x1="1462" x2="1492" y1="5318" y2="5318"/>
+<text x="1499" y="5323" data-pin="1" data-net="PG_GATE"> 1 — PG_GATE</text>
+</g>
+<g id="TP21" data-mpn="project-test-pad"><rect x="1452" y="5357" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="5379" class="ref">TP21 project-test-pad</text>
+<text x="1462" y="5400">READY_QUAL</text>
+<line class="pin" x1="1462" x2="1492" y1="5417" y2="5417"/>
+<text x="1499" y="5422" data-pin="1" data-net="READY_QUAL"> 1 — READY_QUAL</text>
 </g>
 <g id="U4" data-mpn="TPS70950DBVR"><rect x="1928" y="710" width="445" height="179" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
 <text x="1938" y="732" class="ref">U4 TPS70950DBVR</text>
@@ -1074,200 +1094,210 @@
 <line class="pin" x1="1938" x2="1968" y1="2245" y2="2245"/>
 <text x="1975" y="2250" data-pin="K" data-net="LDO_IN"> K — LDO_IN</text>
 </g>
-<g id="R2" data-mpn="MRS25000C6802FCT00"><rect x="1928" y="2284" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="2306" class="ref">R2 MRS25000C6802FCT00</text>
-<text x="1938" y="2327">68000</text>
+<g id="D5" data-mpn="BAT54,215"><rect x="1928" y="2284" width="445" height="133" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="2306" class="ref">D5 BAT54,215</text>
+<text x="1938" y="2327">Positive gate-to-field-rail clamp; 1=A / 2=NC …</text>
 <line class="pin" x1="1938" x2="1968" y1="2344" y2="2344"/>
-<text x="1975" y="2349" data-pin="1" data-net="SENSE"> 1 — SENSE</text>
+<text x="1975" y="2349" data-pin="1" data-net="GATE"> 1 — GATE</text>
 <line class="pin" x1="1938" x2="1968" y1="2367" y2="2367"/>
-<text x="1975" y="2372" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1975" y="2372" data-pin="2" data-net="NC_D5_2"> 2 — NC_D5_2</text>
+<line class="pin" x1="1938" x2="1968" y1="2390" y2="2390"/>
+<text x="1975" y="2395" data-pin="3" data-net="V5_F"> 3 — V5_F</text>
 </g>
-<g id="R5" data-mpn="MRS25000C1002FCT00"><rect x="1928" y="2406" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="2428" class="ref">R5 MRS25000C1002FCT00</text>
-<text x="1938" y="2449">10000</text>
-<line class="pin" x1="1938" x2="1968" y1="2466" y2="2466"/>
-<text x="1975" y="2471" data-pin="1" data-net="VREF"> 1 — VREF</text>
+<g id="R2" data-mpn="MRS25000C6802FCT00"><rect x="1928" y="2429" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="2451" class="ref">R2 MRS25000C6802FCT00</text>
+<text x="1938" y="2472">68000</text>
 <line class="pin" x1="1938" x2="1968" y1="2489" y2="2489"/>
-<text x="1975" y="2494" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1975" y="2494" data-pin="1" data-net="SENSE"> 1 — SENSE</text>
+<line class="pin" x1="1938" x2="1968" y1="2512" y2="2512"/>
+<text x="1975" y="2517" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="R8" data-mpn="MRS25000C6802FCT00"><rect x="1928" y="2528" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="2550" class="ref">R8 MRS25000C6802FCT00</text>
-<text x="1938" y="2571">68000</text>
-<line class="pin" x1="1938" x2="1968" y1="2588" y2="2588"/>
-<text x="1975" y="2593" data-pin="1" data-net="GATE"> 1 — GATE</text>
+<g id="R5" data-mpn="MRS25000C1002FCT00"><rect x="1928" y="2551" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="2573" class="ref">R5 MRS25000C1002FCT00</text>
+<text x="1938" y="2594">10000</text>
 <line class="pin" x1="1938" x2="1968" y1="2611" y2="2611"/>
-<text x="1975" y="2616" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1975" y="2616" data-pin="1" data-net="VREF"> 1 — VREF</text>
+<line class="pin" x1="1938" x2="1968" y1="2634" y2="2634"/>
+<text x="1975" y="2639" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="R13" data-mpn="AC10000002209JAB00"><rect x="1928" y="2650" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="2672" class="ref">R13 AC10000002209JAB00</text>
-<text x="1938" y="2693">22</text>
-<line class="pin" x1="1938" x2="1968" y1="2710" y2="2710"/>
-<text x="1975" y="2715" data-pin="1" data-net="TX_MID"> 1 — TX_MID</text>
+<g id="R8" data-mpn="MRS25000C6802FCT00"><rect x="1928" y="2673" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="2695" class="ref">R8 MRS25000C6802FCT00</text>
+<text x="1938" y="2716">68000</text>
 <line class="pin" x1="1938" x2="1968" y1="2733" y2="2733"/>
-<text x="1975" y="2738" data-pin="2" data-net="DRAIN"> 2 — DRAIN</text>
+<text x="1975" y="2738" data-pin="1" data-net="GATE"> 1 — GATE</text>
+<line class="pin" x1="1938" x2="1968" y1="2756" y2="2756"/>
+<text x="1975" y="2761" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="R16" data-mpn="MRS25000C3573FCT00"><rect x="1928" y="2772" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="2794" class="ref">R16 MRS25000C3573FCT00</text>
-<text x="1938" y="2815">357000</text>
-<line class="pin" x1="1938" x2="1968" y1="2832" y2="2832"/>
-<text x="1975" y="2837" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="R13" data-mpn="AC10000002209JAB00"><rect x="1928" y="2795" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="2817" class="ref">R13 AC10000002209JAB00</text>
+<text x="1938" y="2838">22</text>
 <line class="pin" x1="1938" x2="1968" y1="2855" y2="2855"/>
-<text x="1975" y="2860" data-pin="2" data-net="TIMER_DIV"> 2 — TIMER_DIV</text>
+<text x="1975" y="2860" data-pin="1" data-net="TX_MID"> 1 — TX_MID</text>
+<line class="pin" x1="1938" x2="1968" y1="2878" y2="2878"/>
+<text x="1975" y="2883" data-pin="2" data-net="DRAIN"> 2 — DRAIN</text>
 </g>
-<g id="R19" data-mpn="MRS25000C2553FCT00"><rect x="1928" y="2894" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="2916" class="ref">R19 MRS25000C2553FCT00</text>
-<text x="1938" y="2937">255000</text>
-<line class="pin" x1="1938" x2="1968" y1="2954" y2="2954"/>
-<text x="1975" y="2959" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="R16" data-mpn="MRS25000C3573FCT00"><rect x="1928" y="2917" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="2939" class="ref">R16 MRS25000C3573FCT00</text>
+<text x="1938" y="2960">357000</text>
 <line class="pin" x1="1938" x2="1968" y1="2977" y2="2977"/>
-<text x="1975" y="2982" data-pin="2" data-net="ARM_DIV"> 2 — ARM_DIV</text>
+<text x="1975" y="2982" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1938" x2="1968" y1="3000" y2="3000"/>
+<text x="1975" y="3005" data-pin="2" data-net="TIMER_DIV"> 2 — TIMER_DIV</text>
 </g>
-<g id="R22" data-mpn="MRS25000C1002FCT00"><rect x="1928" y="3016" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="3038" class="ref">R22 MRS25000C1002FCT00</text>
-<text x="1938" y="3059">10000</text>
-<line class="pin" x1="1938" x2="1968" y1="3076" y2="3076"/>
-<text x="1975" y="3081" data-pin="1" data-net="ARM_RAW"> 1 — ARM_RAW</text>
+<g id="R19" data-mpn="MRS25000C2553FCT00"><rect x="1928" y="3039" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="3061" class="ref">R19 MRS25000C2553FCT00</text>
+<text x="1938" y="3082">255000</text>
 <line class="pin" x1="1938" x2="1968" y1="3099" y2="3099"/>
-<text x="1975" y="3104" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1975" y="3104" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1938" x2="1968" y1="3122" y2="3122"/>
+<text x="1975" y="3127" data-pin="2" data-net="ARM_DIV"> 2 — ARM_DIV</text>
 </g>
-<g id="R25" data-mpn="MRS25000C1005FCT00"><rect x="1928" y="3138" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="3160" class="ref">R25 MRS25000C1005FCT00</text>
-<text x="1938" y="3181">10000000</text>
-<line class="pin" x1="1938" x2="1968" y1="3198" y2="3198"/>
-<text x="1975" y="3203" data-pin="1" data-net="PG_GATE"> 1 — PG_GATE</text>
+<g id="R22" data-mpn="MRS25000C1002FCT00"><rect x="1928" y="3161" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="3183" class="ref">R22 MRS25000C1002FCT00</text>
+<text x="1938" y="3204">10000</text>
 <line class="pin" x1="1938" x2="1968" y1="3221" y2="3221"/>
-<text x="1975" y="3226" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1975" y="3226" data-pin="1" data-net="ARM_RAW"> 1 — ARM_RAW</text>
+<line class="pin" x1="1938" x2="1968" y1="3244" y2="3244"/>
+<text x="1975" y="3249" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="R30" data-mpn="MRS25000C1022FCT00"><rect x="1928" y="3260" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="3282" class="ref">R30 MRS25000C1022FCT00</text>
-<text x="1938" y="3303">10200</text>
-<line class="pin" x1="1938" x2="1968" y1="3320" y2="3320"/>
-<text x="1975" y="3325" data-pin="1" data-net="PG_SENSE_F"> 1 — PG_SENSE_F</text>
+<g id="R25" data-mpn="MRS25000C1005FCT00"><rect x="1928" y="3283" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="3305" class="ref">R25 MRS25000C1005FCT00</text>
+<text x="1938" y="3326">10000000</text>
 <line class="pin" x1="1938" x2="1968" y1="3343" y2="3343"/>
-<text x="1975" y="3348" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1975" y="3348" data-pin="1" data-net="PG_GATE"> 1 — PG_GATE</text>
+<line class="pin" x1="1938" x2="1968" y1="3366" y2="3366"/>
+<text x="1975" y="3371" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="R35" data-mpn="MRS25000C1003FCT00"><rect x="1928" y="3382" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="3404" class="ref">R35 MRS25000C1003FCT00</text>
-<text x="1938" y="3425">100000</text>
-<line class="pin" x1="1938" x2="1968" y1="3442" y2="3442"/>
-<text x="1975" y="3447" data-pin="1" data-net="READY_DIV"> 1 — READY_DIV</text>
+<g id="R30" data-mpn="MRS25000C1022FCT00"><rect x="1928" y="3405" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="3427" class="ref">R30 MRS25000C1022FCT00</text>
+<text x="1938" y="3448">10200</text>
 <line class="pin" x1="1938" x2="1968" y1="3465" y2="3465"/>
-<text x="1975" y="3470" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1975" y="3470" data-pin="1" data-net="PG_SENSE_F"> 1 — PG_SENSE_F</text>
+<line class="pin" x1="1938" x2="1968" y1="3488" y2="3488"/>
+<text x="1975" y="3493" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C4" data-mpn="C315C104K5R5TA"><rect x="1928" y="3504" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="3526" class="ref">C4 C315C104K5R5TA</text>
-<text x="1938" y="3547">1e-07</text>
-<line class="pin" x1="1938" x2="1968" y1="3564" y2="3564"/>
-<text x="1975" y="3569" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="R35" data-mpn="MRS25000C1003FCT00"><rect x="1928" y="3527" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="3549" class="ref">R35 MRS25000C1003FCT00</text>
+<text x="1938" y="3570">100000</text>
 <line class="pin" x1="1938" x2="1968" y1="3587" y2="3587"/>
-<text x="1975" y="3592" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1975" y="3592" data-pin="1" data-net="READY_DIV"> 1 — READY_DIV</text>
+<line class="pin" x1="1938" x2="1968" y1="3610" y2="3610"/>
+<text x="1975" y="3615" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C7" data-mpn="C340C225K5R5TA"><rect x="1928" y="3626" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="3648" class="ref">C7 C340C225K5R5TA</text>
-<text x="1938" y="3669">2.2e-06</text>
-<line class="pin" x1="1938" x2="1968" y1="3686" y2="3686"/>
-<text x="1975" y="3691" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="C4" data-mpn="C315C104K5R5TA"><rect x="1928" y="3649" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="3671" class="ref">C4 C315C104K5R5TA</text>
+<text x="1938" y="3692">1e-07</text>
 <line class="pin" x1="1938" x2="1968" y1="3709" y2="3709"/>
-<text x="1975" y="3714" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1975" y="3714" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1938" x2="1968" y1="3732" y2="3732"/>
+<text x="1975" y="3737" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C10" data-mpn="C315C222J5G5TA"><rect x="1928" y="3748" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="3770" class="ref">C10 C315C222J5G5TA</text>
-<text x="1938" y="3791">2.2e-09</text>
-<line class="pin" x1="1938" x2="1968" y1="3808" y2="3808"/>
-<text x="1975" y="3813" data-pin="1" data-net="GATE"> 1 — GATE</text>
+<g id="C7" data-mpn="C340C225K5R5TA"><rect x="1928" y="3771" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="3793" class="ref">C7 C340C225K5R5TA</text>
+<text x="1938" y="3814">2.2e-06</text>
 <line class="pin" x1="1938" x2="1968" y1="3831" y2="3831"/>
-<text x="1975" y="3836" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1975" y="3836" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1938" x2="1968" y1="3854" y2="3854"/>
+<text x="1975" y="3859" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C13" data-mpn="C315C104K5R5TA"><rect x="1928" y="3870" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="3892" class="ref">C13 C315C104K5R5TA</text>
-<text x="1938" y="3913">1e-07</text>
-<line class="pin" x1="1938" x2="1968" y1="3930" y2="3930"/>
-<text x="1975" y="3935" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="C10" data-mpn="C315C222J5G5TA"><rect x="1928" y="3893" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="3915" class="ref">C10 C315C222J5G5TA</text>
+<text x="1938" y="3936">2.2e-09</text>
 <line class="pin" x1="1938" x2="1968" y1="3953" y2="3953"/>
-<text x="1975" y="3958" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1975" y="3958" data-pin="1" data-net="GATE"> 1 — GATE</text>
+<line class="pin" x1="1938" x2="1968" y1="3976" y2="3976"/>
+<text x="1975" y="3981" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C16" data-mpn="C315C104K5R5TA"><rect x="1928" y="3992" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="4014" class="ref">C16 C315C104K5R5TA</text>
-<text x="1938" y="4035">1e-07</text>
-<line class="pin" x1="1938" x2="1968" y1="4052" y2="4052"/>
-<text x="1975" y="4057" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="C13" data-mpn="C315C104K5R5TA"><rect x="1928" y="4015" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="4037" class="ref">C13 C315C104K5R5TA</text>
+<text x="1938" y="4058">1e-07</text>
 <line class="pin" x1="1938" x2="1968" y1="4075" y2="4075"/>
-<text x="1975" y="4080" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1975" y="4080" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1938" x2="1968" y1="4098" y2="4098"/>
+<text x="1975" y="4103" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C19" data-mpn="C315C104K5R5TA"><rect x="1928" y="4114" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="4136" class="ref">C19 C315C104K5R5TA</text>
-<text x="1938" y="4157">1e-07</text>
-<line class="pin" x1="1938" x2="1968" y1="4174" y2="4174"/>
-<text x="1975" y="4179" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="C16" data-mpn="C315C104K5R5TA"><rect x="1928" y="4137" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="4159" class="ref">C16 C315C104K5R5TA</text>
+<text x="1938" y="4180">1e-07</text>
 <line class="pin" x1="1938" x2="1968" y1="4197" y2="4197"/>
-<text x="1975" y="4202" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1975" y="4202" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1938" x2="1968" y1="4220" y2="4220"/>
+<text x="1975" y="4225" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C23" data-mpn="C315C104K5R5TA"><rect x="1928" y="4236" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="4258" class="ref">C23 C315C104K5R5TA</text>
-<text x="1938" y="4279">1e-07</text>
-<line class="pin" x1="1938" x2="1968" y1="4296" y2="4296"/>
-<text x="1975" y="4301" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="C19" data-mpn="C315C104K5R5TA"><rect x="1928" y="4259" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="4281" class="ref">C19 C315C104K5R5TA</text>
+<text x="1938" y="4302">1e-07</text>
 <line class="pin" x1="1938" x2="1968" y1="4319" y2="4319"/>
-<text x="1975" y="4324" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1975" y="4324" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1938" x2="1968" y1="4342" y2="4342"/>
+<text x="1975" y="4347" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C26" data-mpn="C315C104K5R5TA"><rect x="1928" y="4358" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="4380" class="ref">C26 C315C104K5R5TA</text>
-<text x="1938" y="4401">1e-07</text>
-<line class="pin" x1="1938" x2="1968" y1="4418" y2="4418"/>
-<text x="1975" y="4423" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="C23" data-mpn="C315C104K5R5TA"><rect x="1928" y="4381" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="4403" class="ref">C23 C315C104K5R5TA</text>
+<text x="1938" y="4424">1e-07</text>
 <line class="pin" x1="1938" x2="1968" y1="4441" y2="4441"/>
-<text x="1975" y="4446" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1975" y="4446" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1938" x2="1968" y1="4464" y2="4464"/>
+<text x="1975" y="4469" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="J2" data-mpn="project-field-pads"><rect x="1928" y="4480" width="445" height="133" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="4502" class="ref">J2 project-field-pads</text>
-<text x="1938" y="4523">Functional labels only; third pad not routed</text>
-<line class="pin" x1="1938" x2="1968" y1="4540" y2="4540"/>
-<text x="1975" y="4545" data-pin="1" data-net="ECU_DATA"> 1 — ECU_DATA</text>
+<g id="C26" data-mpn="C315C104K5R5TA"><rect x="1928" y="4503" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="4525" class="ref">C26 C315C104K5R5TA</text>
+<text x="1938" y="4546">1e-07</text>
 <line class="pin" x1="1938" x2="1968" y1="4563" y2="4563"/>
-<text x="1975" y="4568" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1975" y="4568" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
 <line class="pin" x1="1938" x2="1968" y1="4586" y2="4586"/>
-<text x="1975" y="4591" data-pin="3" data-net="VEHICLE_POWER_NC"> 3 — VEHICLE_POWER_NC</text>
+<text x="1975" y="4591" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="TP4" data-mpn="project-test-pad"><rect x="1928" y="4625" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="4647" class="ref">TP4 project-test-pad</text>
-<text x="1938" y="4668">SENSE</text>
+<g id="J2" data-mpn="project-field-pads"><rect x="1928" y="4625" width="445" height="133" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="4647" class="ref">J2 project-field-pads</text>
+<text x="1938" y="4668">Functional labels only; third pad not routed</text>
 <line class="pin" x1="1938" x2="1968" y1="4685" y2="4685"/>
-<text x="1975" y="4690" data-pin="1" data-net="SENSE"> 1 — SENSE</text>
+<text x="1975" y="4690" data-pin="1" data-net="ECU_DATA"> 1 — ECU_DATA</text>
+<line class="pin" x1="1938" x2="1968" y1="4708" y2="4708"/>
+<text x="1975" y="4713" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<line class="pin" x1="1938" x2="1968" y1="4731" y2="4731"/>
+<text x="1975" y="4736" data-pin="3" data-net="VEHICLE_POWER_NC"> 3 — VEHICLE_POWER_NC</text>
 </g>
-<g id="TP7" data-mpn="project-test-pad"><rect x="1928" y="4724" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="4746" class="ref">TP7 project-test-pad</text>
-<text x="1938" y="4767">GATE</text>
-<line class="pin" x1="1938" x2="1968" y1="4784" y2="4784"/>
-<text x="1975" y="4789" data-pin="1" data-net="GATE"> 1 — GATE</text>
+<g id="TP4" data-mpn="project-test-pad"><rect x="1928" y="4770" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="4792" class="ref">TP4 project-test-pad</text>
+<text x="1938" y="4813">SENSE</text>
+<line class="pin" x1="1938" x2="1968" y1="4830" y2="4830"/>
+<text x="1975" y="4835" data-pin="1" data-net="SENSE"> 1 — SENSE</text>
 </g>
-<g id="TP10" data-mpn="project-test-pad"><rect x="1928" y="4823" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="4845" class="ref">TP10 project-test-pad</text>
-<text x="1938" y="4866">LDO_IN</text>
-<line class="pin" x1="1938" x2="1968" y1="4883" y2="4883"/>
-<text x="1975" y="4888" data-pin="1" data-net="LDO_IN"> 1 — LDO_IN</text>
+<g id="TP7" data-mpn="project-test-pad"><rect x="1928" y="4869" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="4891" class="ref">TP7 project-test-pad</text>
+<text x="1938" y="4912">GATE</text>
+<line class="pin" x1="1938" x2="1968" y1="4929" y2="4929"/>
+<text x="1975" y="4934" data-pin="1" data-net="GATE"> 1 — GATE</text>
 </g>
-<g id="TP14" data-mpn="project-test-pad"><rect x="1928" y="4922" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="4944" class="ref">TP14 project-test-pad</text>
-<text x="1938" y="4965">TIMEOUT</text>
-<line class="pin" x1="1938" x2="1968" y1="4982" y2="4982"/>
-<text x="1975" y="4987" data-pin="1" data-net="TIMEOUT"> 1 — TIMEOUT</text>
+<g id="TP10" data-mpn="project-test-pad"><rect x="1928" y="4968" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="4990" class="ref">TP10 project-test-pad</text>
+<text x="1938" y="5011">LDO_IN</text>
+<line class="pin" x1="1938" x2="1968" y1="5028" y2="5028"/>
+<text x="1975" y="5033" data-pin="1" data-net="LDO_IN"> 1 — LDO_IN</text>
 </g>
-<g id="TP17" data-mpn="project-test-pad"><rect x="1928" y="5021" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="5043" class="ref">TP17 project-test-pad</text>
-<text x="1938" y="5064">ARM_RAW</text>
-<line class="pin" x1="1938" x2="1968" y1="5081" y2="5081"/>
-<text x="1975" y="5086" data-pin="1" data-net="ARM_RAW"> 1 — ARM_RAW</text>
+<g id="TP14" data-mpn="project-test-pad"><rect x="1928" y="5067" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="5089" class="ref">TP14 project-test-pad</text>
+<text x="1938" y="5110">TIMEOUT</text>
+<line class="pin" x1="1938" x2="1968" y1="5127" y2="5127"/>
+<text x="1975" y="5132" data-pin="1" data-net="TIMEOUT"> 1 — TIMEOUT</text>
 </g>
-<g id="TP20" data-mpn="project-test-pad"><rect x="1928" y="5120" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="5142" class="ref">TP20 project-test-pad</text>
-<text x="1938" y="5163">REARM_READY</text>
-<line class="pin" x1="1938" x2="1968" y1="5180" y2="5180"/>
-<text x="1975" y="5185" data-pin="1" data-net="REARM_READY"> 1 — REARM_READY</text>
+<g id="TP17" data-mpn="project-test-pad"><rect x="1928" y="5166" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="5188" class="ref">TP17 project-test-pad</text>
+<text x="1938" y="5209">ARM_RAW</text>
+<line class="pin" x1="1938" x2="1968" y1="5226" y2="5226"/>
+<text x="1975" y="5231" data-pin="1" data-net="ARM_RAW"> 1 — ARM_RAW</text>
 </g>
-<g id="TP23" data-mpn="project-test-pad"><rect x="1928" y="5219" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="5241" class="ref">TP23 project-test-pad</text>
-<text x="1938" y="5262">USB_BAD</text>
-<line class="pin" x1="1938" x2="1968" y1="5279" y2="5279"/>
-<text x="1975" y="5284" data-pin="1" data-net="USB_BAD"> 1 — USB_BAD</text>
+<g id="TP20" data-mpn="project-test-pad"><rect x="1928" y="5265" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="5287" class="ref">TP20 project-test-pad</text>
+<text x="1938" y="5308">REARM_READY</text>
+<line class="pin" x1="1938" x2="1968" y1="5325" y2="5325"/>
+<text x="1975" y="5330" data-pin="1" data-net="REARM_READY"> 1 — REARM_READY</text>
+</g>
+<g id="TP23" data-mpn="project-test-pad"><rect x="1928" y="5364" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="5386" class="ref">TP23 project-test-pad</text>
+<text x="1938" y="5407">USB_BAD</text>
+<line class="pin" x1="1938" x2="1968" y1="5424" y2="5424"/>
+<text x="1975" y="5429" data-pin="1" data-net="USB_BAD"> 1 — USB_BAD</text>
 </g>
 </svg>

@@ -474,8 +474,8 @@
         "K": "DRAIN"
       },
       "domain": "field",
-      "kind": "D",
-      "model": "SS16_PROJECT"
+      "kind": "X",
+      "model": "SS16_DRAIN_PROJECT"
     },
     {
       "ref": "D2",
@@ -503,6 +503,48 @@
       "domain": "field",
       "kind": "D",
       "model": "SS16_PROJECT"
+    },
+    {
+      "ref": "D4",
+      "mpn": "BAT54,215",
+      "value": "Source-to-field-rail clamp; 1=A / 2=NC / 3=K",
+      "source": "BAT",
+      "pins": {
+        "1": "SINK_RET",
+        "2": "NC_D4_2",
+        "3": "V5_F"
+      },
+      "domain": "field",
+      "kind": "X",
+      "model": "BAT54_CLAMP_PROJECT"
+    },
+    {
+      "ref": "D5",
+      "mpn": "BAT54,215",
+      "value": "Positive gate-to-field-rail clamp; 1=A / 2=NC / 3=K",
+      "source": "BAT",
+      "pins": {
+        "1": "GATE",
+        "2": "NC_D5_2",
+        "3": "V5_F"
+      },
+      "domain": "field",
+      "kind": "X",
+      "model": "BAT54_CLAMP_PROJECT"
+    },
+    {
+      "ref": "D6",
+      "mpn": "BAT54,215",
+      "value": "Negative gate clamp; 1=A / 2=NC / 3=K",
+      "source": "BAT",
+      "pins": {
+        "1": "GND_F",
+        "2": "NC_D6_2",
+        "3": "GATE"
+      },
+      "domain": "field",
+      "kind": "X",
+      "model": "BAT54_CLAMP_PROJECT"
     },
     {
       "ref": "R1",
@@ -636,8 +678,8 @@
     },
     {
       "ref": "R11",
-      "mpn": "MRS25000C1001FCT00",
-      "value": 1000,
+      "mpn": "MRS25000C6800FCT00",
+      "value": 680,
       "source": "R",
       "pins": {
         "1": "V5_F",

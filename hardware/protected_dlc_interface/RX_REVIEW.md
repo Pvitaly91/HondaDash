@@ -166,7 +166,7 @@ The comparator model's10µA input-to-rail injection is **an assumption**, not a
 manufacturer limit. Add the direct `SENSE -> R3 -> RX_F -> R6 -> V5_F -> R11`
 route; it remains when the comparator output is high impedance. Solving the
 resistor network with10µA injection, R1/R3/R6 factors0.9895 and R2/R11 factors
-1.0105 gives about10.81mV/10.70µA at DATA+5.25V and13.31mV/13.17µA at DATA+16V.
+1.0105 gives about7.352mV/10.70µA at DATA+5.25V and9.049mV/13.17µA at DATA+16V.
 These are restricted-path DC allocations, not an assembled-board off-rail bound.
 An absolute input-voltage tolerance does not prove zero injection through every
 RX/output, isolator, supervisor or powered test connection. The field rail must
@@ -197,3 +197,13 @@ separately from the100µA buffer condition. Actual total held draw≤10mA is a
 measurement gate; the model's6.2mA extra is bookkeeping rather than a fitted
 physical resistor. Field decay requires Ceff≥2.2µF/load≤20mA and ramps≥100µs;
 arbitrary forced hard collapse is OPEN, without a general PG release guarantee.
+
+Final off-pulse review also rejected the prior power-stage stress argument:
++24V/off reached Q1 VGS≈−23.2V and U2 output≈−1.65V. D4 SINK_RET→V5_F and
+D5/D6 gate rail clamps plus R11=680Ω now have explicit source-relative VGS,
+output and injection probes. D1 reverse leakage belongs DRAIN→GND_F, while
+Q1/Q2 channel leakage is separate; Q1=200µA is an adverse sensitivity. The
+0.45V BAT54 clamp allocation does not widen the25°C short-pulse VF evidence
+to DC/temperature qualification. Off-state/negative DC remain OPEN. The C1
+startup load regularization is numerical bookkeeping below1V, not evidence of
+guaranteed powered-down silicon behavior; valid-state load remains unchanged.

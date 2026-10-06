@@ -70,3 +70,11 @@ bound is OPEN and is not an authorized physical stimulus here. The passive
 ≥214.5µs decay calculation cannot establish a general PG or single-fault safety
 claim. R39/R40 guard-node leakage checks use a20µA aggregate allocation;
 off-state protection remains OPEN despite numerical checks.
+
+The specified off/+24V pulse produced modeled Q1 VGS≈−23.2V/U2 output≈−1.65V
+stress failures before D4/D5/D6/R11 revision. New diode paths limit source/gate
+excursions; actual VGS, output, clamp currents and off-rail sum are checked.
+The source amplitude/resistance/current limit/duration are unchanged. Clamp
+DC/temperature and complete off-state remain OPEN; neither a successful pulse
+model nor low calculated dissipation closes them. D1 and MOS leakage paths are
+separate so field injection is not attributed to the wrong terminal.

@@ -7,7 +7,7 @@
 та окремий20ms HIGH trace підтверджують історичні model results і відсутність
 незалежного cutoff. Це не результати B. Baseline/after мають окремі файли/SHA.
 
-Revision B має132 компоненти у pin/BOM/SVG/netlist contract,49 розрахункових
+Revision B має135 компонентів у pin/BOM/SVG/netlist contract,52 розрахункові
 перевірок, незалежні cutoff/latch/READY/button/power cases та чисельні bad controls.
 Нормальні SPICE traces містять усі256 bytes, init та raw A/B/Boundary. D8 crossings
 і окреміD3→DATA/DATA→D8/echo калібрують C++ harness, який компілює справжній
@@ -54,6 +54,15 @@ envelope V5_L≥3.184V до блокування; ефективна ємніс�
 PhysicalTXcutoff, actualtwoNano exchange/edges, isolation, vehicle qualification
 і realECU — **NOT VERIFIED**. NegativeDC−16V/10s, off-state і деякі PG/opto
 parameter guarantees — **OPEN**; їх не включають у загальний protection PASS.
+
+Перший CI прогін09709f0 завершився після90min як CANCELLED, не PASS. Його
+частковий artifact зберіг57/66 electrical та29/64 failsafe results; startup
+ngspice error і offpulse gate/VGS/output overstress вимагали окремих виправлень.
+Фінальна схема має D4–D6 rail clamps, R11=680Ω та правильний розподіл leakage:
+D1→GND_F, MOS drain→source окремо. C1 плавне fixture навантаження біля0V
+усуває чисельний zero-crossing abort без зміни healthy loading чи validity.
+Це не proof off-state survival. CI запускає4 disjoint shards для кожної матриці;
+merge вимагає повної унікальної coverage, однакових SHA та успішних reports/traces.
 
 Повторення з кореня репозиторію:
 

@@ -29,6 +29,9 @@ U24,1,Texas Instruments,SN74LVC1G17DBVR,DBV5; RX output powered raw USB; Ioff pr
 D1,1,Vishay,SS16-M3/IA,60V 1A SMA; band=K; drain negative clamp,field,"{""A"": ""GND_F"", ""K"": ""DRAIN""}",https://www.vishay.com/docs/98653/ss16hm3_bia_ss16-m3ia.pdf,"98653; 2025-03-12; pages 1-3, electrical and thermal tables"
 D2,1,Nexperia,"BAT54,215",SOT23: 1=A / 2=NC / 3=K; negative RX clamp,field,"{""1"": ""GND_F"", ""2"": ""NC_D2_2"", ""3"": ""SENSE""}",https://assets.nexperia.com/documents/data-sheet/BAT54.pdf,"2022-07-01; tables 2, 5-7"
 D3P,1,Vishay,SS16-M3/IA,Battery reverse protection; band=K,field,"{""A"": ""BAT_LIMITED"", ""K"": ""LDO_IN""}",https://www.vishay.com/docs/98653/ss16hm3_bia_ss16-m3ia.pdf,"98653; 2025-03-12; pages 1-3, electrical and thermal tables"
+D4,1,Nexperia,"BAT54,215",Source-to-field-rail clamp; 1=A / 2=NC / 3=K,field,"{""1"": ""SINK_RET"", ""2"": ""NC_D4_2"", ""3"": ""V5_F""}",https://assets.nexperia.com/documents/data-sheet/BAT54.pdf,"2022-07-01; tables 2, 5-7"
+D5,1,Nexperia,"BAT54,215",Positive gate-to-field-rail clamp; 1=A / 2=NC / 3=K,field,"{""1"": ""GATE"", ""2"": ""NC_D5_2"", ""3"": ""V5_F""}",https://assets.nexperia.com/documents/data-sheet/BAT54.pdf,"2022-07-01; tables 2, 5-7"
+D6,1,Nexperia,"BAT54,215",Negative gate clamp; 1=A / 2=NC / 3=K,field,"{""1"": ""GND_F"", ""2"": ""NC_D6_2"", ""3"": ""GATE""}",https://assets.nexperia.com/documents/data-sheet/BAT54.pdf,"2022-07-01; tables 2, 5-7"
 R1,1,Vishay,MRS25000C2203FCT00,220000,field,"{""1"": ""ECU_DATA"", ""2"": ""SENSE""}",https://www.vishay.com/docs/28724/mrs16m25.pdf,28724; 2016-03-07; electrical and ordering tables
 R2,1,Vishay,MRS25000C6802FCT00,68000,field,"{""1"": ""SENSE"", ""2"": ""GND_F""}",https://www.vishay.com/docs/28724/mrs16m25.pdf,28724; 2016-03-07; electrical and ordering tables
 R3,1,Vishay,MRS25000C1004FCT00,1000000,field,"{""1"": ""RX_F"", ""2"": ""SENSE""}",https://www.vishay.com/docs/28724/mrs16m25.pdf,28724; 2016-03-07; electrical and ordering tables
@@ -39,7 +42,7 @@ R7,1,Vishay,MRS25000C2200FCT00,220,field,"{""1"": ""GATE_DRIVE"", ""2"": ""GATE"
 R8,1,Vishay,MRS25000C6802FCT00,68000,field,"{""1"": ""GATE"", ""2"": ""GND_F""}",https://www.vishay.com/docs/28724/mrs16m25.pdf,28724; 2016-03-07; electrical and ordering tables
 R9,1,Vishay,MRS25000C4702FCT00,47000,logic,"{""1"": ""D3"", ""2"": ""GND_L""}",https://www.vishay.com/docs/28724/mrs16m25.pdf,28724; 2016-03-07; electrical and ordering tables
 R10,1,Vishay,MRS25000C1002FCT00,10000,logic,"{""1"": ""D8"", ""2"": ""GND_L""}",https://www.vishay.com/docs/28724/mrs16m25.pdf,28724; 2016-03-07; electrical and ordering tables
-R11,1,Vishay,MRS25000C1001FCT00,1000,field,"{""1"": ""V5_F"", ""2"": ""GND_F""}",https://www.vishay.com/docs/28724/mrs16m25.pdf,28724; 2016-03-07; electrical and ordering tables
+R11,1,Vishay,MRS25000C6800FCT00,680,field,"{""1"": ""V5_F"", ""2"": ""GND_F""}",https://www.vishay.com/docs/28724/mrs16m25.pdf,28724; 2016-03-07; electrical and ordering tables
 R12,1,Vishay,AC10000002209JAB00,22,field,"{""1"": ""ECU_DATA"", ""2"": ""TX_MID""}",https://www.vishay.com/docs/28730/ac_ac-at_ac-ni.pdf,"28730; 2024-12-05; pages 1-4, derating and ordering"
 R13,1,Vishay,AC10000002209JAB00,22,field,"{""1"": ""TX_MID"", ""2"": ""DRAIN""}",https://www.vishay.com/docs/28730/ac_ac-at_ac-ni.pdf,"28730; 2024-12-05; pages 1-4, derating and ordering"
 R14,1,Vishay,AC03000004709JAC00,47,field,"{""1"": ""BAT_PLUS"", ""2"": ""BAT_LIMITED""}",https://www.vishay.com/docs/28730/ac_ac-at_ac-ni.pdf,"28730; 2024-12-05; pages 1-4, derating and ordering"

@@ -45,10 +45,14 @@ def calculate():
     add('field_regulator_input_min',8-.75-.02*47*1.05,6,'>=','V','battery >=8V measured under load; SS16 <=.75V allocation')
     add('battery_resistor_short_power',9.6**2/(47*.95),2.5,'<=','W','AC03 P70=2.5W; reverse diode + battery R ignored conservatively')
     add('ldo_power_max',(9.6-5)*.02,.15,'<=','W','20mA budget; no field power from USB or DLC')
-    add('gate_high_min',4.75-.1-220*1.0105*(5.25/(68000*.9895)+1e-6),4.5,'>=','V','LVC VOH >=Vcc-.1 at <=100uA; static gate load')
-    miller=24*50e-12/(2.2e-9*.95+200e-12+50e-12)
-    off=10e-6*68000*1.01 + miller
-    add('off_gate_with_24V_step',off,1.3,'<=','V','10uA buffer Ioff, Cgd<=50pF & Cgs>=200pF are model allocations; measure')
+    gate_load=5.25/(68000*.9895)+1e-6+2e-6
+    add('gate_high_min',4.75-.1-220*1.0105*gate_load,4.5,'>=','V','LVC VOH >=Vcc-.1 at <=100uA; includes Q1 gate1uA and D6 reverse2uA allocations')
+    off_rail=(200e-6+13.4e-6+6e-6)*680*1.0105
+    clamp_vf=.45
+    add('field_off_injection_with_bleed',off_rail,.2,'<=','V','R11=680R; conservative MOS branch200uA+RX13.4uA+three clamp2uA allocations; whole off-state OPEN')
+    add('off_gate_with_24V_step',off_rail+clamp_vf,1.3,'<=','V','D4 prevents source float; D5 bounds positive gate; VF<=.45V pulse/15-35C acceptance allocation, not DC guarantee')
+    add('off_buffer_negative_clamp',clamp_vf,.5,'<=','V','D6 bounds negative gate/U2 output; .45V pulse allocation must be measured; BAT54 .4V@10mA/25C/300us source condition')
+    add('clamp_coupled_peak_current',(200e-12+50e-12)*24/1e-6,.01,'<=','A','allocated capacitances and 24V/1us edge; check actual individual diode currents in SPICE/physical captures')
     release=68000*1.01*(2.2e-9*1.05+200e-12+50e-12)*math.log(5.25/1.3)
     add('power_off_release',release,1e-3,'<=','s','RC estimate excludes slow intermediate-rail behavior; scope power ramps')
     add('full_echo_allocation',8e-6,10.24e-6,'<=','s','52us -9.5*2.08us clock drift -20us ISR -2us edge jitter')
@@ -84,13 +88,13 @@ def calculate():
     add('PG_logic_high_min',pg_static,.7*4.75,'>=','V','Rpull150k; input5uA,gate1uA,RESETleak.3uA,pulldown10M; Q2Rds.5R remainsmeasuredallocation')
     add('gate_peak_current',5.25/(220*.9895),.032,'<=','A','bufferinternalresistance ignored; C10/Cgsstep; LVCrecommended32mA@4.5V')
     add('PG_reset_peak_current',5.25/(2200*.9895),.005,'<=','A','R24 and R36 limit supervisor capacitive discharge; TPSRESETabsolute5mA ceiling')
-    gate_release=(220*1.0105+20)*(2.2e-9*1.05+200e-12+50e-12)*math.log(5.25/1.3)
+    gate_release=(220*1.0105+20)*(2.2e-9*1.05+200e-12+50e-12+2*10e-12)*math.log(5.25/1.3)
     add('cutoff_gate_RC_release',gate_release+50e-9,1e-6,'<=','s','20Rbuffer+50nslogic allocation; capacitances allocated, scopeactualwaveform')
     pg_gate_release=(2200*1.0105+100)*(2.2e-9*1.05+200e-12+50e-12)*math.log(5.25/1.3)
     add('PG_gate_RC_release',pg_gate_release+50e-6,100e-6,'<=','s','100Rsupervisor dynamic allocation+50usassertion allocation; not DSguaranteedmax')
     added_field=.000525+.000006+10*.00001+5.25/10000+5.25/(357000+100000)+2*5.25/(255000+100000)+5.25/(100000+10200)+5.25/11000+5.25/150000
-    original_field=.0125
-    add('field_static_budget',original_field+added_field,.02,'<=','A','ISO7721maxDC3.4mA at5V,LM393B1.25mA allocation,bleed5.25mA,RXpullup2.42mA,VREF/gate/misc.18mA plus timers,latch/gates,opto collector,debouncebutton/dividers; switching measured separately')
+    original_field=.0125-5.25/1000+5.25/680+6e-6
+    add('field_static_budget',original_field+added_field,.02,'<=','A','ISO7721maxDC3.4mA at5V,LM393B1.25mA allocation,R11=680R bleed7.721mA,RXpullup2.42mA,VREF/gate/misc.18mA plus timers,latch/gates,opto collector,debouncebutton/dividers and clamp6uA; switching measured separately')
     usb_led_min=(4.75-1.65)/(390*1.0105+.32)
     usb_led_max=(5.25-1)/(390*.9895)
     add('USB_health_LED_IF_min',usb_led_min,5e-3,'>=','A','VF<=1.65V allocation15–35C; exact IF/VF table at25C; Q3.32Rallocation')

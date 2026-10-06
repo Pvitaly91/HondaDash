@@ -10,6 +10,8 @@
 .param PG_DELAY=20m PG_THRESHOLD=.405 PG_HYST=.03 PG_FAIL_DELAY=50u
 .param DEBOUNCE_SCALE=1 LOGIC_DELAY=5n OPTO_DELAY=50u OPTO_CTR=.8
 .param LOW_POWER_TX=1 LOW_POWER_RX=1 QPG_RON=.5
+.param Q1_OFF_LEAK=1u Q2_OFF_LEAK=1u
+.param CLAMP_LEAK=2u
 .param HOLD_CAP=9.4u HOLD_BLOCK_DELAY=15u HOLD_ON_DELAY=150u
 .param HOLD_EXTRA_LOAD=6.2m HOLD_BYPASS=0 HOLD_RON=.14 HOLD_LEAK=2.7u
 .param COUNTER_K=1.1507282898071236
@@ -36,6 +38,21 @@ Riq1 v1 g1 2000
 Riq2 v2 g9 2000
 * Cross-barrier capacitance allocation, not guaranteed production capacitance.
 Cbar g1 g9 2p
+.ends
+
+.subckt BAT54_CLAMP_PROJECT anode nc cathode
+* Original rail-clamp model. BAT54 pin1=A, pin2=NC, pin3=K.
+* Finite diode plus explicit 2uA reverse allocation. The source datasheet's
+* VF/leakage values are 25C short-pulse conditions; full DC/temp stays OPEN.
+Dforward anode cathode BAT54_PROJECT
+Bleak cathode anode I={CLAMP_LEAK}*min(max(V(cathode,anode),0),1)
+.ends
+
+.subckt SS16_DRAIN_PROJECT anode cathode
+* Dominant DATA off leakage belongs to D1 cathode-to-GND, not Q1 D-to-S.
+* TX_LEAK remains the 0..200uA D1 allocation used by the existing corners.
+Dforward anode cathode SS16_PROJECT
+Bleak cathode anode I={TX_LEAK}*min(max(V(cathode,anode),0),1)
 .ends
 
 .subckt LM66100_PROJECT vin g ce nc status out
@@ -71,7 +88,11 @@ Bce ce g I=(V(ce,g)>V(vin,g)+.08) ? .61u : .3u
 * The physical total-current gate is <=10mA including both10k pullups,
 * buffers, reset and parasitics. This allocation is not a physical resistor;
 * ideal behavioral voltage outputs do not model conversion efficiency.
-Bload ce g I=(V(ce,g)>0) ? {HOLD_EXTRA_LOAD} : 0
+* The old constant-current jump at0V could have no operating point during
+* a slow body-diode-fed USB ramp. For undefined partial power use C1 smoothstep
+* u*u*(3-2*u), u=clip(VCE/1V,0,1). Full load is EXACTLY unchanged above1V,
+* including every valid >=2.25V hold state. Low-voltage law is an allocation.
+Bload ce g I={HOLD_EXTRA_LOAD}*min(max(V(ce,g),0),1)*min(max(V(ce,g),0),1)*(3-2*min(max(V(ce,g),0),1))
 .ends
 
 .subckt LVC17_PROJECT nc a g y vcc
@@ -114,6 +135,7 @@ Cgd_i gate drain {CGD}
 Cgs_i gate source {CGS}
 Dbody source drain BODY_PG_PROJECT
 .model BODY_PG_PROJECT D(Is=1n N=1.8 Rs=.15 Bv=60)
+Bleak drain source I={Q2_OFF_LEAK}*min(max(V(drain,source),0),1)
 .ends
 
 * Each new IC below has finite output resistance, load and state storage.
@@ -255,7 +277,9 @@ Cgs_i gate source {CGS}
 * Body diode is secondary to D1; use a separate finite diode equation.
 Dbody source drain BODY_PROJECT
 .model BODY_PROJECT D(Is=1n N=1.8 Rs=.15 Bv=60)
-Bleak drain source I={TX_LEAK}*min(max(V(drain,source),0),1)
+* Q1/Q2 IDSS source condition: 1uA at60V,VGS0,25C. Full temp/off-state OPEN.
+* Q1_OFF_LEAK=200u is an explicit adverse sensitivity, not manufacturer max.
+Bleak drain source I={Q1_OFF_LEAK}*min(max(V(drain,source),0),1)
 .ends
 
 .subckt LM393B_PROJECT out minus plus g plus2 minus2 out2 vcc

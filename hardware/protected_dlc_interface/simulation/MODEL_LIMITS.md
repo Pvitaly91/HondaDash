@@ -16,6 +16,14 @@ guards D3 into the held domain, and raw-powered U24 isolates the unpowered D8.
 R39/R40 explicitly bias the intermediate TX/RX nodes when their drivers are off;
 raw D3/D8 pulldowns alone do not constrain these new nodes. The voltage oracles
 probe actual U1.INB against held V5_L, and U24.A against its input stress limit.
+The final135-part revision adds D4/D5 positive clamps on SINK_RET/GATE and
+D6 negative gate clamp, and changes field bleed R11 to680ohm. The off-state
+oracles separately check Q1 gate-source voltage and U2 output stress: ground-
+referenced gate voltage alone missed floating-source overstress in the earlier
+candidate. D1 reverse leakage flows from DRAIN to GND_F; independent Q1/Q2
+off-channel budgets are1uA each. A separate200uA Q1 leakage case is an adverse
+sensitivity, not a manufacturer guaranteed maximum. Clamp pulse VF allocations
+do not close DC/temperature or unpowered survival qualification.
 These original project models
 include finite output impedance, capacitance, leakage and stored state. Internal
 counter voltages are **normalized digital timer state**, not physical capacitor
@@ -40,8 +48,9 @@ and loads a copied test-only module through a case-local `SPICE_SCRIPTS/spinit`.
 No model binary is committed or included in the hardware artifact. Legacy ideal
 transmission-line delay histories produced repeated tiny breakpoints; the bounded
 delay representation preserves the intended causal delay and finite surrounding
-impedances. A0.25us/0.125us numerical convergence check observed0.169997us maximum
-D8 edge difference on the stated reference corner. Use0.4us numerical timing
+impedances. The earlier candidate's0.25us/0.125us convergence check observed
+0.169997us maximum D8 edge difference. The current-model result and model hash
+are recorded in `convergence/summary.json`. Use0.4us numerical timing
 allowance; this is not a physical scope measurement or a guarantee off-grid.
 
 PG release12–28ms and threshold corners derive from the specified supervisor;
@@ -63,6 +72,12 @@ conditional project allocations requiring physical measurement. Prescribed rail
 profiles do not prove regulator stability, charging/inrush or current-limiter
 behavior. Flip-flop setup/hold violations are outside the quiescent local re-arm
 contract and remain OPEN; the ideal state model cannot establish metastability.
+The earlier constant6.2mA fixture load discontinuity at zero held-rail voltage
+caused a reproducible slow-USB solver failure. Its C1 smoothstep now rises from
+zero to the same6.2mA over0–1V and remains exactly constant above1V. This only
+regularizes the invalid low-voltage fixture load; adversarial undefined logic,
+healthy-domain load, rail profiles and physical criteria are unchanged. Solver
+failure remains an infrastructure error and cannot count as expected rejection.
 The field power grid includes100us,1ms and10ms falls. Effective field C≥2.2uF
 and healthy load≤20mA imply at least214.5us from4.2V to2.25V. A hard rail short,
 arbitrary faster collapse or excess load is outside that decay bound and remains
@@ -90,9 +105,10 @@ and not transistor-level internal replicas. No closed model was copied.
 
 | Model element | Bound / origin | Important omission / acceptance gate |
 |---|---|---|
-| Q1 | Finite Ron=.32R allocation; smooth gate-controlled conductance;60V body diode; Cgd50pF/Cgs200pF allocations; drain leakage swept | No MOS SOA/avalanche/hot-spot/temperature feedback; measure gate, capacitances and temperature; DS0.146R at4.5V/25°C is the anchor |
-| D1/D3P | Exponential diode, series.02R,60V breakdown; reverse leakage allocation up to200uA applied to TX leg | Not a constant-voltage clamp; equation is illustrative, not a manufacturer fit; no thermal runaway model; measure diode VF and leakage |
+| Q1/Q2 | Finite Ron=.32R allocation; smooth gate-controlled conductance;60V body diode; Q1 Cgd50pF/Cgs200pF allocations; separate1uA off-channel leaks, adverse Q1 sweep200uA | No MOS SOA/avalanche/hot-spot/temperature feedback; measure gate-source voltage, capacitances and temperature; DS0.146R at4.5V/25°C is the anchor |
+| D1/D3P | Exponential diode, series.02R,60V breakdown; D1 reverse leakage allocation up to200uA from DRAIN to GND_F | Not a constant-voltage clamp; equation is illustrative, not a manufacturer fit; no thermal runaway model; measure diode VF and leakage |
 | D2 | Exponential finite diode with1R series,10pF Cj,30V breakdown; extra0–2uA reverse-leak budget | DC/temperature extrapolation of short-pulse datasheet limits remains conditional |
+| D4/D5/D6 | BAT54 finite-diode gate/source clamps and explicit leakage; generated pin map and680ohm field bleed | Short-pulse VF allocation is not guaranteed DC clamp or full-temperature off-state survival |
 | U2 | Finite20R drive, high target Vcc−0.1V; output high impedance when off,10uA leakage | Gate load differs from datasheet timing test; ramp regions simplified; gate waveform must pass |
 | U3 | Real divider/positive feedback and input capacitance; ±4mV offset, bias/leak corners; finite160R output;0.3–3us transmission delay |3us is a project gate, not guaranteed DS maximum; powered-off injection10uA is an assumption; measure backfeed and brownouts |
 | U1F | Two noninverting controlled outputs with finite50R impedance,17ns equivalent RC midpoint delay,2pF barrier capacitance allocation | Behavior below valid supplies simplified; no dielectric failure, creepage, CMTI, USB shield or earth path; isolation model cannot prove isolation |
@@ -141,3 +157,10 @@ bypassed hold-up island. These must fail numerical
 checks. Full mode labels their failures EXPECTED_REJECTION; `--bad-only` exits2.
 An unexpected negative PASS fails the suite. No physical bad-control test is
 authorized by the model. Simulation PASS leaves every hardware status NOT VERIFIED.
+
+CI partitions each full suite into four disjoint ordered subsets without reducing
+scenario duration or the original physical limits. `merge_reports.py` requires
+the current Git/model hashes, exact complete case coverage, numerical checks and
+matching CSV/deck/log/module/trace evidence. It publishes complete status only
+after validation and rejects13 deliberately corrupted report controls. Missing,
+cancelled or failed shards leave an incomplete ERROR, never an aggregate PASS.

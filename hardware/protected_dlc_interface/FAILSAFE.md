@@ -30,6 +30,7 @@ firmware loop, ISR, USB command or application completion participates in cutoff
 | U19,U20,U21 | SN74LVC2G02DCUR, SN74LVC2G08DCUR and SN74LVC1G17DBVR | Clean physical button; qualify RELEASE_OK and READY_REQ; require REARM_READY in ARM_DATA |
 | U22,U23,U24 | LM66100DCKR and two SN74LVC1G17DBVR | Held logic power, guarded raw D3 input and guarded raw-powered D8 output |
 | R37,R38,C28,C29 | AC03 22R feed after LM.OUT; rawUSB4.7k bleed; two4.7uF/50V X7R | Minimum measured held capacitance4.7uF; finite reverse-blocking/rail discharge analysis |
+| D4,D5,D6,R11 | BAT54,215 source/gate rail clamps; R11=680R field bleed | Bound floating Q1 source and unpowered buffer excursions; local field connections only |
 
 The optical health path is USB5V→R27 390R→U14 LED_A1/LED_K2→Q3 drain;
 Q3 source is GND_L and its gate receives U13 /RESET throughR36=2.2k,
@@ -38,6 +39,57 @@ is GND_F, collector4 is USB_BAD with10k field pullup. U16 cleans this slow
 collector transition. U13 uses the same100k/10.2k SENSE divider and CT-open delay
 as U11. USB loss or an unsafe USB cycle removes light and clears ARMED. Returning
 USB power while D3 remains HIGH cannot arm the latch.
+
+### Floating-source and gate rail clamps
+
+The series Q2 disconnect leaves Q1 source/SINK_RET floating when field power
+is absent. The previous model placed the entire200uA DATA leakage allocation
+in Q1's drain-to-source branch. For the1ms/+24V/1k fault pulse with1us edges,
+that charged SINK_RET to23.9134V. Q1's Cgs then coupled the source excursion
+into GATE:2.8585V peak and−1.6549V minimum. Q1 VGS reached−23.2279V,
+beyond its−20V absolute limit, and the U2 off output fell below−0.5V.
+Passing steady release or measuring GATE relative to ground alone missed
+these stresses. This is a simulated counterexample, not a hardware capture.
+
+D4 is **BAT54,215**, pin1 anode=SINK_RET, pin3 cathode=V5_F; D5 uses
+pin1=GATE, pin3=V5_F; D6 uses pin1=GND_F, pin3=GATE. Each pin2 is NC.
+D4 returns source leakage and edge charge to the local field capacitors and
+bleeder. D5/D6 limit positive and negative gate excursions, including U2's
+powered-off output through R7. These connections add no resistor around Q2
+and no ground-barrier crossing. With normal powered sink operation, SINK_RET
+is near GND_F and the clamps remain reverse biased.
+
+R11 is now **680R, MRS25000C6800FCT00**. A conservative200uA adverse MOS
+branch plus13.4uA RX injection and6uA aggregate clamp-leak allocation gives
+at most0.150759V at the bleed resistor corner. Adding the0.45V clamp
+acceptance allocation bounds positive unpowered GATE to0.600759V, below
+the unchanged1.3V criterion. The normal field static budget becomes16.7336mA,
+within the existing20mA ceiling. D6's reverse2uA allocation is included in
+the U2 gate load; its load remains below the100uA VOH source condition.
+
+The corrected normal leakage paths are physically separated: TX_LEAK applies
+to D1 cathode/DRAIN→GND_F; Q1_OFF_LEAK=1uA is DRAIN→SINK_RET and
+Q2_OFF_LEAK=1uA is SINK_RET→GND_F. The MOSFET1uA datasheet value is at
+60V,VGS=0,25°C. Q1_OFF_LEAK=200uA is retained only as an explicitly adverse
+source-branch sensitivity, not a manufacturer maximum. The clamps also bound
+the previous conservative leakage placement.
+
+Each clamp model has a finite diode,10pF allocation and an explicit2uA
+reverse-leak allocation. BAT54 source data gives VF≤0.4V at10mA,25°C,
+at most300us pulses/duty≤0.02. The0.45V allocation over15–35°C, individual
+diode current, full DC clamp behavior, field injection and powered-off U2
+stress require isolated physical measurement. Negative DC and whole
+off-state qualification remain **OPEN**. No diode model guarantees survival.
+
+Targeted final ngspice42 checks passed the unchanged numerical criteria.
+For the+24V unpowered pulse, GATE was−0.264590..0.289917V,
+Q1 VGS−0.051139..0.193297V and U2 output−0.262390..0.292117V.
+Individual D4/D5/D6 forward-current peaks were3.219uA,1.013mA and0.216mA.
+The−24V pulse also passed. With the explicitly adverse Q1_OFF_LEAK=200uA,
+GATE remained−0.247169..0.289731V and Q1 VGS−0.514685..0.177080V.
+The normal2200R/500pF/4.75V/slow corner retained all byte sample centres
+and edges, with maximum echo6.227767us against the unchanged8us limit.
+These are focused model checks; the complete final matrix is a separate result.
 
 ### USB hold-up island
 
@@ -83,6 +135,14 @@ table. U1's rated output drive covers R40/U24. The model's aggregate additional
 hold-load reserve is6.2mA; behavioral outputs do not conserve power. It is not
 a physical resistor or permission to add that current without measuring the
 complete held current, whose acceptance limit remains10mA.
+
+Below1V the additional-load model uses the continuous law
+`I=6.2mA*u²*(3−2u)`, with `u=clip(V5_L/1V,0,1)`. This partial-power
+allocation has zero slope at both endpoints and prevents the previous
+constant-current jump at0V from creating an impossible operating point
+during a slow body-diode-fed USB ramp. It is exactly6.2mA at and above1V,
+so all valid held-power states at2.25V and above retain the full load.
+This numerical correction changes no power or acceptance limit.
 
 Declare total held load at most10mA. At rawUSB4.75V, feed resistor+5% and
 0.14R diode allocation, steadyV5_L is at least4.5176V. R37 limits startup and
@@ -248,10 +308,10 @@ Rds guarantee. Q1 retains its4.5V drive and0.32R thermal/model allocation.
 
 ## Power budget, tests and residual faults
 
-The conservative steady field budget is about14.26mA, including ISO7721
-maximum DC3.4mA, comparator1.25mA allocation,5.25mA bleed,2.42mA RX
+The conservative steady field budget is about16.734mA, including ISO7721
+maximum DC3.4mA, comparator1.25mA allocation,7.721mA bleed,2.42mA RX
 pullup worst LOW, dividers/gate loads, three175uA timers, both latches/gates/supervisor,
-opto collector and held button. Allow switching/board margins within the existing
+opto collector, held button and6uA clamp-leak allocation. Allow switching/board margins within the existing
 **20mA measured field limit**; measure LDO input≥6V under load. USB health adds
 approximately7.86–11.01mA LED current on the USB domain. Its80% CTR allocation
 over15–35°C requires measurement; the datasheet160% minimum is only at25°C,

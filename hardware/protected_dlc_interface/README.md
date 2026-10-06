@@ -42,7 +42,7 @@ Revision A remains reproducible at
 commit without changing the checkout, runs its original checks, and separately
 reproduces continuous HIGH holding its sink. Historical A results are not relabeled
 as B. Generated baseline/after reports belong in ignored `build/`.
-The final design source has132 BOM/pad rows and49 conditional calculation checks;
+The final design source has135 BOM/pad rows and52 conditional calculation checks;
 the completed model/integration counts belong to their generated reports.
 
 The selected architecture remains isolated signals plus independent battery.
@@ -116,3 +116,10 @@ allocation gives≤0.2021V; bounded Ioff does not make a floating node safe. Hea
 guard loading is included in held draw≤10mA. Field release is bounded only for
 Ceff≥2.2µF/load≤20mA and ramps≥100µs. Arbitrary forced rail collapse or violated
 bounds is OPEN, rather than a general supervisor safety claim.
+
+Final off-pulse stress review added D4/D5/D6 BAT54 rail clamps and reduced the
+field bleed R11 to680Ω. The former model reached Q1 VGS≈−23.2V and U2 output
+≈−1.65V on the specified+24V/off pulse, so the old stress argument was rejected.
+New absolute checks use Q1 gate relative to SINK_RET and actual U2 output. Clamp
+DC/temperature and complete off-state protection remain OPEN; no physical result
+is implied. The smooth held-load startup law is a separate numerical correction.

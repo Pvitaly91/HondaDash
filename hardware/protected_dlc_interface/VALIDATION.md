@@ -244,3 +244,12 @@ Healthy field decay requires measured Ceff≥2.2µF/load≤20mA and ramps≥100�
 forced rail collapse/short outside these bounds remains OPEN and is not a
 physical test authorized by the ordinary power-loss case. Retain these limits
 in the copied measurement record.
+
+Final inspection includes D4/D5/D6 BAT54,215:1A/2NC/3K, respectively SINK_RET→
+V5_F, GATE→V5_F and GND_F→GATE; R11=680Ω. Capture SINK_RET, GATE_DRIVE, clamp
+currents and total injected rail current during the unchanged off/pulse/DC cases.
+Check actual Q1 VGS (GATE−SINK_RET) against±20V and U2 output against−0.5V and
+its declared upper bound. The old modeled+24V/off pulse violated both despite a
+gate-to-ground-only check. The0.45V clamp allocation must be verified at actual
+current/temperature/duration; the short-pulse datasheet does not close DC or
+whole off-state protection. Preserve OPEN targets and all temperature stop limits.

@@ -129,10 +129,10 @@ No MCU clamp is the field protection. R3/R6 also create a small off-state
 injection route; no DATA pullup does not mean zero current.
 
 B1+→R14=47Ω/AC03→D3P→U4.IN. C6=2.2µF input and C7/C8/C9=2.2µF each parallel
-output must meet effective-capacitance requirements. R11=1kΩ bleeds V5_F.
+output must meet effective-capacitance requirements. R11=680Ω bleeds V5_F.
 C1–C4 and C12–C27 provide local100nF bypasses in their specified domains;
 C10/C11 are2.2nF gate capacitors. Match the generated net/pin map when placing
-each bypass. Field static allocation is about14.26mA with a16mA steady design
+each bypass. Field static allocation is about16.734mA with an18mA steady design
 budget and **20mA measured acceptance ceiling**, leaving switching/headroom.
 USB-health LED current is allocated7.86–11.01mA separately from field draw.
 Stop if B1<8V loaded, LDO_IN<6V, raw USB/field rail outside4.75–5.25V or held
@@ -219,3 +219,20 @@ Healthy field loss assumes Ceff≥2.2µF/load≤20mA and ramps≥100µs. Its4.2�
 passive-decay estimate is≥214.5µs versus the100µs PG release allocation. External
 forced collapse, rail short or violated C/load bounds is OPEN and cannot inherit
 a general PG release guarantee.
+
+## Final field-side rail clamps
+
+D4/D5/D6 are each BAT54,215 SOT23: pin1 anode,2 isolated NC,3 cathode. D4 connects
+SINK_RET→V5_F, D5 GATE→V5_F, and D6 GND_F→GATE. These three field-only paths
+limit source rise and gate coupling without bypassing Q2 or crossing the barrier.
+R11 is now680Ω, MRS25000C6800FCT00. The new diodes each contribute a10pF model
+capacitance and2µA reverse-leak allocation; their0.45V acceptance allocation
+requires actual measurement at the declared current/duration/temperature. It is
+not a manufacturer DC or15–35°C maximum.
+
+Worst-case D1 reverse leakage now returns DRAIN→GND_F. Q1/Q2 off-channel leakage
+is separate, with1µA each anchored only to the stated25°C datasheet condition;
+Q1's200µA branch is an explicit adverse sensitivity. Do not apply D1's current
+to floating SINK_RET. Probe SINK_RET and GATE_DRIVE: Q1 VGS must stay within±20V,
+U2 output above−0.5V and within its declared rail/output bounds. Whole off-state
+and clamp DC/temperature qualification remain OPEN.

@@ -249,6 +249,10 @@ def assess(d,t):
     ck('actual_ISO_INB_above_held_supply',max(inp-rail for inp,rail in zip(t[23],t[21])),.3,'<=')
     ck('raw_D3_guard_input_abs_max',max(t[3]),5.5,'<=')
     ck('raw_RX_guard_input_abs_max',max(t[24]),5.5,'<=')
+    ck('Q1_VGS_abs_min',min(g-s for g,s in zip(t[5],t[25])),-20,'>=')
+    ck('Q1_VGS_abs_max',max(g-s for g,s in zip(t[5],t[25])),20,'<=')
+    ck('U2_output_abs_min',min(t[26]),-.5,'>=')
+    ck('U2_output_above_field_rail',max(pin-rail for pin,rail in zip(t[26],t[7])),.5,'<=')
     failed=[x['check'] for x in rows if x['status']=='FAIL']
     status='PASS' if not failed else 'FAIL'
     if d['expected']=='REJECT':status='EXPECTED_REJECTION' if failed else 'UNEXPECTED_PASS'
@@ -259,7 +263,8 @@ def structural_controls():
     # Required references are a physical contract, independently enumerated here.
     required={'U5','U6','U7','U8','U9','U10','U11','U12','U13','U14','U15','U16',
               'U17','U18','U19','U20','U21','U22','U23','U24','R37','R38','R39','R40','C28','C29',
-              'R15','R18','R21','R24','R25','R26','R28','R29','R30','R31','R32','Q2','SW1'}
+              'R15','R18','R21','R24','R25','R26','R28','R29','R30','R31','R32','Q2','SW1',
+              'D4','D5','D6'}
     actual={p['ref'] for p in electrical.design.COMPONENTS}
     good=required<=actual
     omitted=actual-{'R15'}; missing=sorted(required-omitted)
@@ -270,14 +275,19 @@ def structural_controls():
 
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('--ngspice',default='ngspice'); ap.add_argument('--out',type=Path,default=Path('build/electrical/failsafe'))
-    ap.add_argument('--scenario');ap.add_argument('--keep-traces',action='store_true'); args=ap.parse_args()
+    ap.add_argument('--scenario');ap.add_argument('--keep-traces',action='store_true')
+    ap.add_argument('--shard-index',type=int,default=0);ap.add_argument('--shard-count',type=int,default=1)
+    args=ap.parse_args()
+    if not 0<=args.shard_index<args.shard_count:ap.error('invalid shard index/count')
     out=args.out.resolve();out.mkdir(parents=True,exist_ok=True)
     electrical.topology_checks()
     report=dict(status='RUNNING',complete=False,revision='B',simulations=[],structural=structural_controls(),
                 physical_status='NOT VERIFIED',protection_status='OPEN',
+                git_sha=subprocess.check_output(['git','rev-parse','HEAD'],cwd=electrical.ROOT,text=True).strip(),
                 model_sha256=hashlib.sha256((electrical.ROOT/'simulation/models.cir').read_bytes()).hexdigest())
     (out/'summary.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     selected=[x for x in cases() if not args.scenario or x['name']==args.scenario]; assert selected
+    selected=selected[args.shard_index::args.shard_count];assert selected
     for original in selected:
         d=shifted(original)
         folder=out/d['name'];folder.mkdir(exist_ok=True);prepare(d,folder)
@@ -289,6 +299,7 @@ def main():
         (out/'summary.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
         if not args.keep_traces:(folder/'trace.dat').unlink()
     report['complete']=True
+    report['shard']={'index':args.shard_index,'count':args.shard_count}
     report['status']='PASS' if all(x['status'] in ('PASS','EXPECTED_REJECTION') for x in report['simulations']+report['structural']) else 'FAIL'
     (out/'summary.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     with (out/'checks.csv').open('w',encoding='utf-8',newline='') as f:

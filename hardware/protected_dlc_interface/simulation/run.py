@@ -36,6 +36,10 @@ def topology_checks():
     assert parts['Q1']['pins']=={'1':'GATE','2':'SINK_RET','3':'DRAIN'}
     assert parts['D2']['pins']=={'1':'GND_F','2':'NC_D2_2','3':'SENSE'}
     assert parts['D1']['pins']=={'A':'GND_F','K':'DRAIN'}
+    assert parts['D4']['pins']=={'1':'SINK_RET','2':'NC_D4_2','3':'V5_F'}
+    assert parts['D5']['pins']=={'1':'GATE','2':'NC_D5_2','3':'V5_F'}
+    assert parts['D6']['pins']=={'1':'GND_F','2':'NC_D6_2','3':'GATE'}
+    assert parts['R11']['pins']=={'1':'V5_F','2':'GND_F'} and parts['R11']['value']==680
     assert parts['U1']['mpn']=='ISO7721FDWR'
     assert {k:parts['U1']['pins'][k] for k in ['3','4','5','12','13','14']}=={
         '3':'V5_L','4':'RX_L_ISO','5':'TX_L_ISO','12':'TX_F','13':'RX_F','14':'V5_F'}
@@ -91,7 +95,7 @@ def default_case(name,**kw):
            rt=1.01,rb=.99,rf=.99,refscale=1.01,period=104e-6,full=False,
            ground=0,battery=8.,ambient=25,iso_delay=17e-9,expected='PASS',
            timer_scale=1.,timer_bypass=0,arm_unsafe=0,gate_reversed=0,pg_bypass=0,
-           pg_delay=.028,pg_threshold=.405,low_power_tx=1)
+           pg_delay=.028,pg_threshold=.405,low_power_tx=1,q1_off_leak=1e-6)
     d.update(kw); return d
 
 def byte_stream(full,period,all_values=False,block=0):
@@ -157,6 +161,7 @@ def netlist(case,folder):
     base=[f'M3b model {d["name"]}',f'.include "{(ROOT/"simulation/models.cir").as_posix()}"',
           '.include "frontend.cir"',f'.param CMP_DELAY={d["delay"]} CMP_OFFSET={d["offset"]} RX_LEAK={d["rx_leak"]} TX_LEAK={d["tx_leak"]} FIELD_SET={d["field"]}',
           f'.param ISO_DELAY={d["iso_delay"]}',f'.temp {d["ambient"]}',
+          f'.param Q1_OFF_LEAK={d["q1_off_leak"]}',
           f'.param TIMER_SCALE={d["timer_scale"]} TIMER_BYPASS={d["timer_bypass"]} ARM_UNSAFE={d["arm_unsafe"]} GATE_REVERSED={d["gate_reversed"]} PG_BYPASS={d["pg_bypass"]} PG_DELAY={d["pg_delay"]} PG_THRESHOLD={d["pg_threshold"]} LOW_POWER_TX={d["low_power_tx"]}',
           f'Vg gl 0 {d["ground"]}',f'Vusb usb gl {usb}',f'Vbat bat 0 {battery}',
           f'Vcommand command gl {tx}',
@@ -186,7 +191,8 @@ def netlist(case,folder):
     vectors += ['v(xfe.pg_f)','v(xfe.armed)','v(xfe.timeout)','v(xfe.arm_clk)',
                 'v(xfe.tx_f)','v(xfe.pg_gate)','v(xfe.usb_bad)','v(xfe.clr_n)','v(xfe.rearm_ready)',
                 'v(xfe.v5_l,gl)','v(xfe.iso_feed,gl)',
-                'v(xfe.tx_l_iso,gl)','v(xfe.rx_l_iso,gl)']
+                'v(xfe.tx_l_iso,gl)','v(xfe.rx_l_iso,gl)',
+                'v(xfe.sink_ret)','v(xfe.gate_drive)']
     save_start=0 if d['kind'] in ('loss','sequence') else .095
     base += ['.options reltol=1e-4 abstol=1e-10 vntol=1e-6', '.save '+ ' '.join(vectors),
              '.control','set wr_singlescale','set wr_vecnames','set numdgt=12',
@@ -256,11 +262,17 @@ def assess(d,trace,frames):
                            margin=margin,status='PASS' if margin>=-1e-12 else 'FAIL'))
     names=['time','bus','rx','tx','sense','gate','drain','field_rail','comparator','vref','peer','usb_rail',
            'field_pg','armed','timeout','arm_clk','tx_isolated','pg_gate','usb_bad','clear_n','rearm_ready',
-           'held_logic_rail','hold_feed','ISO_logic_TX_input','ISO_logic_RX_output']
+           'held_logic_rail','hold_feed','ISO_logic_TX_input','ISO_logic_RX_output',
+           'Q1_source','U2_output']
     extrema={n:{'min':min(v),'max':max(v)} for n,v in zip(names,trace) if n!='time'}
     ck('isolator_logic_input_above_held_rail',max(t-u for t,u in zip(trace[23],trace[21])),.3,'<=','V')
     ck('raw_D3_guard_input_abs_max',max(trace[3]),5.5,'<=','V')
     ck('raw_RX_guard_input_abs_max',max(trace[24]),5.5,'<=','V')
+    vgs=[g-s for g,s in zip(trace[5],trace[25])]
+    ck('Q1_VGS_abs_min',min(vgs),-20,'>=','V')
+    ck('Q1_VGS_abs_max',max(vgs),20,'<=','V')
+    ck('U2_output_abs_min',min(trace[26]),-.5,'>=','V')
+    ck('U2_output_above_field_rail',max(pin-rail for pin,rail in zip(trace[26],trace[7])),.5,'<=','V')
     if d['kind']=='bytes':
         errors=0; missing_edges=0; delays=[]; bus_low=[]; bus_high=[]; rise_times=[]; fall_times=[]
         for frame in frames:
@@ -455,6 +467,8 @@ def cases():
         out.append(default_case(f'pulse_{v}',kind='fault',fault_v=v,tx=0,rs=1000,pulse=True,rpu=1e12,vpu=0))
         out.append(default_case(f'pulse_off_{v}',kind='fault',fault_v=v,tx=1,rs=1000,pulse=True,
             rpu=1e12,vpu=0,battery=0))
+    out.append(default_case('off_source_leak_adverse_200u',kind='fault',fault_v=16,tx=1,rs=.1,
+                            usb=5,battery=0,rpu=1e12,vpu=0,q1_off_leak=200e-6))
     out.append(default_case('target_off',kind='fault',fault_v=0,rs=1000,rpu=1e12,vpu=0,target_off=True))
     out.append(default_case('open_data',kind='fault',fault_v=0,rs=1e12,rpu=1e12,vpu=0))
     out.append(default_case('stuck_sink',kind='fault',fault_v=0,rs=1e12,rpu=1000,vpu=5.25,tx=1))
@@ -488,7 +502,10 @@ def write_reports(out,report):
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('--ngspice',default='ngspice'); ap.add_argument('--out',type=Path,default=Path('build/electrical'))
     ap.add_argument('--calculations-only',action='store_true'); ap.add_argument('--bad-only',action='store_true')
-    ap.add_argument('--scenario'); ap.add_argument('--keep-traces',action='store_true'); args=ap.parse_args()
+    ap.add_argument('--scenario'); ap.add_argument('--keep-traces',action='store_true')
+    ap.add_argument('--shard-index',type=int,default=0); ap.add_argument('--shard-count',type=int,default=1)
+    args=ap.parse_args()
+    if not 0<=args.shard_index<args.shard_count:ap.error('invalid shard index/count')
     out=args.out.resolve(); out.mkdir(parents=True,exist_ok=True)
     driver_traces=out/'driver-traces'
     driver_traces.mkdir(exist_ok=True)
@@ -510,6 +527,7 @@ def main():
         all_cases=cases()
         if args.bad_only:all_cases=[c for c in all_cases if c['expected']=='REJECT']
         if args.scenario:all_cases=[c for c in all_cases if c['name']==args.scenario]
+        all_cases=all_cases[args.shard_index::args.shard_count]
         assert all_cases,'No scenarios selected'
         for d in all_cases:
             folder=out/d['name']; folder.mkdir(exist_ok=True)
@@ -532,6 +550,7 @@ def main():
     if report['status']!='FAIL':report['status']='PASS'
     report['complete']=True
     report['revision']='B'
+    report['shard']={'index':args.shard_index,'count':args.shard_count}
     report['protection_status']='OPEN'
     report['protection_reason']='Negative DC, off-state and production hardware survival unresolved; model PASS does not qualify protection.'
     write_reports(out,report)

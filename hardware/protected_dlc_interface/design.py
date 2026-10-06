@@ -101,9 +101,15 @@ part("U23", "SN74LVC1G17DBVR", "DBV5; D3 input buffer powered held rail; overvol
      {1:"NC_U23_1",2:"D3",3:"GND_L",4:"TX_L_ISO",5:"V5_L"}, "logic", "X", "LVC17_PROJECT")
 part("U24", "SN74LVC1G17DBVR", "DBV5; RX output powered raw USB; Ioff protects unpowered Nano D8", "BUF",
      {1:"NC_U24_1",2:"RX_L_ISO",3:"GND_L",4:"D8",5:"USB5V"}, "logic", "X", "LVC17_PROJECT")
-part("D1", "SS16-M3/IA", "60V 1A SMA; band=K; drain negative clamp", "SS", {"A":"GND_F","K":"DRAIN"}, "field", "D", "SS16_PROJECT")
+part("D1", "SS16-M3/IA", "60V 1A SMA; band=K; drain negative clamp", "SS", {"A":"GND_F","K":"DRAIN"}, "field", "X", "SS16_DRAIN_PROJECT")
 part("D2", "BAT54,215", "SOT23: 1=A / 2=NC / 3=K; negative RX clamp", "BAT", {1:"GND_F",2:"NC_D2_2",3:"SENSE"}, "field", "D", "BAT54_PROJECT")
 part("D3P", "SS16-M3/IA", "Battery reverse protection; band=K", "SS", {"A":"BAT_LIMITED","K":"LDO_IN"}, "field", "D", "SS16_PROJECT")
+part("D4", "BAT54,215", "Source-to-field-rail clamp; 1=A / 2=NC / 3=K", "BAT",
+     {1:"SINK_RET",2:"NC_D4_2",3:"V5_F"}, "field", "X", "BAT54_CLAMP_PROJECT")
+part("D5", "BAT54,215", "Positive gate-to-field-rail clamp; 1=A / 2=NC / 3=K", "BAT",
+     {1:"GATE",2:"NC_D5_2",3:"V5_F"}, "field", "X", "BAT54_CLAMP_PROJECT")
+part("D6", "BAT54,215", "Negative gate clamp; 1=A / 2=NC / 3=K", "BAT",
+     {1:"GND_F",2:"NC_D6_2",3:"GATE"}, "field", "X", "BAT54_CLAMP_PROJECT")
 
 def resistor(ref, ohms, code, a, b, domain="field", power=False):
     part(ref, code, ohms, "POWER_R" if power else "R", {1:a,2:b}, domain, "R")
@@ -117,7 +123,7 @@ resistor("R7",220,"MRS25000C2200FCT00","GATE_DRIVE","GATE")
 resistor("R8",68000,"MRS25000C6802FCT00","GATE","GND_F")
 resistor("R9",47000,"MRS25000C4702FCT00","D3","GND_L","logic")
 resistor("R10",10000,"MRS25000C1002FCT00","D8","GND_L","logic")
-resistor("R11",1000,"MRS25000C1001FCT00","V5_F","GND_F")
+resistor("R11",680,"MRS25000C6800FCT00","V5_F","GND_F")
 resistor("R12",22,"AC10000002209JAB00","ECU_DATA","TX_MID",power=True)
 resistor("R13",22,"AC10000002209JAB00","TX_MID","DRAIN",power=True)
 resistor("R14",47,"AC03000004709JAC00","BAT_PLUS","BAT_LIMITED",power=True)
