@@ -1,4 +1,5 @@
 #include "endpoint.hpp"
+#include "../shared/bench_wire.hpp"
 #include <string.h>
 namespace hd_bridge {
 namespace {
@@ -19,25 +20,32 @@ uint16_t elapsed16(uint32_t value) {
     return uint16_t(value > 65535u ? 65535u : value);
 }
 } // namespace
-BridgeEndpoint::BridgeEndpoint() : engine_(ecu_) {
-    reset(0);
+EndpointCore::EndpointCore(DlcPort &port, bool bench) : port_(port), engine_(port), bench_(bench) {
+    // Constructors do not access hardware or another translation unit's globals.
+    // setup() explicitly resets after the physical driver has begun.
+    resetBuffers(0);
 }
-void BridgeEndpoint::reset(uint32_t now) {
-    ecu_ = VirtualHondaEcu();
+void EndpointCore::reset(uint32_t now) {
+    port_.resetBackend();
     engine_.newExperiment();
     engine_.abort(now);
+    resetBuffers(now);
+}
+void EndpointCore::resetBuffers(uint32_t now) {
     rxSize_ = txHead_ = txSize_ = lastRequestSize_ = lastReplySize_ = 0;
     session_ = lastId_ = activeId_ = generation_ = 0;
     experimentAt_ = now;
+    lastLineActivity_ = now;
+    peerGeneration_ = 0;
     eventSequence_ = 0;
     bound_ = false;
     memset(&counters_, 0, sizeof counters_);
 }
-void BridgeEndpoint::discard(uint8_t count) {
+void EndpointCore::discard(uint8_t count) {
     rxSize_ = uint8_t(rxSize_ - count);
     memmove(rx_, rx_ + count, rxSize_);
 }
-void BridgeEndpoint::receive(uint8_t byte, uint32_t now) {
+void EndpointCore::receive(uint8_t byte, uint32_t now) {
     if (rxSize_ == MaxFrame) {
         discard(1);
         increment(counters_.parserErrors);
@@ -76,7 +84,7 @@ void BridgeEndpoint::receive(uint8_t byte, uint32_t now) {
         discard(size);
     }
 }
-bool BridgeEndpoint::enqueue(const uint8_t *bytes, uint8_t size) {
+bool EndpointCore::enqueue(const uint8_t *bytes, uint8_t size) {
     if (uint16_t(txSize_) + size > TxCapacity)
         return false;
     for (uint8_t i = 0; i < size; ++i) {
@@ -86,8 +94,8 @@ bool BridgeEndpoint::enqueue(const uint8_t *bytes, uint8_t size) {
     }
     return true;
 }
-void BridgeEndpoint::reply(uint8_t type, uint32_t session, uint32_t request, const uint8_t *payload,
-                           uint8_t size, bool cache) {
+void EndpointCore::reply(uint8_t type, uint32_t session, uint32_t request, const uint8_t *payload,
+                         uint8_t size, bool cache) {
     if (size > MaxPayload) {
         increment(counters_.lostEvents);
         increment(counters_.txOverflows);
@@ -113,13 +121,13 @@ void BridgeEndpoint::reply(uint8_t type, uint32_t session, uint32_t request, con
         lastReplySize_ = count;
     }
 }
-void BridgeEndpoint::ack(uint8_t type, uint8_t command, uint8_t status, uint32_t session, uint32_t request,
-                         bool cache) {
-    uint8_t payload[AckSize] = {Version, 0, 0, 0, 0, command, status};
+void EndpointCore::ack(uint8_t type, uint8_t command, uint8_t status, uint32_t session, uint32_t request,
+                       bool cache) {
+    uint8_t payload[AckSize] = {version(), 0, 0, 0, 0, command, status};
     store32(payload + 1, generation_);
     reply(type, session, request, payload, sizeof payload, cache);
 }
-void BridgeEndpoint::failOverflow(uint32_t now) {
+void EndpointCore::failOverflow(uint32_t now) {
     increment(counters_.txOverflows);
     increment(counters_.lostEvents);
     txHead_ = txSize_ = lastReplySize_ = 0;
@@ -129,7 +137,7 @@ void BridgeEndpoint::failOverflow(uint32_t now) {
     activeId_ = 0;
     ack(Error, 0, Overflow, session_, lastId_);
 }
-void BridgeEndpoint::dispatch(uint8_t frameSize, uint32_t now) {
+void EndpointCore::dispatch(uint8_t frameSize, uint32_t now) {
     const uint8_t command = rx_[3], size = rx_[12];
     const uint32_t session = load32(rx_ + 4), request = load32(rx_ + 8);
     const uint8_t *payload = rx_ + 13;
@@ -164,7 +172,7 @@ void BridgeEndpoint::dispatch(uint8_t frameSize, uint32_t now) {
         ack(Error, command, StaleRequest, session, request);
         return;
     }
-    if (command == Hello && (size != 2 || payload[0] != Version || payload[1] != PolicyVersion)) {
+    if (command == Hello && (size != 2 || payload[0] != version() || payload[1] != policy())) {
         ack(Error, command, PolicyDenied, session, request);
         return;
     }
@@ -175,36 +183,61 @@ void BridgeEndpoint::dispatch(uint8_t frameSize, uint32_t now) {
         activeId_ = 0;
         session_ = session;
         bound_ = true;
+        // Peer generations are monotonic within one verified USB binding. A fresh
+        // binding permits recovery after responder-only reset without pretending
+        // to reset or clear the external board. NEW still requires quiescence.
+        if (bench_)
+            peerGeneration_ = 0;
     }
     lastId_ = request;
     memcpy(lastRequest_, rx_, frameSize);
     lastRequestSize_ = frameSize;
     lastReplySize_ = 0;
     if (command == Hello) {
-        uint8_t info[MaxPayload] = {Version, PolicyVersion, BackendVirtual, 0, Capabilities, 0};
+        uint8_t info[MaxPayload] = {version(),
+                                    policy(),
+                                    bench_ ? uint8_t(hd_bench::BackendBridge) : uint8_t(BackendVirtual),
+                                    uint8_t(bench_ ? 1 : 0),
+                                    bench_ ? uint8_t(hd_bench::BridgeCapabilities) : uint8_t(Capabilities),
+                                    0};
         store32(info + 6, generation_);
         info[10] = engine_.state();
         info[11] = 1;
         info[12] = 0;
         info[13] = 0;
-        info[14] = sizeof Identity - 1;
-        memcpy(info + 15, Identity, sizeof Identity - 1);
-        reply(HelloInfo, session, request, info, uint8_t(15 + sizeof Identity - 1), true);
+        const char *identity = bench_ ? hd_bench::BridgeIdentity : Identity;
+        info[14] = uint8_t(strlen(identity));
+        memcpy(info + 15, identity, info[14]);
+        reply(HelloInfo, session, request, info, uint8_t(15 + info[14]), true);
         return;
     }
-    if (!size || payload[0] != PolicyVersion) {
+    if (!size || payload[0] != policy()) {
         ack(Error, command, PolicyDenied, session, request, true);
         return;
     }
-    if ((command == Configure && size != 7) || (command == Execute && size != 7) ||
-        (command != Configure && command != Execute && size != 1)) {
+    const uint8_t requiredSize = (command == Configure || command == Execute) ? 7
+                                 : (bench_ && command == NewExperiment)       ? 5
+                                                                              : 1;
+    if (size != requiredSize) {
         ack(Error, command, BadPayload, session, request, true);
         return;
     }
     if (command == NewExperiment) {
+        if (bench_) {
+            const uint32_t peer = load32(payload + 1);
+            // A host assertion of the responder's acknowledged generation, not
+            // cryptographic authentication. This cannot reset that external peer.
+            if (!peer || peer <= peerGeneration_ || engine_.activeCommand() || port_.pendingRx() ||
+                engine_.pendingLate() || !port_.lineIdle(now) ||
+                uint32_t(now - lastLineActivity_) < hd_bench::QuietMs) {
+                ack(Error, command, NeedsNewExperiment, session, request, true);
+                return;
+            }
+            peerGeneration_ = peer;
+        }
         engine_.abort(now);
         publishResult();
-        ecu_.newExperiment();
+        port_.newExperimentBackend();
         engine_.newExperiment();
         ++generation_;
         if (!generation_)
@@ -222,17 +255,21 @@ void BridgeEndpoint::dispatch(uint8_t frameSize, uint32_t now) {
         return;
     }
     if (command == Diagnostics) {
-        uint8_t info[26] = {Version};
+        uint8_t info[52] = {version()};
         store32(info + 1, generation_);
         info[5] = engine_.state();
         info[6] = engine_.activeCommand();
-        info[7] = ecu_.pending();
+        info[7] = port_.pendingRx();
         store16(info + 8, txSize_);
-        store32(info + 10, ecu_.txBytes());
+        store32(info + 10, port_.txBytes());
         store32(info + 14, counters_.parserErrors);
         store32(info + 18, counters_.txOverflows);
         store32(info + 22, counters_.lostEvents);
-        reply(DiagnosticInfo, session, request, info, sizeof info, true);
+        if (bench_) {
+            store32(info + 26, peerGeneration_);
+            port_.driverDiagnostics(info + 30, 22);
+        }
+        reply(DiagnosticInfo, session, request, info, bench_ ? 52 : 26, true);
         return;
     }
     if (engine_.activeCommand()) {
@@ -240,8 +277,12 @@ void BridgeEndpoint::dispatch(uint8_t frameSize, uint32_t now) {
         return;
     }
     if (command == Configure) {
+        if (bench_) {
+            ack(Error, command, PolicyDenied, session, request, true);
+            return;
+        }
         const bool accepted =
-            ecu_.configure(payload[1], payload[2], load16(payload + 3), load16(payload + 5));
+            port_.configureBackend(payload[1], payload[2], load16(payload + 3), load16(payload + 5));
         ack(accepted ? Ack : Error, command, accepted ? Ok : BadPayload, session, request, true);
         return;
     }
@@ -261,11 +302,11 @@ void BridgeEndpoint::dispatch(uint8_t frameSize, uint32_t now) {
     }
     activeId_ = request;
 }
-void BridgeEndpoint::publishResult() {
+void EndpointCore::publishResult() {
     DlcResult result;
     if (!engine_.takeResult(result))
         return;
-    uint8_t payload[MaxPayload] = {Version};
+    uint8_t payload[MaxPayload] = {version()};
     store32(payload + 1, generation_);
     payload[5] = result.status;
     payload[6] = result.command;
@@ -282,7 +323,9 @@ void BridgeEndpoint::publishResult() {
           activeId_ == lastId_);
     activeId_ = 0;
 }
-void BridgeEndpoint::tick(uint32_t now) {
+void EndpointCore::tick(uint32_t now) {
+    if (bench_ && (!port_.lineIdle(now) || port_.pendingRx()))
+        lastLineActivity_ = now;
     engine_.tick(now);
     if (uint16_t(txSize_) + MaxFrame > TxCapacity) {
         if (engine_.activeCommand())
@@ -294,22 +337,25 @@ void BridgeEndpoint::tick(uint32_t now) {
         return;
     }
     publishResult();
-    uint8_t payload[EventHeader + MaxDlcRx] = {Version};
+    uint8_t payload[EventHeader + MaxDlcRx] = {version()};
     const uint8_t count = engine_.takeLate(payload + EventHeader, MaxDlcRx);
-    if (!count)
+    const uint8_t lineError = engine_.takeLineError();
+    if (!count && !lineError)
         return;
+    if (bench_)
+        lastLineActivity_ = now;
     if (uint16_t(txSize_) + MaxFrame > TxCapacity) {
         failOverflow(now);
         return;
     }
     store32(payload + 1, generation_);
     store16(payload + 5, ++eventSequence_);
-    payload[7] = DlcUnexpected;
+    payload[7] = lineError ? lineError : uint8_t(DlcUnexpected);
     store16(payload + 8, elapsed16(uint32_t(now - experimentAt_)));
     payload[10] = count;
     reply(Event, session_, 0, payload, uint8_t(EventHeader + count));
 }
-size_t BridgeEndpoint::read(uint8_t *output, size_t capacity) {
+size_t EndpointCore::read(uint8_t *output, size_t capacity) {
     const size_t count = capacity < txSize_ ? capacity : txSize_;
     for (size_t i = 0; i < count; ++i) {
         output[i] = tx_[txHead_];

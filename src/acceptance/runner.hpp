@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bench/controller.hpp"
 #include "bridge/client.hpp"
 #include "honda_dlc/session.hpp"
 #include "recording/recorder.hpp"
@@ -8,7 +9,7 @@
 #include <memory>
 
 namespace hd::acceptance {
-enum class Backend { Native, Serial };
+enum class Backend { Native, Serial, TwoNanoBench };
 enum class ExitCode {
     Success = 0,
     Arguments = 2,
@@ -22,6 +23,7 @@ enum class ExitCode {
 struct Config {
     Backend backend{Backend::Native};
     std::string port, desktopVersion{"unknown"}, desktopSha{"unknown"}, os{"unknown"};
+    std::string responderPort;
     std::filesystem::path reportDirectory;
     Time observationMs{10000}, phaseTimeoutMs{8000}, overallTimeoutMs{45000};
     bridge::Settings bridgeSettings{};
@@ -32,6 +34,7 @@ struct Config {
 class Runner {
   public:
     Runner(Transport &, Config, Recorder::WriteHook writeHook = {});
+    Runner(Transport &bridge, Transport &responder, Config, Recorder::WriteHook writeHook = {});
     ~Runner();
     Runner(const Runner &) = delete;
     Runner &operator=(const Runner &) = delete;
@@ -46,6 +49,7 @@ class Runner {
     std::filesystem::path journalDirectory() const;
     const dlc::Session &session() const;
     const bridge::Client &client() const;
+    const bench::Controller *benchController() const;
     // Harness-only bounded worker drain; never part of state-machine deadlines.
     bool flushRecording(std::chrono::milliseconds timeout);
 

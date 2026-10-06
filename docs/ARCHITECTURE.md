@@ -1,4 +1,30 @@
-# Архітектура M0/M1, M2a та M2b
+# Архітектура M0/M1, M2a/M2b/M2c та M3a
+
+M3a ін'єктує `bench::Controller` у той самий `dlc::Session`. Controller володіє
+bridge Client та незалежним USB control channel responder; обидва Transport
+належать застосунку. Core/session/recording залишаються C++20 без Qt.
+Суворі v2 identity/backend/capabilities відокремлені від незміненого v1 handshake M2b.
+
+Шлях даних: `Session → Controller → Client → USB bridge → EndpointCore →
+TransactionEngine → PhysicalDlcPort → Timer1 driver → wire → responder parser →
+shared raw fixtures → wire → bridge Result → existing DLC parser/decoder → Model/Recorder`.
+USB responder не має API для постачання вимірювань. Bridge-bench не володіє
+VirtualHondaEcu. Native integration tests використовують ті самі endpoints і
+driver, з open-drain бітовою моделлю замість GPIO; це не фізична осцилограма.
+
+Зовнішнє recovery: stop bridge → responder QUIESCE (після TX-complete) →
+нова generation → quiet/drain bridge → NEW(generation) → ARM(generation) → INIT.
+USB/line timeout або неоднозначний EXECUTE блокує polling; автоматичного повтору немає.
+Сигнальні байти не містять host request ID. Новий експеримент спеціальний лише для
+власного лабораторного responder, не процедура відновлення заводського ECU.
+
+Recorder v3 з `bench_schema_version=1` окремо зберігає два USB-рівні,
+MCU-reported TX/RX/errors, boundaries, decoded partial samples та політику Model.
+M2c цикл 320 ms, guard 200 ms і per-channel stale/hide збережені без автоподовження.
+`physical_dlc_enabled` залишається старому virtual backend; bench має
+`bench_io_enabled=true`, `vehicle_connection_allowed=false`, обидві identity/версії/порти.
+Деталі: [контракт](TWO_NANO_BENCH.md), [драйвер](ONE_WIRE_DRIVER.md),
+[схема](../hardware/two_nano_bench/SCHEMATIC.md).
 
 M2a додає незалежну стандартну C++20 бібліотеку `hondadash_dlc`:
 `dlc::Session → encoder → OfflineLink → ScriptedHondaEcu → fragmented RX →
@@ -14,7 +40,7 @@ BridgeEndpoint → TransactionEngine → DlcPort → VirtualHondaEcu → Result 
 outer parser/identity/context checks → M2a parser/decoder → Model/Recorder`.
 NativeTransport компілює ті самі embedded sources, що AVR. SerialTransport
 обгортає тільки USB. DLC engine не залежить від Qt/host clocks; фізичного
-DlcPort немає. Деталі: [NANO_DLC_BRIDGE_ARCHITECTURE.md](NANO_DLC_BRIDGE_ARCHITECTURE.md).
+DlcPort у M2b немає. Деталі: [NANO_DLC_BRIDGE_ARCHITECTURE.md](NANO_DLC_BRIDGE_ARCHITECTURE.md).
 
 Sample має updatedMask (усі канали за замовчуванням для M0/M1), source,
 reasons та політику числового діапазону. Незмінені канали не змінюють

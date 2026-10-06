@@ -56,7 +56,7 @@ treated as a redistribution licence. Exact revisions, paths, attribution and
 limitations are in `HONDA_DLC_EVIDENCE.md`; this research adds no runtime
 dependency. No Hondash resources, application code or OEM ROM are included.
 
-## Nano firmware components (M1)
+## Nano firmware components (M1, M2b and M3a)
 
 The separately built Nano firmware statically links the unmodified Arduino AVR
 core **1.8.6**, including HardwareSerial, Print's binary write interface, the
@@ -86,10 +86,18 @@ inspection and relinking against modified compatible Arduino core sources.
 The repository's firmware source and pinned build scripts describe the complete
 sketch build; the Arduino core sources installed by the CLI remain unmodified.
 The generated `with_bootloader.hex`, if present in a raw Arduino build tree, is
-not the upload artifact recommended here: use `nano_synthetic.ino.hex` only.
+not the upload artifact recommended here: use the explicitly selected sketch's
+plain `.ino.hex` (`nano_synthetic`, `nano_dlc_bridge_lab`,
+`nano_dlc_bridge_bench` or `nano_dlc_responder_bench`).
 No bootloader binary, fuse change or EEPROM write is part of HondaDash's build
 or upload instructions. These third-party texts do not choose a licence for
 HondaDash's own source.
+
+M3a's Timer1 driver, physical adapter and responder control implementation are
+project code; they do not copy SoftwareSerial. Manufacturer datasheets linked
+from the hardware BOM are design references, not bundled runtime components.
+The two new firmware artifacts retain the same Arduino/avr-libc/libgcc notice
+and original licence-text bundle as the older sketches.
 
 ## Qt SerialPort 6.8.3 (M1 full desktop build)
 

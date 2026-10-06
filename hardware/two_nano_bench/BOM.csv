@@ -1,0 +1,11 @@
+references,quantity,manufacturer,part_number,value_or_type,purpose,manufacturer_source
+N1 N2,2,Arduino,A000005,Classic Nano ATmega328P 5V 16MHz,USB-powered bridge and responder,https://store.arduino.cc/products/arduino-nano
+Q1 Q2,2,onsemi,2N3904BU,NPN TO-92,Open-collector bus sinks,https://www.onsemi.com/download/data-sheet/pdf/2n3904-d.pdf
+U1 U2,2,Texas Instruments,SN74LVC1G17DBVR,SOT-23-5 Schmitt noninverting buffer,Local RX with powered-off isolation,https://www.ti.com/lit/ds/symlink/sn74lvc1g17.pdf
+RPU,1,Vishay,MRS25000C2201FCT00,2.2k ohm 1 percent 0.6W,Only pullup from N1 local5V,https://www.vishay.com/docs/28724/mrs16m25.pdf
+RB1 RB2 RD1 RD2,4,Vishay,MRS25000C1002FCT00,10k ohm 1 percent 0.6W,Base drive and local RX output pulldowns,https://www.vishay.com/docs/28724/mrs16m25.pdf
+RBE1 RBE2,2,Vishay,MRS25000C4702FCT00,47k ohm 1 percent 0.6W,Base-emitter reset/off pulldowns,https://www.vishay.com/docs/28724/mrs16m25.pdf
+RI1 RI2 RL1 RL2,4,Vishay,MRS25000C1001FCT00,1k ohm 1 percent 0.6W,RX input series resistors and local rail bleed,https://www.vishay.com/docs/28724/mrs16m25.pdf
+C1 C2,2,KEMET,C315C104K5R5TA,100nF 10 percent X7R 50V radial,Local buffer decoupling close to pins5 and3,https://search.kemet.com/component-documentation/download/specsheet/C315C104K5R5TA
+PCB1 PCB2,2,Project,passive-breakout,Unpopulated SOT-23-5 to 2.54mm adapter,All five pads separately accessible; no extra components,SCHEMATIC.md
+W1,1,Project,bench-harness,Insulated twisted BUS/GND pair <=0.5m; total bus C<=200pF,Point-to-point bench wiring only,SCHEMATIC.md

@@ -1,5 +1,17 @@
 # HondaDash — правила проєкту
 
+M3a дозволяє лише окремий low-voltage bench backend між двома класичними
+Nano 5V/16MHz: bridge-bench і зовнішній responder-bench, без автомобіля.
+GPIO/Timer1 дозволено тільки новим bench firmware; старі synthetic і
+bridge-lab зберігають свої backend/identity. Обидві identity перевіряються
+до line TX. Quiesce/generation зовнішнього responder, drain/free-line bridge
+та явний NEW/ARM/INIT потрібні для нового experiment; bridge NEW/ABORT
+самостійно не очищує peer. M3a metadata: bench_io_enabled=true,
+vehicle_connection_allowed=false, source=simulation; legacy physical DLC
+disabled не можна показувати для активного GPIO стенда. Hardware залишається
+NOT VERIFIED до фактичного запуску. Схема тільки hardware/two_nano_bench;
+жодних 12V/VIN/ECU, з'єднання USB5V рейок, auto-upload або пошуку портів.
+
 M2c bridge policy: cycle320ms RPM/TPS/ECT/RPM/TPS, desired800/800/1600ms;
 stale/hide RPM/TPS1400/4200ms, ECT2100/6300ms. Policy фіксована для сесії,
 GUI і Recorder використовують `Model::freshness()`. Stale/hide лише при
@@ -40,8 +52,9 @@ physical_dlc_enabled=false, exact policy1. Це не дозволяє фізич
 - Відповідь reference DLC не має адреси/ID: після timeout/error зупинити
   опитування, зберегти пізні RX у журналі. Parser reset не очищує offline link.
   Новий offline experiment не є доказом recovery фізичного ECU.
-- Qt SerialPort 6.8.3 дозволений лише в транспортній Qt-обгортці M1 і
-  окремого розпізнаного M2b virtual bridge. USB/DLC deadlines незалежні;
+- Qt SerialPort 6.8.3 дозволений лише в транспортній Qt-обгортці M1,
+  розпізнаного M2b virtual bridge та двох strict M3a bench endpoints.
+  USB/DLC deadlines незалежні;
   DLC 300/200/50ms належать embedded engine після DLC TX-complete.
   ABORT/HELLO/parser reset не очищують queued ECU RX; лише явний новий
   лабораторний експеримент. Пізні RX журналюються без прив'язки до read.
@@ -69,8 +82,9 @@ physical_dlc_enabled=false, exact policy1. Це не дозволяє фізич
 - Nano firmware: Arduino AVR Boards 1.8.6, фіксований Arduino CLI;
   без heap/String/exceptions, з потоковими RX/TX та .data+.bss <=1536.
   Нативні тести компілюють той самий embedded parser/dispatcher.
-- Жодного auto-upload, сканування портів командами, фізичного Honda DLC, D12,
-  SoftwareSerial, EEPROM/fuses/bootloader змін. Upload тільки явною
+- Жодного auto-upload, сканування портів командами, автомобільного Honda DLC,
+  SoftwareSerial, EEPROM/fuses/bootloader змін. GPIO дозволено тільки у
+  визначеному вище M3a low-voltage bench, за документованою схемою. Upload тільки явною
   командою користувача з конкретним портом і варіантом Nano.
 - PTY, host firmware tests і AVR compilation не є фізичним USB тестом.
 
@@ -82,4 +96,7 @@ Evidence і межі M2a: `docs/HONDA_DLC_EVIDENCE.md`,
 Контракт M2b: `docs/NANO_DLC_BRIDGE_PROTOCOL.md`,
 `docs/NANO_DLC_BRIDGE_ARCHITECTURE.md`, `docs/NANO_DLC_BRIDGE_TESTING.md`.
 M2b постійно показує «ТЕСТОВИЙ МІСТ — ВІРТУАЛЬНИЙ ECU — ФІЗИЧНИЙ DLC ВИМКНЕНО».
-Build/upload завжди розрізняють `synthetic` і `bridge-lab`; auto-upload заборонений.
+M3a постійно показує «СТЕНД: ДВІ NANO — ЕМУЛЯТОР ECU — НЕ ПІДКЛЮЧАТИ ДО АВТОМОБІЛЯ».
+Контракт/перевірки: `docs/TWO_NANO_BENCH.md`, `docs/ONE_WIRE_DRIVER.md`,
+`docs/TWO_NANO_ACCEPTANCE.md`. Build/upload завжди розрізняють `synthetic`,
+`bridge-lab`, `bridge-bench`, `responder-bench`; auto-upload заборонений.

@@ -12,10 +12,10 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --bootstrap) bootstrap=true; shift ;;
         --firmware) [[ $# -ge 2 ]] || { echo '--firmware requires a value' >&2; exit 2; }; firmware="$2"; shift 2 ;;
-        *) echo 'Usage: bash scripts/build-firmware.sh [--bootstrap] [--firmware synthetic|bridge-lab|all]' >&2; exit 2 ;;
+        *) echo 'Usage: bash scripts/build-firmware.sh [--bootstrap] [--firmware synthetic|bridge-lab|bridge-bench|responder-bench|all]' >&2; exit 2 ;;
     esac
 done
-[[ "$firmware" == synthetic || "$firmware" == bridge-lab || "$firmware" == all ]] || { echo 'Unknown firmware selection' >&2; exit 2; }
+[[ "$firmware" == synthetic || "$firmware" == bridge-lab || "$firmware" == bridge-bench || "$firmware" == responder-bench || "$firmware" == all ]] || { echo 'Unknown firmware selection' >&2; exit 2; }
 mkdir -p "$tools_directory"
 cli="${ARDUINO_CLI:-$tools_directory/cli-$cli_version/arduino-cli}"
 if $bootstrap && [[ ! -f "$cli" ]]; then
@@ -40,30 +40,38 @@ compiler_bin="$tools_directory/data/packages/arduino/tools/avr-gcc/$compiler_ver
 compiler="$compiler_bin/avr-g++"
 build_directory="${FIRMWARE_BUILD_DIR:-$repository/build/firmware}"
 variants=("$firmware")
-if [[ "$firmware" == all ]]; then variants=(synthetic bridge-lab); fi
+if [[ "$firmware" == all ]]; then variants=(synthetic bridge-lab bridge-bench responder-bench); fi
 for variant in "${variants[@]}"; do
     sketch_name=nano_synthetic
     selected_build="$build_directory"
-    if [[ "$variant" == bridge-lab ]]; then sketch_name=nano_dlc_bridge_lab; selected_build="${build_directory}-bridge-lab"; fi
+    if [[ "$variant" != synthetic ]]; then sketch_name="nano_dlc_${variant//-/_}"; selected_build="${build_directory}-$variant"; fi
     sketch="$repository/firmware/$sketch_name"
 for cpu in atmega328 atmega328old; do
     output="$selected_build/$cpu"
-    mkdir -p "$output/stack"
-    mkdir -p "$output/licenses"
-    cp "$repository"/docs/licenses/firmware/* "$output/licenses/"
+    mkdir -p "$output"
     fqbn="arduino:avr:nano:cpu=$cpu"
     "$cli" --config-file "$config" compile --fqbn "$fqbn" --warnings all --build-path "$output" \
+        --build-property "compiler.cpp.extra_flags=\"-I$sketch\"" \
         --build-property "compiler.c.elf.extra_flags=\"-Wl,-Map=$output/$sketch_name.map\"" "$sketch" 2>&1 | tee "$output/compile.txt"
+    # CLI cache invalidation can clean the build path, including precreated reports.
+    mkdir -p "$output/stack" "$output/licenses"
+    cp "$repository"/docs/licenses/firmware/* "$output/licenses/"
     elf="$output/$sketch_name.ino.elf"
     [[ -s "$elf" && -s "$output/$sketch_name.ino.hex" && -s "$output/$sketch_name.map" ]]
     "$compiler_bin/avr-size" -A "$elf" > "$output/size.txt"
     "$compiler_bin/avr-nm" --print-size --size-sort --radix=d "$elf" > "$output/symbols.txt"
+    "$compiler_bin/avr-objdump" -d -C "$elf" > "$output/disassembly.txt"
+    if [[ "$variant" == *-bench ]]; then
+        python3 "$repository/scripts/analyze-avr-isr.py" "$output/disassembly.txt" --output "$output/isr-timing.json"
+    fi
     if grep -Eq '[[:space:]](malloc|calloc|realloc|_Zn[^[:space:]]*)$' "$output/symbols.txt"; then
         echo 'Heap allocator linked into firmware.' >&2; exit 1
     fi
     for source in "$sketch"/*.cpp; do
         source_name="$(basename -- "$source" .cpp)"
         "$compiler" -mmcu=atmega328p -DF_CPU=16000000UL -std=gnu++11 -Os -fno-exceptions -fno-threadsafe-statics \
+            -I "$sketch" -I "$tools_directory/data/packages/arduino/hardware/avr/$core_version/cores/arduino" \
+            -I "$tools_directory/data/packages/arduino/hardware/avr/$core_version/variants/eightanaloginputs" \
             -fstack-usage -c "$source" -o "$output/stack/$source_name.o"
     done
     "$compiler" --version > "$output/compiler.txt"
@@ -73,12 +81,16 @@ output, fqbn, variant = pathlib.Path(sys.argv[1]), sys.argv[2], sys.argv[3]
 sections = {name:int(size) for name,size in re.findall(r'^\s*(\.\w+)\s+(\d+)\s+', (output/'size.txt').read_text(), re.M)}
 sram = sections['.data'] + sections['.bss']
 flash = sections['.text'] + sections['.data']
-report = dict(fqbn=fqbn, firmware=variant, physical_dlc_enabled=False, arduino_cli='1.2.2', arduino_avr_boards='1.8.6',
+report = dict(fqbn=fqbn, firmware=variant, arduino_cli='1.2.2', arduino_avr_boards='1.8.6',
     avr_gcc_package='7.3.0-atmel3.6.1-arduino7', compiler=(output/'compiler.txt').read_text().splitlines()[0],
     protocol_baud=115200, flash_bytes=flash, data_bytes=sections['.data'], bss_bytes=sections['.bss'],
     static_sram_bytes=sram, static_sram_budget=1536, sram_remaining_for_stack=2048-sram,
     serial_rx_buffer_bytes=64, serial_tx_buffer_bytes=64,
     stack_status='Static estimate only; physical stack high-water NOT VERIFIED', hardware_status='NOT VERIFIED')
+if variant.endswith('-bench'):
+    report.update(bench_schema_version=1, bench_io_enabled=True, vehicle_connection_allowed=False, line_baud=9600)
+else:
+    report['physical_dlc_enabled'] = False
 (output/'size-report.json').write_text(json.dumps(report, indent=2)+'\n')
 if sram > 1536 or flash > 30720:
     raise SystemExit(f'Firmware memory budget exceeded: SRAM={sram}; Flash={flash}')

@@ -2,6 +2,7 @@
 #include "application/session.hpp"
 #include "bridge/client.hpp"
 #include "bridge/native_transport.hpp"
+#include "bench/controller.hpp"
 #include "honda_dlc/session.hpp"
 #include "recording/recorder.hpp"
 #include "transport/in_memory_transport.hpp"
@@ -62,14 +63,21 @@ private:
     bool dlcSelected() const;
     bool bridgeSelected() const;
     bool bridgeSerialSelected() const;
+    bool benchSelected() const;
     InMemoryTransport memoryTransport_;
 #ifdef HONDADASH_WITH_SERIAL
     std::unique_ptr<SerialTransport> serialTransport_;
+    std::unique_ptr<SerialTransport> responderTransport_;
 #endif
     Session session_;
     dlc::Session dlcSession_;
     bridge::NativeTransport nativeBridge_;
-    std::unique_ptr<bridge::Client> bridgeClient_;
+    std::unique_ptr<bridge::Client> ownedBridgeClient_;
+    std::unique_ptr<bench::Controller> benchController_;
+    const bridge::Client* bridgeClient_{};
+    bool benchStopPending_{}, closePending_{};
+    Time benchStopDeadline_{};
+    QString benchStopError_;
     std::unique_ptr<dlc::Session> bridgeSession_;
     Recorder recorder_;
     bool managedTime_{};
@@ -88,6 +96,8 @@ private:
     QPushButton *dlcCorrupt_{}, *dlcTruncate_{}, *dlcLength_{}, *dlcNoise_{};
     dlc::Faults dlcFaults_{};
     QComboBox *bridgeBackend_{}, *bridgeScenario_{};
+    QComboBox* responderPort_{};
+    QLabel *benchPortsHint_{}, *benchPeerInfo_{}, *benchPeerHex_{};
     QGroupBox* bridgeBox_{};
     QPushButton *bridgeNewExperiment_{}, *bridgeCorrupt_{}, *bridgeTruncate_{}, *bridgeLength_{}, *bridgeHeader_{}, *bridgeTrailing_{};
     QCheckBox* bridgeSilence_{};
@@ -96,6 +106,7 @@ private:
     QLabel *bridgePolicy_{}, *bridgeChannelDiagnostics_{};
     dlc::Faults bridgeFaults_{};
     QString bridgeOuterTx_, bridgeOuterRx_, bridgeInnerTx_, bridgeInnerRx_;
+    QString responderOuterTx_, responderOuterRx_;
     QString bridgeInnerRead_, bridgeInnerFormula_, bridgeInnerCheck_;
     std::optional<Channel> bridgeLastUpdatedChannel_;
     std::uint32_t bridgeDisplayedRequest_{};

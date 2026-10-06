@@ -32,6 +32,10 @@ struct RecordingMetadata {
     std::string schedulerPolicy, freshnessPolicy, timingEstimateSource, measurementScope;
     std::uint32_t schedulerPolicyVersion{}, freshnessPolicyVersion{};
     std::array<Time, ChannelCount> requestedIntervals{};
+    // M3a bench semantics are distinct from the legacy virtual DLC-disabled field.
+    std::string responderIdentity, responderFirmware, responderPort, firmwareTarget;
+    std::uint32_t responderProtocolVersion{}, responderReadPolicyVersion{}, benchSchemaVersion{};
+    bool benchIoEnabled{}, vehicleConnectionAllowed{};
 };
 
 // Disk work runs on one bounded worker. A failed enqueue stops recording and

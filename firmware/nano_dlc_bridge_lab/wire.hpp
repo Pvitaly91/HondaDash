@@ -51,7 +51,11 @@ enum Status {
     Aborted = 16,
     Overflow = 17,
     DlcUnexpected = 18,
-    IdConflict = 19
+    IdConflict = 19,
+    DlcFraming = 20,
+    DlcRxOverflow = 21,
+    DlcLine = 22,
+    DlcCollision = 23
 };
 enum State { NeedsExperiment = 0, ReadyForInit = 1, Initializing = 2, Ready = 3, Executing = 4, Faulted = 5 };
 enum Fault {

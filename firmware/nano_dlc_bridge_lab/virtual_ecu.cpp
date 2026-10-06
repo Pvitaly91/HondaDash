@@ -1,18 +1,9 @@
 #include "virtual_ecu.hpp"
+#include "../shared/reference_fixtures.hpp"
 #include <string.h>
 namespace hd_bridge {
 namespace {
 const uint8_t Wake[] = {0x68, 0x6a, 0xf5, 0xaf, 0xbf, 0xb3, 0xb2, 0xc1, 0xdb, 0xb3, 0xe9};
-// Independent reference-derived fixtures, never physical quantities or ECU captures.
-const uint8_t RpmA[] = {0x00, 0x05, 0x09, 0xc3, 0x2f};
-const uint8_t RpmB[] = {0x00, 0x05, 0x04, 0xe1, 0x16};
-const uint8_t EctA[] = {0x00, 0x04, 0x40, 0xbc};
-const uint8_t EctB[] = {0x00, 0x04, 0x20, 0xdc};
-const uint8_t TpsA[] = {0x00, 0x04, 0x58, 0xa4};
-const uint8_t TpsB[] = {0x00, 0x04, 0xae, 0x4e};
-const uint8_t RpmBoundary[] = {0x00, 0x05, 0xff, 0xff, 0xfd};
-const uint8_t EctBoundary[] = {0x00, 0x04, 0xff, 0xfd};
-const uint8_t TpsBoundary[] = {0x00, 0x04, 0x18, 0xe4};
 } // namespace
 VirtualHondaEcu::VirtualHondaEcu()
     : inputSize_(0), replySize_(0), replyAt_(0), replyEpoch_(0), initAt_(0), txBytes_(0), delay_(0), gap_(0),
@@ -57,23 +48,9 @@ void VirtualHondaEcu::dispatch(uint32_t now) {
         sum = uint8_t(sum + input_[i]);
     if (sum)
         return;
-    const uint8_t *fixture = 0;
-    uint8_t count = 0;
-    if (input_[2] == 0 && input_[3] == 2) {
-        fixture = scenario_ ? RpmB : RpmA;
-        count = 5;
-    } else if (input_[2] == 0x10 && input_[3] == 1) {
-        fixture = scenario_ ? EctB : EctA;
-        count = 4;
-    } else if (input_[2] == 0x14 && input_[3] == 1) {
-        fixture = scenario_ ? TpsB : TpsA;
-        count = 4;
-    }
-    if (!fixture || fault_ == Silent)
+    const uint8_t count = rawFixture(scenario_, input_[2], input_[3], reply_);
+    if (!count || fault_ == Silent)
         return;
-    if (scenario_ == 3)
-        fixture = input_[2] == 0 ? RpmBoundary : input_[2] == 0x10 ? EctBoundary : TpsBoundary;
-    memcpy(reply_, fixture, count);
     replySize_ = count;
     replyAt_ = 0;
     replyEpoch_ = now;

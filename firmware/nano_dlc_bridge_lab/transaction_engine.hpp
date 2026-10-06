@@ -20,6 +20,12 @@ class TransactionEngine {
     void tick(uint32_t now);
     bool takeResult(DlcResult &result);
     uint8_t takeLate(uint8_t *output, uint8_t capacity);
+    uint8_t takeLineError() {
+        const uint8_t value = lineError_;
+        lineError_ = 0;
+        return value;
+    }
+    uint8_t pendingLate() const { return lateSize_; }
     uint8_t state() const { return state_; }
     uint8_t activeCommand() const { return active_ ? result_.command : 0; }
     static bool allowed(const uint8_t *request, uint8_t length, uint8_t expected);
@@ -30,7 +36,8 @@ class TransactionEngine {
     DlcPort &port_;
     DlcResult result_;
     uint32_t started_, txDone_, lastRx_;
-    uint8_t state_, txAt_, txSize_, expected_, late_[MaxDlcRx], lateSize_;
+    uint16_t txSequenceAtStart_;
+    uint8_t state_, txAt_, txSize_, expected_, late_[MaxDlcRx], lateSize_, lineError_;
     bool active_, transmitting_, complete_, resultReady_;
 };
 } // namespace hd_bridge

@@ -99,11 +99,12 @@ $runtimeStatement = if ($missingRuntime.Count -eq 0) {
     'Перед запуском потрібен Microsoft Visual C++ Redistributable 2015–2022 x64 (версія не старіша за використаний MSVC 2022). Відсутні app-local DLL: ' + ($missingRuntime -join ', ') + '. Інсталятор vc_redist.x64.exe, якщо доданий windeployqt, треба встановити окремо.'
 }
 @"
-HondaDash M2c — запуск під Windows x64
+HondaDash M3a — запуск під Windows x64
 
 M1: вбудована емуляція або синтетична Nano через USB.
 M2a: окремий Honda DLC reference-профіль, тільки програмний відповідач.
 M2b: тестовий міст на ПК або Nano USB, тільки віртуальний ECU.
+M3a: дві Nano, окремі bridge-bench/responder-bench, низьковольтна лінія.
 Фізичні Nano/USB, електричний DLC та реальний ECU: NOT VERIFIED.
 Реальних captures немає; Valid у лабораторії не підтверджує сумісність ECU.
 
@@ -149,13 +150,26 @@ RPM/TPS 1400/4200 мс, ECT 2100/6300 мс. Деталі: POLLING_AND_FRESHNESS.
 Qt 6.8.3 використано як динамічні бібліотеки. Ліцензії та copyright:
 THIRD_PARTY_NOTICES.md і папка licenses. Ліцензію HondaDash власник
 репозиторію поки не обрав.
+
+M3a: змонтуйте лише схему hardware/two_nano_bench за її checklist.
+USB обох плат — до того самого ПК; виходи 5V не з'єднувати.
+У GUI оберіть «Стенд · дві Nano», два різні явні порти, handshake,
+потім «Новий експеримент». Без responder значення не виникають.
+.\HondaDashBridgeCheck.exe --backend two-nano-bench --bridge-port COM7 --responder-port COM8 --report acceptance-bench
+COM7/COM8 — лише приклади. Порядок build/upload і перевірки:
+docs/TWO_NANO_BENCH.md, docs/TWO_NANO_ACCEPTANCE.md, docs/ONE_WIRE_DRIVER.md.
+Фізичний USB кожної Nano, обмін/фронти/рівні: NOT VERIFIED.
+СТЕНД: ДВІ NANO — ЕМУЛЯТОР ECU — НЕ ПІДКЛЮЧАТИ ДО АВТОМОБІЛЯ.
 "@ | Set-Content -LiteralPath (Join-Path $stage 'README.txt') -Encoding utf8
 Copy-Item -LiteralPath (Join-Path $repository 'docs/THIRD_PARTY_NOTICES.md') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $repository 'docs/NANO_USB_TESTING.md') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $repository 'docs/SYNTHETIC_DEVICE_EXTENSION.md') -Destination $stage
-foreach ($document in @('HONDA_DLC_EVIDENCE.md', 'HONDA_DLC_PROTOCOL.md', 'HONDA_DLC_REFERENCE_PROFILE.md', 'HONDA_DLC_OFFLINE_TESTING.md', 'NANO_DLC_BRIDGE_PROTOCOL.md', 'NANO_DLC_BRIDGE_ARCHITECTURE.md', 'NANO_DLC_BRIDGE_TESTING.md', 'POLLING_AND_FRESHNESS.md', 'BRIDGE_ACCEPTANCE_CHECK.md')) {
+foreach ($document in @('HONDA_DLC_EVIDENCE.md', 'HONDA_DLC_PROTOCOL.md', 'HONDA_DLC_REFERENCE_PROFILE.md', 'HONDA_DLC_OFFLINE_TESTING.md', 'NANO_DLC_BRIDGE_PROTOCOL.md', 'NANO_DLC_BRIDGE_ARCHITECTURE.md', 'NANO_DLC_BRIDGE_TESTING.md', 'POLLING_AND_FRESHNESS.md', 'BRIDGE_ACCEPTANCE_CHECK.md', 'TWO_NANO_BENCH.md', 'TWO_NANO_ACCEPTANCE.md', 'ONE_WIRE_DRIVER.md')) {
     Copy-Item -LiteralPath (Join-Path $repository "docs/$document") -Destination $stage
 }
+Copy-Item -LiteralPath (Join-Path $repository 'hardware') -Destination (Join-Path $stage 'hardware') -Recurse
+# Preserve repository-relative documentation/hardware links in the complete docs tree.
+Copy-Item -LiteralPath (Join-Path $repository 'docs') -Destination (Join-Path $stage 'docs') -Recurse
 $licenses = Join-Path $repository 'docs/licenses'
 if (-not (Test-Path -LiteralPath $licenses)) { throw 'Third-party license texts are missing from docs/licenses.' }
 Copy-Item -LiteralPath $licenses -Destination (Join-Path $stage 'licenses') -Recurse

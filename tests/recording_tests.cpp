@@ -312,6 +312,29 @@ void channelPolicyAndIdle() {
     require(!recorder.start(temp.path, metadata), "invalid per-channel thresholds accepted");
 }
 
+void benchMetadata() {
+    TemporaryDirectory temp;
+    hd::Recorder recorder;
+    hd::RecordingMetadata metadata{"raw-a",0};
+    metadata.formatVersion=3; metadata.outerProtocol="hondadash-dlc-bridge-bench-v1";
+    metadata.backend="two-nano-bench"; metadata.benchSchemaVersion=1; metadata.benchIoEnabled=true;
+    metadata.responderIdentity="hondadash-dlc-responder-bench-v1"; metadata.responderFirmware="1.0.0";
+    metadata.responderProtocolVersion=2; metadata.responderReadPolicyVersion=2;
+    metadata.port="COM31"; metadata.responderPort="COM32"; metadata.firmwareTarget="bridge-bench + responder-bench";
+    require(recorder.start(temp.path,metadata),"bench metadata rejected");
+    recorder.enqueueRaw({1,1,0,"responder_usb_rx","control only",{0x42}});
+    recorder.enqueueRaw({2,1,0,"dlc_rx","MCU reported line",{0x04}});
+    recorder.stop();
+    const auto raw=readFile(recorder.directory()/"raw.jsonl");
+    require(raw.find("\"bench_schema_version\":1")!=std::string::npos && raw.find("\"bench_io_enabled\":true")!=std::string::npos && raw.find("\"vehicle_connection_allowed\":false")!=std::string::npos,"bench scope missing");
+    require(raw.find("physical_dlc_enabled")==std::string::npos,"bench reused misleading legacy flag");
+    require(raw.find("\"responder_port\":\"COM32\"")!=std::string::npos && raw.find("\"responder_protocol_version\":2")!=std::string::npos && raw.find("responder_usb_rx")!=std::string::npos && raw.find("dlc_rx")!=std::string::npos,"separate peer identity and trace missing");
+    metadata.vehicleConnectionAllowed=true;
+    require(!recorder.start(temp.path,metadata),"vehicle scope accepted for bench");
+    metadata.vehicleConnectionAllowed=false; metadata.benchSchemaVersion=0;
+    require(!recorder.start(temp.path,metadata),"bench flags silently accepted without schema");
+}
+
 void visibleFailures() {
     TemporaryDirectory temp;
     hd::Recorder recorder;
@@ -373,6 +396,7 @@ int main() {
         partialFormatAndProvenance();
         bridgeTraceMetadata();
         channelPolicyAndIdle();
+        benchMetadata();
         visibleFailures();
         boundedQueue();
         std::cout << "recording: v2/v3 CSV/JSONL, partial provenance/age, Unicode paths, lifecycle, failures and bounds passed\n";

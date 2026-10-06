@@ -46,7 +46,7 @@ std::string metadataJson(const RecordingMetadata& metadata) {
     const auto wallTime = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
     out << "{\"kind\":\"metadata\",\"format_version\":" << metadata.formatVersion
-        << ",\"app_version\":\"0.5.0\",\"source\":\"simulation\",\"profile\":"
+        << ",\"app_version\":\"0.6.0\",\"source\":\"simulation\",\"profile\":"
         << jsonString(metadata.profile) << ",\"scenario\":"
         << jsonString(metadata.scenario) << ",\"seed\":" << metadata.seed
         << ",\"transport\":" << jsonString(metadata.transport) << ",\"endpoint\":" << jsonString(metadata.endpoint)
@@ -92,8 +92,18 @@ std::string metadataJson(const RecordingMetadata& metadata) {
                 << ",\"bridge_version\":" << metadata.bridgeVersion
                 << ",\"backend\":" << jsonString(metadata.backend)
                 << ",\"read_policy_version\":" << metadata.readPolicyVersion
-                << ",\"physical_dlc_enabled\":" << (metadata.physicalDlcEnabled ? "true" : "false")
                 << ",\"freshness_time_policy\":\"host_request_start_lower_bound\"";
+            if (metadata.benchSchemaVersion) {
+                out << ",\"bench_schema_version\":" << metadata.benchSchemaVersion
+                    << ",\"bench_io_enabled\":" << (metadata.benchIoEnabled ? "true" : "false")
+                    << ",\"vehicle_connection_allowed\":" << (metadata.vehicleConnectionAllowed ? "true" : "false")
+                    << ",\"responder_identity\":" << jsonString(metadata.responderIdentity)
+                    << ",\"responder_firmware\":" << jsonString(metadata.responderFirmware)
+                    << ",\"responder_protocol_version\":" << metadata.responderProtocolVersion
+                    << ",\"responder_read_policy_version\":" << metadata.responderReadPolicyVersion
+                    << ",\"responder_port\":" << jsonString(metadata.responderPort)
+                    << ",\"firmware_target\":" << jsonString(metadata.firmwareTarget);
+            } else out << ",\"physical_dlc_enabled\":" << (metadata.physicalDlcEnabled ? "true" : "false");
         }
     }
     out << ",\"created_unix_ms\":" << wallTime << ",\"clock\":\"monotonic_ms\",\"units\":{";
@@ -382,11 +392,19 @@ bool Recorder::start(std::filesystem::path directory, RecordingMetadata metadata
                                         !metadata.schedulerPolicy.empty() || !metadata.freshnessPolicy.empty() ||
                                         !metadata.timingEstimateSource.empty() || !metadata.measurementScope.empty() ||
                                         metadata.schedulerPolicyVersion || metadata.freshnessPolicyVersion ||
+                                        metadata.benchSchemaVersion || metadata.benchIoEnabled ||
+                                        metadata.vehicleConnectionAllowed || !metadata.responderIdentity.empty() ||
+                                        !metadata.responderFirmware.empty() || !metadata.responderPort.empty() ||
+                                        !metadata.firmwareTarget.empty() || metadata.responderProtocolVersion ||
+                                        metadata.responderReadPolicyVersion ||
                                         std::any_of(metadata.requestedIntervals.begin(), metadata.requestedIntervals.end(),
                                                     [](Time value) { return value != 0; }) ||
                                         std::any_of(metadata.freshness.channels.begin(), metadata.freshness.channels.end(),
                                                     [](const auto& value) { return value.has_value(); }))) ||
-        !metadata.freshness.valid()) {
+        !metadata.freshness.valid() || metadata.vehicleConnectionAllowed ||
+        (metadata.benchSchemaVersion && (metadata.benchSchemaVersion != 1 || !metadata.benchIoEnabled ||
+                                        metadata.outerProtocol.empty())) ||
+        (metadata.benchIoEnabled && !metadata.benchSchemaVersion)) {
         impl_->error = "Непідтримувана версія або несумісні метадані журналу.";
         return false;
     }

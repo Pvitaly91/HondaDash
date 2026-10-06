@@ -14,8 +14,9 @@ TransactionEngine::TransactionEngine(DlcPort &port) : port_(port) {
 void TransactionEngine::newExperiment() {
     memset(&result_, 0, sizeof result_);
     started_ = txDone_ = lastRx_ = 0;
+    txSequenceAtStart_ = 0;
     state_ = ReadyForInit;
-    txAt_ = txSize_ = expected_ = lateSize_ = 0;
+    txAt_ = txSize_ = expected_ = lateSize_ = lineError_ = 0;
     active_ = transmitting_ = complete_ = resultReady_ = false;
 }
 bool TransactionEngine::allowed(const uint8_t *request, uint8_t length, uint8_t expected) {
@@ -37,6 +38,7 @@ void TransactionEngine::begin(uint8_t command, const uint8_t *bytes, uint8_t len
     txDone_ = lastRx_ = now;
     txSize_ = length;
     txAt_ = 0;
+    txSequenceAtStart_ = port_.completedTxSequence();
     active_ = transmitting_ = true;
     complete_ = resultReady_ = false;
     state_ = command == Initialize ? Initializing : Executing;
@@ -57,8 +59,14 @@ bool TransactionEngine::execute(const uint8_t *request, uint8_t length, uint8_t 
     return true;
 }
 void TransactionEngine::finish(uint8_t status, uint32_t now) {
+    if (status != Ok)
+        port_.abortTx();
     result_.status = status;
     result_.txLength = txAt_;
+    if (port_.hasPhysicalTxAccounting()) {
+        const uint16_t complete = uint16_t(port_.completedTxSequence() - txSequenceAtStart_);
+        result_.txLength = uint8_t(complete < txAt_ ? complete : txAt_);
+    }
     result_.txElapsed = elapsed16(uint32_t((transmitting_ ? now : txDone_) - started_));
     result_.responseElapsed = transmitting_ ? 0 : elapsed16(uint32_t(now - txDone_));
     state_ = status == Ok ? Ready : Faulted;
@@ -66,6 +74,7 @@ void TransactionEngine::finish(uint8_t status, uint32_t now) {
     resultReady_ = true;
 }
 void TransactionEngine::abort(uint32_t now, uint8_t status) {
+    port_.abortTx();
     if (active_)
         finish(status, now);
     else
@@ -73,6 +82,16 @@ void TransactionEngine::abort(uint32_t now, uint8_t status) {
     // Neither this operation nor parser resets touch DlcPort's queued bytes.
 }
 void TransactionEngine::tick(uint32_t now) {
+    const uint8_t portError = port_.takeError();
+    if (portError) {
+        if (active_)
+            finish(portError, now);
+        else {
+            port_.abortTx();
+            state_ = Faulted;
+            lineError_ = portError;
+        }
+    }
     if (active_ && transmitting_ && uint32_t(now - started_) >= DlcTxTimeoutMs)
         finish(DlcTxTimeout, now);
     if (active_ && !transmitting_ && result_.command == Execute && !complete_) {

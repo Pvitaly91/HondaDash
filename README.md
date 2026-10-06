@@ -1,4 +1,4 @@
-# HondaDash — M2c polling, freshness та bridge acceptance
+# HondaDash — M3a: стенд двох Nano
 
 Незалежна настільна панель параметрів двигуна: C++20, Qt 6 Widgets,
 власні прилади й графік через QPainter. Вбудована емуляція працює без
@@ -8,6 +8,9 @@
 байтові запити й відповіді та власний програмний відповідач ECU.
 Четверте джерело «Honda DLC — тестовий міст» виконує той самий профіль
 через C++11 bridge core: нативно на ПК або у новій Nano firmware з virtual ECU.
+M3a додає в цьому ж джерелі «Стенд · дві Nano»: окремий bridge-bench передає
+байти через низьковольтну лінію до зовнішнього responder-bench. Другий USB
+керує лише тестовим пристроєм; вимірювання повертаються через сигнальну лінію.
 **Усі джерела — simulation. Фізичні Nano/USB, електричний DLC і реальний ECU:
 NOT VERIFIED. Реальні captures відсутні.**
 
@@ -56,7 +59,7 @@ virtual bridge через USB. Жоден Honda-шлях не надсилає D
    явно виберіть порт. M1 firmware не розпізнається як bridge; fallback відсутній.
 
 Постійне позначення: **ТЕСТОВИЙ МІСТ — ВІРТУАЛЬНИЙ ECU — ФІЗИЧНИЙ DLC ВИМКНЕНО**.
-Nano не має фізичного DLC backend, GPIO init або D12. DLC deadline контролює
+Саме firmware bridge-lab не має фізичного DLC backend або GPIO init. DLC deadline контролює
 embedded engine, USB watchdog — ПК. Для виявлення trailing bytes engine
 спостерігає повне 200ms вікно. M2c задає цикл 320ms RPM→TPS→ECT→RPM→TPS:
 цільові RPM/TPS по1,25Hz, ECT0,625Hz, разом3,125Hz. GUI окремо показує
@@ -80,6 +83,41 @@ Model/Recorder та той самий embedded core. GUI не запускає �
 перевірки. Runner перевіряє identity перед NEW/CONFIG, виконує A/B, fault,
 старіння та явне recovery. [Команди, exit codes і межі доказів](docs/BRIDGE_ACCEPTANCE_CHECK.md).
 Serial/PTY PASS не підтверджує фізичну Nano або DLC.
+
+## M3a — низьковольтний стенд двох Nano
+
+Дві класичні Nano ATmega328P 5 V/16 MHz, кожна USB до того самого ПК;
+спільна GND, **виходи 5V не з'єднувати**. Конкретна
+[схема та BOM](hardware/two_nano_bench/README.md) використовують D3 для
+open-collector TX, D8/ICP1 для RX, Timer1 і 9600 baud 8N1. D0/D1 залишаються USB.
+Монтаж лише без живлення; заборонено автомобіль, 12 V, VIN та hot-plug сигнальних проводів.
+
+1. Окремо складіть `bridge-bench` і `responder-bench`; upload тільки явно
+   вибраного firmware на конкретний порт і варіант Nano. Програма нічого не прошиває.
+2. Виконайте A–F [hardware-checklist](docs/TWO_NANO_ACCEPTANCE.md).
+3. У джерелі тестового мосту оберіть «Стенд · дві Nano», два різні порти й «Старт / handshake».
+   Обидві exact identity мають бути перевірені до будь-якого line TX.
+4. «Новий експеримент» зупиняє bridge, отримує QUIESCE/generation від responder,
+   дренує RX/перевіряє вільну лінію, виконує NEW → ARM → INIT. Bridge NEW/ABORT
+   самі не очищують відкладену відповідь іншої плати.
+5. Набори A/B, faults, parser/decoder, модель, Recorder та M2c freshness спільні.
+   Без responder або після помилки немає virtual fallback чи автоматичного recovery.
+
+```powershell
+.\scripts\build-firmware.ps1 -Firmware all
+.\build\windows\Release\HondaDashBridgeCheck.exe --backend two-nano-bench --bridge-port COM7 --responder-port COM8 --report acceptance-bench
+```
+
+Команди наведено з кореня репозиторію після desktop Release build.
+У розпакованому Windows ZIP запускайте `.\HondaDashBridgeCheck.exe`.
+Порти в прикладі треба замінити на власні. Upload-команди наведено в
+[контракті firmware](docs/TWO_NANO_BENCH.md). Постійний напис:
+**СТЕНД: ДВІ NANO — ЕМУЛЯТОР ECU — НЕ ПІДКЛЮЧАТИ ДО АВТОМОБІЛЯ**.
+Metadata має `bench_schema_version=1`, `bench_io_enabled=true`,
+`vehicle_connection_allowed=false`, обидві identity/версії/порти, `source=simulation`.
+Identity не підтверджує електричну схему. Програмна бітова модель, AVR compilation,
+фізичний USB кожної плати, обмін по лінії та вимірювання фронтів мають окремі
+[статуси перевірки](docs/TESTING.md). Фізичні пункти **NOT VERIFIED**.
 
 [USB-протокол](docs/NANO_DLC_BRIDGE_PROTOCOL.md),
 [архітектура і clocks](docs/NANO_DLC_BRIDGE_ARCHITECTURE.md),

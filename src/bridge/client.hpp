@@ -6,6 +6,7 @@
 #include <optional>
 
 namespace hd::bridge {
+enum class Backend { Virtual, TwoNanoBench };
 enum class State {
     Disconnected,
     Opening,
@@ -20,6 +21,7 @@ enum class State {
 struct Settings {
     Time bootMs{}, txMs{500}, handshakeMs{2000}, acceptMs{1000}, resultMs{1500}, maxResultAgeMs{1200},
         openMs{2000};
+    Backend backend{Backend::Virtual};
 };
 struct Info {
     std::string identity;
@@ -28,6 +30,7 @@ struct Info {
     std::uint16_t capabilities{};
     std::uint32_t generation{};
     std::string firmware;
+    bool benchIoEnabled{};
 };
 struct Diagnostics {
     std::uint32_t generation{}, operation{};
@@ -44,6 +47,14 @@ class Client final : public dlc::Link, public dlc::LabControl {
     Client &operator=(const Client &) = delete;
     void connect(Time now); // Handshake only: never starts DLC by itself.
     void disconnect(Time now);
+    // M3a only: called by the two-device controller after acknowledged peer quiescence.
+    void prepareBench(std::uint32_t session, std::uint32_t peerGeneration, Time now,
+                      dlc::LinkCallbacks callbacks);
+    bool activateBench(Time now); // NEW acknowledged, peer ARM acknowledged by controller.
+    std::function<void(Time)> onBenchBoundaryReady;
+    bool operationPending() const { return pending_.has_value(); }
+    bool requestDiagnostics(Time now);
+    const std::vector<std::uint8_t> &deviceDiagnostics() const { return deviceDiagnostics_; }
     void start(std::uint32_t session, Time now, dlc::LinkCallbacks callbacks) override;
     bool execute(std::span<const std::uint8_t>, dlc::Read, std::uint32_t transaction, Time now) override;
     void abort(Time now) override;
@@ -79,6 +90,8 @@ class Client final : public dlc::Link, public dlc::LabControl {
     void boundary(Time now);
     void emitRaw(std::string kind, Time now, std::string detail, std::span<const std::uint8_t> bytes = {},
                  std::optional<BridgeTrace> trace = {}, bool associated = true);
+    std::uint8_t version() const;
+    std::uint8_t policy() const;
     Transport &transport_;
     Settings settings_;
     Parser parser_;
@@ -96,5 +109,8 @@ class Client final : public dlc::Link, public dlc::LabControl {
     std::uint16_t eventSequence_{};
     Time bootAt_{}, openingDeadline_{}, now_{};
     bool startRequested_{}, configDirty_{true};
+    std::uint32_t peerGeneration_{};
+    bool benchBoundaryReady_{};
+    std::vector<std::uint8_t> deviceDiagnostics_;
 };
 } // namespace hd::bridge

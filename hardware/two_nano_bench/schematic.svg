@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1100" viewBox="0 0 1500 1100">
+  <title>HondaDash M3a two-Nano low-voltage schematic revision 1</title>
+  <desc>Two USB-powered Nano boards with separate 5V rails, NPN open collectors and locally powered isolated Schmitt receivers. Only bus and ground are common. Read exact net list and BOM before assembly.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#152d3b"/></marker>
+    <style>
+      text {font-family:Arial,sans-serif;fill:#152d3b;font-size:18px}
+      .title {font-size:28px;font-weight:bold}.subtitle{font-size:20px}.small{font-size:15px}.label{font-weight:bold}
+      .wire{fill:none;stroke:#152d3b;stroke-width:2.5;stroke-linejoin:round}
+      .bus{fill:none;stroke:#006f8f;stroke-width:4}.part{fill:white;stroke:#152d3b;stroke-width:2.5}
+      .node{fill:#006f8f}.power{fill:#9f2d25;font-weight:bold}.note{fill:#fff2d8;stroke:#c9902d;stroke-width:1.5}
+    </style>
+  </defs>
+  <rect width="1500" height="1100" fill="white"/>
+  <text class="title" x="45" y="48">HondaDash M3a · two-Nano bench · schematic rev. 1</text>
+  <text class="subtitle" x="45" y="83">LOW VOLTAGE ONLY · NO VEHICLE · NO VIN · NO JOINED USB 5V OUTPUTS</text>
+  <text x="45" y="117">D3 HIGH = sink LOW. D3 LOW/reset = release. U1/U2 output is noninverted, locally powered.</text>
+  <text class="power" x="660" y="151">+5V_A only</text>
+  <path class="wire" d="M735 162V177M735 221V242"/>
+  <rect class="part" x="724" y="177" width="22" height="44"/>
+  <text x="761" y="207">RPU 2.2k</text>
+  <path class="bus" d="M150 242H1380"/>
+  <circle class="node" cx="735" cy="242" r="5"/>
+  <text class="label" x="905" y="229">TP_BUS · shared wired-AND BUS</text>
+  <text class="small" x="45" y="276">HIGH ≥4.5V; LOW ≤0.4V; pullup LOW current ≤2.41mA</text>
+  <text class="small" x="855" y="276">BUS/GND pair ≤0.5m; total BUS capacitance ≤200pF</text>
+
+  <!-- Board 1 and its external TX stage -->
+  <rect x="45" y="308" width="660" height="490" rx="12" fill="#f5f9fb" stroke="#c9d6dc"/>
+  <text class="label" x="65" y="340">N1 — BRIDGE · own USB to PC</text>
+  <rect class="part" x="70" y="395" width="170" height="167"/>
+  <text class="label" x="90" y="426">Classic Nano</text>
+  <text class="small" x="90" y="451">ATmega328P</text>
+  <text x="177" y="485">D3</text>
+  <text x="177" y="539">D8</text>
+  <path class="wire" d="M240 480H285M345 480H448M448 437V503M448 453L492 420V242M448 489L492 524V755"/>
+  <rect class="part" x="285" y="470" width="60" height="20"/>
+  <text class="small" x="277" y="461">RB1 10k</text>
+  <circle class="wire" cx="483" cy="475" r="48"/>
+  <path class="wire" d="M459 498L489 522" marker-end="url(#arrow)"/>
+  <text class="small" x="509" y="418">C3</text><text class="small" x="418" y="466">B2</text>
+  <text class="small" x="509" y="538">E1</text>
+  <text class="label" x="550" y="465">Q1</text><text x="550" y="490">2N3904BU</text>
+  <path class="wire" d="M397 480V514M397 574V755"/>
+  <rect class="part" x="387" y="514" width="20" height="60"/>
+  <circle cx="397" cy="480" r="4" fill="#152d3b"/>
+  <text class="small" x="420" y="562">RBE1 47k</text>
+  <circle class="node" cx="492" cy="242" r="5"/>
+  <!-- Board 1 RX -->
+  <rect class="part" x="85" y="621" width="212" height="90"/>
+  <text class="label" x="106" y="646">U1 Schmitt buffer</text>
+  <text class="small" x="106" y="670">SN74LVC1G17DBVR</text>
+  <text class="small" x="106" y="695">pin 1 NC</text>
+  <path class="wire" d="M240 535H260V590H190V621M297 660H315M375 660V712H390Q397 701 404 712H485Q492 701 499 712H558Q565 701 572 712H670V242"/>
+  <rect class="part" x="315" y="650" width="60" height="20"/>
+  <text class="small" x="308" y="645">RI1 1k</text>
+  <text class="small" x="268" y="687">A2</text><text class="small" x="196" y="612">Y4</text>
+  <circle class="node" cx="670" cy="242" r="5"/>
+  <path class="wire" d="M260 590H390Q397 579 404 590H485Q492 579 499 590H565V620M565 674V755"/>
+  <rect class="part" x="555" y="620" width="20" height="54"/>
+  <text class="small" x="586" y="706">RD1 10k</text>
+  <text class="power" x="76" y="588">+5V_A</text>
+  <path class="wire" d="M113 595V621M113 711V755"/>
+  <text class="small" x="117" y="615">5</text><text class="small" x="117" y="734">3</text>
+  <text class="small" x="65" y="783">D0/D1 reserved for USB UART. No other Nano GPIO connected.</text>
+
+  <!-- Board 2 repeats precisely the same local circuit -->
+  <rect x="755" y="308" width="700" height="490" rx="12" fill="#f5f9fb" stroke="#c9d6dc"/>
+  <text class="label" x="775" y="340">N2 — RESPONDER · own USB to same PC</text>
+  <rect class="part" x="780" y="395" width="170" height="167"/>
+  <text class="label" x="800" y="426">Classic Nano</text>
+  <text class="small" x="800" y="451">ATmega328P</text>
+  <text x="887" y="485">D3</text><text x="887" y="539">D8</text>
+  <path class="wire" d="M950 480H995M1055 480H1158M1158 437V503M1158 453L1202 420V242M1158 489L1202 524V755"/>
+  <rect class="part" x="995" y="470" width="60" height="20"/>
+  <text class="small" x="987" y="461">RB2 10k</text>
+  <circle class="wire" cx="1193" cy="475" r="48"/>
+  <path class="wire" d="M1169 498L1199 522" marker-end="url(#arrow)"/>
+  <text class="small" x="1219" y="418">C3</text><text class="small" x="1128" y="466">B2</text>
+  <text class="small" x="1219" y="538">E1</text>
+  <text class="label" x="1260" y="465">Q2</text><text x="1260" y="490">2N3904BU</text>
+  <path class="wire" d="M1107 480V514M1107 574V755"/>
+  <rect class="part" x="1097" y="514" width="20" height="60"/>
+  <circle cx="1107" cy="480" r="4" fill="#152d3b"/>
+  <text class="small" x="1130" y="562">RBE2 47k</text>
+  <circle class="node" cx="1202" cy="242" r="5"/>
+  <rect class="part" x="795" y="621" width="212" height="90"/>
+  <text class="label" x="816" y="646">U2 Schmitt buffer</text>
+  <text class="small" x="816" y="670">SN74LVC1G17DBVR</text>
+  <text class="small" x="816" y="695">pin 1 NC</text>
+  <path class="wire" d="M950 535H970V590H900V621M1007 660H1025M1085 660V712H1100Q1107 701 1114 712H1195Q1202 701 1209 712H1268Q1275 701 1282 712H1380V242"/>
+  <rect class="part" x="1025" y="650" width="60" height="20"/>
+  <text class="small" x="1018" y="645">RI2 1k</text>
+  <text class="small" x="978" y="687">A2</text><text class="small" x="906" y="612">Y4</text>
+  <circle class="node" cx="1380" cy="242" r="5"/>
+  <path class="wire" d="M970 590H1100Q1107 579 1114 590H1195Q1202 579 1209 590H1275V620M1275 674V755"/>
+  <rect class="part" x="1265" y="620" width="20" height="54"/>
+  <text class="small" x="1296" y="706">RD2 10k</text>
+  <text class="power" x="786" y="588">+5V_B</text>
+  <path class="wire" d="M823 595V621M823 711V755"/>
+  <text class="small" x="827" y="615">5</text><text class="small" x="827" y="734">3</text>
+  <text class="small" x="775" y="783">No pullup on +5V_B. No connection from +5V_B to +5V_A.</text>
+  <path class="bus" d="M70 755H1400"/>
+  <text class="label" x="657" y="744">TP_GND</text>
+  <text class="small" x="588" y="820">All downward returns connect here; dedicated GND wire joins both Nano GND pins.</text>
+
+  <!-- Explicit local rail conditioning, no common positive rail -->
+  <text class="power" x="65" y="859">+5V_A (N1 5V / TP_A)</text>
+  <path class="wire" d="M285 851H580M360 851V876M470 851V872M360 897V924M470 910V924M285 924H580"/>
+  <path class="wire" d="M342 877H378M342 895H378"/>
+  <rect class="part" x="460" y="872" width="20" height="38"/>
+  <text class="small" x="310" y="945">C1 100nF</text><text class="small" x="450" y="945">RL1 1k</text>
+  <text x="65" y="929">GND</text>
+  <text class="power" x="775" y="859">+5V_B (N2 5V / TP_B)</text>
+  <path class="wire" d="M995 851H1290M1070 851V876M1180 851V872M1070 897V924M1180 910V924M995 924H1290"/>
+  <path class="wire" d="M1052 877H1088M1052 895H1088"/>
+  <rect class="part" x="1170" y="872" width="20" height="38"/>
+  <text class="small" x="1020" y="945">C2 100nF</text><text class="small" x="1160" y="945">RL2 1k</text>
+  <text x="775" y="929">GND</text>
+  <rect class="note" x="45" y="977" width="1410" height="90" rx="8"/>
+  <text x="65" y="1008">Build/re-wire with BOTH USB cables disconnected. Stop traffic before sequential USB power-up/down.</text>
+  <text x="65" y="1038">No live BUS/GND hot-plug. Verify exact part pinouts and all SCHEMATIC.md limits. Physical status: NOT VERIFIED.</text>
+</svg>

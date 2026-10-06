@@ -1,6 +1,6 @@
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [Parameter(Mandatory)][ValidateSet('synthetic', 'bridge-lab')][string]$Firmware,
+    [Parameter(Mandatory)][ValidateSet('synthetic', 'bridge-lab', 'bridge-bench', 'responder-bench')][string]$Firmware,
     [Parameter(Mandatory)][ValidateNotNullOrEmpty()][string]$Port,
     [Parameter(Mandatory)][ValidateSet('arduino:avr:nano:cpu=atmega328', 'arduino:avr:nano:cpu=atmega328old')][string]$Fqbn
 )
@@ -8,8 +8,8 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $repository = Split-Path -Parent $PSScriptRoot
 $cpu = $Fqbn.Split('=')[-1]
-$sketchName = if ($Firmware -eq 'synthetic') { 'nano_synthetic' } else { 'nano_dlc_bridge_lab' }
-$buildName = if ($Firmware -eq 'synthetic') { 'firmware' } else { 'firmware-bridge-lab' }
+$sketchName = @{ synthetic='nano_synthetic'; 'bridge-lab'='nano_dlc_bridge_lab'; 'bridge-bench'='nano_dlc_bridge_bench'; 'responder-bench'='nano_dlc_responder_bench' }[$Firmware]
+$buildName = if ($Firmware -eq 'synthetic') { 'firmware' } else { "firmware-$Firmware" }
 $hex = Join-Path $repository "build/$buildName/$cpu/$sketchName.ino.hex"
 $cli = Join-Path $repository '.tools/arduino/cli-1.2.2/arduino-cli.exe'
 $config = Join-Path $repository '.tools/arduino/arduino-cli.yaml'

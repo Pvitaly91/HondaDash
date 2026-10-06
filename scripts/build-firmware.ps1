@@ -1,6 +1,6 @@
 [CmdletBinding()]
-param([switch]$Bootstrap, [string]$ArduinoCli = '', [int]$SramBudget = 1536,
-      [ValidateSet('synthetic', 'bridge-lab', 'all')][string]$Firmware = 'synthetic')
+param([switch]$Bootstrap, [string]$ArduinoCli = '', [int]$SramBudget = 1536, [string]$Python = 'python',
+      [ValidateSet('synthetic', 'bridge-lab', 'bridge-bench', 'responder-bench', 'all')][string]$Firmware = 'synthetic')
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -51,22 +51,25 @@ $compilerBin = Join-Path $toolsDirectory "data/packages/arduino/tools/avr-gcc/$c
 $compiler = Join-Path $compilerBin 'avr-g++.exe'
 $sizeTool = Join-Path $compilerBin 'avr-size.exe'
 $nmTool = Join-Path $compilerBin 'avr-nm.exe'
-$variants = if ($Firmware -eq 'all') { @('synthetic', 'bridge-lab') } else { @($Firmware) }
+$variants = if ($Firmware -eq 'all') { @('synthetic', 'bridge-lab', 'bridge-bench', 'responder-bench') } else { @($Firmware) }
 foreach ($variant in $variants) {
-$sketchName = if ($variant -eq 'synthetic') { 'nano_synthetic' } else { 'nano_dlc_bridge_lab' }
-$buildName = if ($variant -eq 'synthetic') { 'firmware' } else { 'firmware-bridge-lab' }
+$sketchName = @{ synthetic='nano_synthetic'; 'bridge-lab'='nano_dlc_bridge_lab'; 'bridge-bench'='nano_dlc_bridge_bench'; 'responder-bench'='nano_dlc_responder_bench' }[$variant]
+$buildName = if ($variant -eq 'synthetic') { 'firmware' } else { "firmware-$variant" }
 $sketch = Join-Path $repository "firmware/$sketchName"
 foreach ($cpu in @('atmega328', 'atmega328old')) {
     $output = Join-Path $repository "build/$buildName/$cpu"
     New-Item -ItemType Directory -Path $output -Force | Out-Null
     $outputLicenses = Join-Path $output 'licenses'
     New-Item -ItemType Directory -Path $outputLicenses -Force | Out-Null
-    Get-ChildItem -LiteralPath (Join-Path $repository 'docs/licenses/firmware') -File | Copy-Item -Destination $outputLicenses -Force
     $map = (Join-Path $output "$sketchName.map").Replace('\', '/')
     $fqbn = "arduino:avr:nano:cpu=$cpu"
     & $ArduinoCli --config-file $configPath compile --fqbn $fqbn --warnings all --build-path $output `
+        --build-property "compiler.cpp.extra_flags=`"-I$($sketch.Replace('\','/'))`"" `
         --build-property "compiler.c.elf.extra_flags=`"-Wl,-Map=$map`"" $sketch 2>&1 | Tee-Object -FilePath (Join-Path $output 'compile.txt')
     Assert-NativeExit "AVR $cpu compile"
+    # Arduino CLI may clean the build directory when cached properties change.
+    New-Item -ItemType Directory -Path $outputLicenses -Force | Out-Null
+    Get-ChildItem -LiteralPath (Join-Path $repository 'docs/licenses/firmware') -File | Copy-Item -Destination $outputLicenses -Force
     $elf = Join-Path $output "$sketchName.ino.elf"
     $hex = Join-Path $output "$sketchName.ino.hex"
     foreach ($required in @($elf, $hex, $map)) {
@@ -87,6 +90,16 @@ foreach ($cpu in @('atmega328', 'atmega328old')) {
     $symbols = & $nmTool --print-size --size-sort --radix=d $elf
     Assert-NativeExit 'AVR symbols'
     $symbols | Set-Content -LiteralPath (Join-Path $output 'symbols.txt') -Encoding utf8
+    & (Join-Path $compilerBin 'avr-objdump.exe') -d -C $elf | Set-Content -LiteralPath (Join-Path $output 'disassembly.txt') -Encoding utf8
+    Assert-NativeExit 'AVR disassembly'
+    if ($variant.EndsWith('-bench')) {
+        $pythonCommand = Get-Command $Python -ErrorAction Stop
+        if ($pythonCommand.Source -match '\\WindowsApps\\') {
+            throw 'AVR static analysis needs Python 3; pass -Python <python.exe> or put Python on PATH (Windows Store alias is not a runtime).'
+        }
+        & $Python (Join-Path $repository 'scripts/analyze-avr-isr.py') (Join-Path $output 'disassembly.txt') --output (Join-Path $output 'isr-timing.json')
+        Assert-NativeExit 'AVR static ISR analysis'
+    }
     if (($symbols -join "`n") -cmatch '(?m)\s(?:malloc|calloc|realloc|_Zn\w*)\s*$') { throw 'Heap allocator linked into firmware.' }
     $compilerText = & $compiler --version
     Assert-NativeExit 'AVR compiler version'
@@ -96,11 +109,13 @@ foreach ($cpu in @('atmega328', 'atmega328old')) {
     New-Item -ItemType Directory -Path $stackDirectory -Force | Out-Null
     foreach ($source in (Get-ChildItem -LiteralPath $sketch -Filter '*.cpp' -File)) {
         & $compiler -mmcu=atmega328p -DF_CPU=16000000UL -std=gnu++11 -Os -fno-exceptions -fno-threadsafe-statics `
+            -I $sketch -I (Join-Path $toolsDirectory "data/packages/arduino/hardware/avr/$coreVersion/cores/arduino") `
+            -I (Join-Path $toolsDirectory "data/packages/arduino/hardware/avr/$coreVersion/variants/eightanaloginputs") `
             -fstack-usage -c $source.FullName -o (Join-Path $stackDirectory ($source.BaseName + '.o'))
         Assert-NativeExit "AVR stack diagnostic compile: $($source.Name)"
     }
-    [ordered]@{
-        fqbn=$fqbn; firmware=$variant; physical_dlc_enabled=$false;
+    $report = [ordered]@{
+        fqbn=$fqbn; firmware=$variant;
         arduino_cli=$cliVersion; arduino_avr_boards=$coreVersion;
         avr_gcc_package=$compilerVersion; compiler=$compilerText[0]; protocol_baud=115200;
         flash_bytes=$flash; data_bytes=$sections['.data']; bss_bytes=$sections['.bss'];
@@ -108,7 +123,10 @@ foreach ($cpu in @('atmega328', 'atmega328old')) {
         serial_rx_buffer_bytes=64; serial_tx_buffer_bytes=64;
         stack_status='Static estimate only; physical stack high-water NOT VERIFIED';
         hardware_status='NOT VERIFIED'
-    } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $output 'size-report.json') -Encoding utf8
+    }
+    if ($variant.EndsWith('-bench')) { $report.bench_schema_version=1; $report.bench_io_enabled=$true; $report.vehicle_connection_allowed=$false; $report.line_baud=9600 }
+    else { $report.physical_dlc_enabled=$false }
+    $report | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $output 'size-report.json') -Encoding utf8
     if ($sram -gt $SramBudget) { throw "Static SRAM budget exceeded: $sram > $SramBudget" }
     if ($flash -gt 30720) { throw "Flash budget exceeded: $flash > 30720" }
     Write-Host "$variant / $fqbn : Flash $flash/30720; .data+.bss $sram/$SramBudget; stack reserve $(2048-$sram)."

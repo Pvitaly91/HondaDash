@@ -1,4 +1,4 @@
-name: Build and test M2c polling and acceptance
+name: Build and test M3a two Nano bench
 
 on:
   push:
@@ -41,6 +41,15 @@ jobs:
           $env:PATH = "$env:QT_ROOT_DIR/bin;$env:PATH"
           ctest --test-dir build/windows-simulation -C Release --output-on-failure --output-junit "$PWD/build/windows-simulation/ctest.xml"
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Core-only without Qt
+        shell: pwsh
+        run: |
+          cmake -S . -B build/windows-core -G "Visual Studio 17 2022" -A x64 -DHONDADASH_BUILD_GUI=OFF -DHONDADASH_BUILD_BRIDGE_CHECK=OFF -DHONDADASH_WITH_SERIAL=OFF -DCMAKE_DISABLE_FIND_PACKAGE_Qt6=TRUE
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cmake --build build/windows-core --config Release --parallel 2
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          ctest --test-dir build/windows-core -C Release --output-on-failure --output-junit "$PWD/build/windows-core/ctest.xml"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Deploy and verify extracted Windows package
         shell: pwsh
         run: ./scripts/package-windows.ps1 -QtPath $env:QT_ROOT_DIR
@@ -59,6 +68,8 @@ jobs:
           path: |
             dist/reports/
             build/windows-simulation/ctest.xml
+            build/windows-core/ctest.xml
+            build/windows/bench-integration-reports/
             build/windows/reports/
             build/windows/Testing/Temporary/LastTest.log
             build/windows/smoke*.json
@@ -107,6 +118,11 @@ jobs:
           cmake -S . -B build/linux-simulation -G Ninja -DCMAKE_BUILD_TYPE=Release -DHONDADASH_WITH_SERIAL=OFF -DCMAKE_DISABLE_FIND_PACKAGE_Qt6SerialPort=TRUE -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
           cmake --build build/linux-simulation --parallel 2
           ctest --test-dir build/linux-simulation --output-on-failure --output-junit "$PWD/build/linux-simulation/ctest.xml"
+      - name: Linux core-only without Qt
+        run: |
+          cmake -S . -B build/linux-core -G Ninja -DCMAKE_BUILD_TYPE=Release -DHONDADASH_BUILD_GUI=OFF -DHONDADASH_BUILD_BRIDGE_CHECK=OFF -DHONDADASH_WITH_SERIAL=OFF -DCMAKE_DISABLE_FIND_PACKAGE_Qt6=TRUE
+          cmake --build build/linux-core --parallel 2
+          ctest --test-dir build/linux-core --output-on-failure --output-junit "$PWD/build/linux-core/ctest.xml"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -114,6 +130,8 @@ jobs:
           if-no-files-found: error
           path: |
             build/linux/ctest-linux.xml
+            build/linux-core/ctest.xml
+            build/linux/bench-integration-reports/
             build/linux/Testing/Temporary/LastTest.log
             build/linux/*smoke*.json
             build/linux/smoke*.png
@@ -137,7 +155,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12.10'
-      - name: Arduino CLI 1.2.2, AVR Boards 1.8.6, both firmwares and Nano bootloaders
+      - name: Arduino CLI 1.2.2, AVR Boards 1.8.6, four firmwares and both Nano targets
         run: bash scripts/build-firmware.sh --bootstrap --firmware all
       - uses: actions/upload-artifact@v4
         if: always()
@@ -171,4 +189,53 @@ jobs:
             build/firmware-bridge-lab/**/*.a
             docs/licenses/firmware/
             firmware/nano_dlc_bridge_lab/
+            firmware/shared/reference_fixtures.hpp
+            firmware/shared/bench_wire.hpp
             docs/NANO_DLC_BRIDGE_*.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: HondaDash-nano-dlc-bridge-bench-firmware
+          if-no-files-found: error
+          path: |
+            build/firmware-bridge-bench/**/*.ino.hex
+            build/firmware-bridge-bench/**/*.ino.elf
+            build/firmware-bridge-bench/**/*.map
+            build/firmware-bridge-bench/**/*.json
+            build/firmware-bridge-bench/**/*.txt
+            build/firmware-bridge-bench/**/*.su
+            build/firmware-bridge-bench/**/*.o
+            build/firmware-bridge-bench/**/*.a
+            docs/licenses/firmware/
+            firmware/nano_dlc_bridge_bench/
+            firmware/nano_dlc_bridge_lab/
+            firmware/shared/
+            docs/TWO_NANO_BENCH.md
+            docs/ONE_WIRE_DRIVER.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: HondaDash-nano-dlc-responder-bench-firmware
+          if-no-files-found: error
+          path: |
+            build/firmware-responder-bench/**/*.ino.hex
+            build/firmware-responder-bench/**/*.ino.elf
+            build/firmware-responder-bench/**/*.map
+            build/firmware-responder-bench/**/*.json
+            build/firmware-responder-bench/**/*.txt
+            build/firmware-responder-bench/**/*.su
+            build/firmware-responder-bench/**/*.o
+            build/firmware-responder-bench/**/*.a
+            docs/licenses/firmware/
+            firmware/nano_dlc_responder_bench/
+            firmware/nano_dlc_bridge_lab/
+            firmware/shared/
+            docs/TWO_NANO_BENCH.md
+            docs/ONE_WIRE_DRIVER.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HondaDash-two-nano-bench-hardware
+          if-no-files-found: error
+          path: |
+            hardware/two_nano_bench/
+            docs/TWO_NANO_ACCEPTANCE.md

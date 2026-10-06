@@ -1,4 +1,85 @@
-# Перевірки M0/M1, M2a, M2b та M2c
+# Перевірки M0/M1, M2a/M2b/M2c та M3a
+
+## M3a — виконані програмні перевірки, 6 жовтня 2026
+
+Baseline `1d2235f62306e7a993be194791438eb388f54e5e`: Windows Release
+CTest14/14 PASS до змін (`build/windows/m3a-baseline.xml`). Нові targets
+`one_wire`, `bench_embedded`, `bench_integration` не замінюють старі тести.
+
+| Середовище | Фактично виконано |
+| --- | --- |
+| Windows x64, MSVC19.34.31948.0, Debug/Release | CTest17/17 PASS у кожній конфігурації |
+| Windows Release без SerialPort | CTest16/16 PASS |
+| Windows core-only без Qt | CTest14/14 PASS |
+| WSL Ubuntu24.04.3, GCC13.3.0, Release | CTest20/20 PASS; M1/M2b/acceptance PTY збережені |
+| Linux Release без SerialPort | CTest16/16 PASS |
+| Linux core-only без Qt | CTest14/14 PASS |
+| Розпакований Windows ZIP, clean PATH | GUI110/110 при100% і150%; native windows/offscreen=false; native acceptance PASS |
+
+Qt/SerialPort6.8.3, CMake3.31.6; Linux Ninja1.11.1. GUI зберігає screenshots
+1024×600 та1280×720, зокрема порожній two-Nano режим із двома портами і
+постійним попередженням. Ці знімки не містять вигаданих hardware значень.
+
+`one_wire`: 3489 динамічних CHECK executions: усі256 bytes, back-to-back,
+start/stop/sample time, echo, clock skew/jitter у межах і поза ними,
+false-start/framing/stuck/collision, RX/TX overflow, release і wrap.
+`bench_embedded`: 6 сценарних функцій,28375 CHECK executions, включно з
+per-tick parser invariant (це не28375 різні вимоги). `bench_integration`:
+92 Linux assertions; Windows має додаткову перевірку COM aliases.
+Старі polling61/acceptance42 assertions збережені.
+
+Наскрізний production Runner проходить USB-fragment model → bench endpoint
+→ той самий bit driver → wired-AND line → зовнішній embedded responder →
+line → bridge Result → існуючі decoder/Model/Recorder. Перевірено A/B/Boundary,
+partial freshness, late ECT без оновлення TPS, trailing/checksum/driver errors,
+reset лише однієї плати, ABORT без очищення peer, зовнішнє QUIESCE/recovery,
+відсутній peer, підміна/CRC identity, cancel і duplicate ports до open.
+
+У звіті `bench-integration-reports/bit-line-success/report.json` нормальне
+вікно10000ms:31 reads,3.1Hz; RPM1.3/TPS1.2/ECT0.6Hz через фазу скінченного
+вікна. Host request→result208ms, MCU-model TX+terminal207ms; max ages
+RPM/TPS1166ms,ECT1806ms; Stale0. Це software model, не trace фізичних плат.
+Політики320ms/200ms/1400–2100ms не змінені заради цього результату.
+
+### AVR і статичні оцінки
+
+Arduino CLI1.2.2, AVR Boards1.8.6, avr-g++7.3.0-atmel3.6.1-arduino7.
+Windows складає всі4 firmware ×2 FQBN, `atmega328` і `atmega328old`:
+
+| Firmware | Flash bytes /30720 | .data | .bss | SRAM /1536 |
+| --- | ---: | ---: | ---: | ---: |
+| synthetic | 5736 |108 |711 |819 |
+| bridge-lab | 9576 |172 |756 |928 |
+| bridge-bench |11400 |128 |854 |982 |
+| responder-bench |9480 |142 |821 |963 |
+
+SRAM містить HardwareSerial64/64 buffers. Allocator-symbol checks PASS;
+ELF/map/size/symbol/non-LTO `.su`/deployed LTO disassembly збережено.
+`scripts/analyze-avr-isr.py` повторює консервативний аналіз шляхів і пише
+`isr-timing.json` із SHA256 disassembly. Детальні assumptions, ISR/atomic
+межі й запаси: [ONE_WIRE_DRIVER.md](ONE_WIRE_DRIVER.md).
+Stack estimates606/647 bytes містять припущений reserve256; це не
+виміряний high-water і не доведена верхня межа deployed stack.
+
+Upload helpers перевіряються тільки `-WhatIf`/`--dry-run`. CI публікує
+Windows ZIP, desktop reports, чотири окремі firmware artifacts та hardware
+SVG/BOM. Успішний workflow конкретного SHA перевіряється окремо; сам YAML
+не є доказом виконання. Build outputs у Git не додаються.
+
+| Окремий статус | Результат |
+| --- | --- |
+| Software regression | PASS у наведених середовищах |
+| Bit-level state-machine model | PASS; не instruction-level AVR simulator |
+| AVR compilation | PASS; no allocator; memory budgets збережені |
+| Фізичний USB Nano bridge | NOT VERIFIED |
+| Фізичний USB Nano responder | NOT VERIFIED |
+| Фізичний обмін двох Nano | NOT VERIFIED |
+| Фронти/рівні/струми, реальний ISR latency/overrun/high-water | NOT VERIFIED |
+| Автомобільний електричний інтерфейс | NOT IMPLEMENTED / NOT VERIFIED; заборонений у M3a |
+| Реальний ECU | NOT VERIFIED; не підключався |
+
+Конкретні плати/USB-чипи/аналізатор і physical captures не відомі та не
+вигадуються. A–F bring-up: [hardware checklist](../hardware/two_nano_bench/README.md).
 
 ## M2c — фактично виконані перевірки, 6 жовтня 2026
 

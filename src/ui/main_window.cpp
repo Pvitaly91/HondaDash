@@ -92,9 +92,10 @@ QLabel* label(const QString& text) { auto* result = new QLabel(text); result->se
 MainWindow::MainWindow(bool managedTime, QWidget* parent) : QMainWindow(parent), session_(memoryTransport_), managedTime_(managedTime) {
 #ifdef HONDADASH_WITH_SERIAL
     serialTransport_ = std::make_unique<SerialTransport>([this] { return now(); });
+    responderTransport_ = std::make_unique<SerialTransport>([this] { return now(); });
 #endif
     injectedQualities_.fill(Quality::Valid);
-    setWindowTitle(QStringLiteral("HondaDash · M2c · virtual bridge laboratory"));
+    setWindowTitle(QStringLiteral("HondaDash · M3a · two-Nano laboratory bench"));
     resize(1280, 720); setMinimumSize(980, 560);
     setStyleSheet(QStringLiteral(
         "QMainWindow,QWidget{background:#0c121d;color:#e8f0f8;font-family:'Segoe UI';font-size:11px;}"
@@ -111,7 +112,7 @@ MainWindow::MainWindow(bool managedTime, QWidget* parent) : QMainWindow(parent),
     auto* root = new QWidget;
     auto* layout = new QVBoxLayout(root); layout->setContentsMargins(12, 10, 12, 10); layout->setSpacing(8);
     auto* top = new QHBoxLayout;
-    auto* title = label(QStringLiteral("HONDA<span style='color:#51d3ba'>DASH</span>  <span style='font-size:10px;color:#91a5ba'>M2c · лабораторія мосту</span>"));
+    auto* title = label(QStringLiteral("HONDA<span style='color:#51d3ba'>DASH</span>  <span style='font-size:10px;color:#91a5ba'>M3a · лабораторний стенд</span>"));
     title->setTextFormat(Qt::RichText); title->setStyleSheet(QStringLiteral("font-size:19px;font-weight:bold;"));
     top->addWidget(title, 1);
     auto* fullscreen = new QPushButton(QStringLiteral("На весь екран · F11"));
@@ -157,12 +158,13 @@ MainWindow::MainWindow(bool managedTime, QWidget* parent) : QMainWindow(parent),
     source_->addItem(QStringLiteral("Honda DLC — лабораторна емуляція"), 2);
     source_->addItem(QStringLiteral("Honda DLC — тестовий міст"), 3);
     source_->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
-    source_->setToolTip(QStringLiteral("Лабораторний DLC працює у пам’яті. Тестовий міст використовує embedded-ядро на ПК або окрему bridge-lab firmware Nano; backend завжди віртуальний."));
+    source_->setToolTip(QStringLiteral("Лабораторний DLC працює у пам’яті. Bridge-lab використовує virtual ECU. Окремий two-Nano bench потребує двох явно вибраних портів і низьковольтної схеми; автомобіль заборонений."));
     controlLayout->addWidget(source_);
     bridgeBackend_ = new QComboBox; bridgeBackend_->setObjectName(QStringLiteral("bridgeBackend"));
     bridgeBackend_->addItem(QStringLiteral("Міст на ПК"), 0);
 #ifdef HONDADASH_WITH_SERIAL
     bridgeBackend_->addItem(QStringLiteral("Міст на Nano через USB"), 1);
+    bridgeBackend_->addItem(QStringLiteral("Стенд · дві Nano"), 2);
 #endif
     bridgeBackend_->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
     controlLayout->addWidget(bridgeBackend_);
@@ -173,6 +175,14 @@ MainWindow::MainWindow(bool managedTime, QWidget* parent) : QMainWindow(parent),
     refreshPorts_ = new QPushButton(QStringLiteral("Оновити")); refreshPorts_->setObjectName(QStringLiteral("refreshPorts"));
     portRow->addWidget(port_, 1); portRow->addWidget(refreshPorts_); controlLayout->addLayout(portRow);
     portDetails_ = label({}); portDetails_->setStyleSheet(QStringLiteral("color:#91a5ba;font-size:10px;")); controlLayout->addWidget(portDetails_);
+    benchPortsHint_ = label(QStringLiteral("Верхній порт: Nano №1 bridge-bench.\nНижній порт: Nano №2 responder-bench.\nПотрібні різні порти; з'єднання лише за схемою стенда."));
+    controlLayout->addWidget(benchPortsHint_);
+    responderPort_ = new QComboBox; responderPort_->setObjectName(QStringLiteral("responderPort"));
+    responderPort_->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    controlLayout->addWidget(responderPort_);
+    benchPeerInfo_ = label({}); controlLayout->addWidget(benchPeerInfo_);
+    benchPeerHex_ = label({}); benchPeerHex_->setStyleSheet(QStringLiteral("color:#91a5ba;font-size:9px;")); controlLayout->addWidget(benchPeerHex_);
+    connect(responderPort_, &QComboBox::currentIndexChanged, this, [this] { refreshDashboard(); });
     deviceInfo_ = label({}); deviceInfo_->setObjectName(QStringLiteral("deviceInfo")); controlLayout->addWidget(deviceInfo_);
     capabilities_ = label({}); capabilities_->setObjectName(QStringLiteral("capabilities"));
     capabilities_->setStyleSheet(QStringLiteral("color:#91a5ba;font-size:10px;")); controlLayout->addWidget(capabilities_);
@@ -348,25 +358,56 @@ MainWindow::MainWindow(bool managedTime, QWidget* parent) : QMainWindow(parent),
     refreshPorts();
     refreshDashboard();
 }
-MainWindow::~MainWindow() { session_.stop(now()); dlcSession_.stop(now()); bridgeSession_->stop(now()); bridgeClient_->disconnect(now()); recorder_.stop(); }
+MainWindow::~MainWindow() {
+    stopSession();
+    if (benchController_) {
+        if (benchStopPending_) bridgeRaw({now(),0,0,"bench_stop_unconfirmed","Window destroyed before external QUIESCE acknowledgement; physical state unconfirmed",{}});
+        benchController_->disconnect(now());
+        benchController_->onRaw = {};
+    }
+    if (ownedBridgeClient_) ownedBridgeClient_->onRaw = {};
+    bridgeSession_->onRaw = {};
+    bridgeSession_.reset(); // Destroy link callbacks while Recorder and transports are still alive.
+    benchController_.reset(); ownedBridgeClient_.reset(); bridgeClient_ = nullptr;
+    recorder_.stop();
+}
 Time MainWindow::now() const { return managedTime_ ? managedNow_ : static_cast<Time>(std::max<qint64>(0, clock_.elapsed())); }
 bool MainWindow::serialSelected() const { return source_->currentData().toInt() == 1; }
 bool MainWindow::dlcSelected() const { return source_->currentData().toInt() == 2; }
 bool MainWindow::bridgeSelected() const { return source_->currentData().toInt() == 3; }
 bool MainWindow::bridgeSerialSelected() const { return bridgeSelected() && bridgeBackend_->currentData().toInt() == 1; }
+bool MainWindow::benchSelected() const { return bridgeSelected() && bridgeBackend_->currentData().toInt() == 2; }
 const Model& MainWindow::activeModel() const { return bridgeSelected() ? bridgeSession_->model() : dlcSelected() ? dlcSession_.model() : session_.model(); }
-void MainWindow::tickSessions() { if (bridgeSelected()) bridgeSession_->tick(now()); else if (dlcSelected()) dlcSession_.tick(now()); else session_.tick(now()); }
+void MainWindow::tickSessions() {
+    if (bridgeSelected()) bridgeSession_->tick(now()); else if (dlcSelected()) dlcSession_.tick(now()); else session_.tick(now());
+    if (benchStopPending_ && (benchController_->quiescent() || now() >= benchStopDeadline_)) {
+        if (!benchController_->quiescent()) {
+            benchStopError_ = QStringLiteral("QUIESCE не підтверджено до deadline; обидва USB закриті. Стан лінії потребує перевірки.");
+            bridgeRaw({now(),0,0,"bench_stop_unconfirmed",benchStopError_.toStdString(),{}});
+        }
+        benchController_->disconnect(now()); benchStopPending_ = false;
+        if (closePending_) { closePending_ = false; close(); }
+    }
+}
 void MainWindow::rebuildBridge() {
     if (bridgeSession_) bridgeSession_->stop(now());
-    if (bridgeClient_) bridgeClient_->disconnect(now());
-    bridgeSession_.reset(); bridgeClient_.reset();
+    if (benchController_) benchController_->disconnect(now());
+    else if (ownedBridgeClient_) ownedBridgeClient_->disconnect(now());
+    bridgeSession_.reset(); benchController_.reset(); ownedBridgeClient_.reset(); bridgeClient_ = nullptr;
+    benchStopPending_ = false; benchStopError_.clear();
     bridge::Settings settings;
 #ifdef HONDADASH_WITH_SERIAL
-    if (bridgeSerialSelected()) { settings.bootMs = 1500; bridgeClient_ = std::make_unique<bridge::Client>(*serialTransport_, settings); }
+    if (benchSelected()) {
+        settings.bootMs = 1800;
+        benchController_ = std::make_unique<bench::Controller>(*serialTransport_, *responderTransport_, settings);
+        bridgeClient_ = &benchController_->bridgeClient();
+    } else if (bridgeSerialSelected()) { settings.bootMs = 1500; ownedBridgeClient_ = std::make_unique<bridge::Client>(*serialTransport_, settings); }
     else
 #endif
-        bridgeClient_ = std::make_unique<bridge::Client>(nativeBridge_, settings);
-    bridgeSession_ = std::make_unique<dlc::Session>(*bridgeClient_, dlc::bridgePollingSettings(), dlc::bridgeFreshness());
+        ownedBridgeClient_ = std::make_unique<bridge::Client>(nativeBridge_, settings);
+    if (!bridgeClient_) bridgeClient_ = ownedBridgeClient_.get();
+    dlc::Link& link = benchController_ ? static_cast<dlc::Link&>(*benchController_) : static_cast<dlc::Link&>(*ownedBridgeClient_);
+    bridgeSession_ = std::make_unique<dlc::Session>(link, dlc::bridgePollingSettings(), dlc::bridgeFreshness());
     std::array<std::optional<Time>, ChannelCount> plotGaps{};
     if (bridgeSelected()) for (const auto& field : dlc::fields())
         plotGaps[channelIndex(field.channel)] = dlc::bridgeMaximumRequestInterval(field.channel) + dlc::BridgeResultBudgetMs;
@@ -386,16 +427,20 @@ void MainWindow::rebuildBridge() {
         chart_->pushSample(plotSample); if (recorder_.active()) recorder_.enqueueSample(sample);
     };
     bridgeSession_->onRaw = [this](const RawEvent& event) { bridgeRaw(event); };
-    bridgeClient_->onRaw = [this](const RawEvent& event) { bridgeRaw(event); };
+    if (benchController_) benchController_->onRaw = [this](const RawEvent& event) { bridgeRaw(event); };
+    else ownedBridgeClient_->onRaw = [this](const RawEvent& event) { bridgeRaw(event); };
     bridgeOuterTx_.clear(); bridgeOuterRx_.clear(); bridgeInnerTx_.clear(); bridgeInnerRx_.clear();
     bridgeInnerRead_.clear(); bridgeInnerFormula_.clear(); bridgeInnerCheck_.clear(); bridgeDisplayedRequest_ = 0;
     bridgeLastUpdatedChannel_.reset();
+    responderOuterTx_.clear(); responderOuterRx_.clear();
 }
 void MainWindow::bridgeRaw(const RawEvent& event) {
     if (!bridgeSelected()) return;
     const auto bytes = QString::fromStdString(dlc::hex(event.bytes));
     if (event.kind == "usb_tx") bridgeOuterTx_ = bytes;
     if (event.kind == "usb_rx") bridgeOuterRx_ = bytes;
+    if (event.kind == "responder_usb_tx") responderOuterTx_ = bytes;
+    if (event.kind == "responder_usb_rx") responderOuterRx_ = bytes;
     if (event.kind == "bridge_dlc_tx") {
         bridgeInnerTx_ = bytes; bridgeDisplayedRequest_ = event.request;
         bridgeInnerRead_ = QString::fromStdString(bridgeSession_->lastExchange().read);
@@ -407,13 +452,16 @@ void MainWindow::bridgeRaw(const RawEvent& event) {
     if (recorder_.active()) recorder_.enqueueRaw(event);
 }
 void MainWindow::newBridgeExperiment() {
+    if (benchStopPending_) return;
     if (!bridgeSelected() || !bridgeClient_->info()) return;
+    if (benchController_ && !benchController_->responderInfo()) return;
     chart_->clear(); bridgeInnerTx_.clear(); bridgeInnerRx_.clear();
     bridgeInnerRead_.clear(); bridgeInnerFormula_.clear(); bridgeInnerCheck_.clear(); bridgeDisplayedRequest_ = 0;
     bridgeLastUpdatedChannel_.reset();
     // Client uses one raw sink. Once Session owns the experiment, route its
     // bridge events through Session metrics and then the same GUI/log sink.
-    bridgeClient_->onRaw = {};
+    if (benchController_) benchController_->onRaw = {};
+    else ownedBridgeClient_->onRaw = {};
     bridgeSession_->start(now()); refreshDashboard();
 }
 void MainWindow::applyBridgeFaults(dlc::Faults faults) {
@@ -433,11 +481,15 @@ void MainWindow::applyDlcFaults(dlc::Faults faults) {
 }
 void MainWindow::refreshPorts() {
     const auto selected = port_->currentData().toString();
+    const auto selectedResponder = responderPort_->currentData().toString();
+    const QSignalBlocker responderBlocker(responderPort_);
+    responderPort_->clear(); responderPort_->addItem(QStringLiteral("Оберіть responder порт…"), QString{});
     port_->blockSignals(true); port_->clear();
     port_->addItem(QStringLiteral("Оберіть порт…"), QString{});
 #ifdef HONDADASH_WITH_SERIAL
     for (const auto& info : QSerialPortInfo::availablePorts()) {
         port_->addItem(info.portName(), info.systemLocation());
+        responderPort_->addItem(info.portName(), info.systemLocation());
         QString details = info.description().isEmpty() ? QStringLiteral("Без опису") : info.description();
         if (!info.manufacturer().isEmpty()) details += QStringLiteral(" · ") + info.manufacturer();
         details += QStringLiteral("\n") + info.systemLocation();
@@ -450,6 +502,7 @@ void MainWindow::refreshPorts() {
 #endif
     const int selectedIndex = selected.isEmpty() ? 0 : port_->findData(selected);
     port_->setCurrentIndex(std::max(0, selectedIndex)); port_->blockSignals(false);
+    responderPort_->setCurrentIndex(std::max(0, responderPort_->findData(selectedResponder)));
     portDetails_->setText(port_->currentData(Qt::ToolTipRole).toString());
     refreshDashboard();
 }
@@ -472,12 +525,16 @@ void MainWindow::applyManual() {
 }
 void MainWindow::startSession() {
     if (bridgeSelected()) {
-        if (bridgeSerialSelected() && port_->currentData().toString().isEmpty()) return;
+        if ((bridgeSerialSelected() || benchSelected()) && port_->currentData().toString().isEmpty()) return;
+        if (benchSelected() && !bench::distinctPorts(responderPort_->currentData().toString().toStdString(), port_->currentData().toString().toStdString())) return;
         rebuildBridge();
 #ifdef HONDADASH_WITH_SERIAL
-        if (bridgeSerialSelected()) serialTransport_->setPortName(port_->currentData().toString().toStdString());
+        if (bridgeSerialSelected() || benchSelected()) serialTransport_->setPortName(port_->currentData().toString().toStdString());
+        if (benchSelected()) responderTransport_->setPortName(responderPort_->currentData().toString().toStdString());
 #endif
-        chart_->clear(); bridgeClient_->connect(now()); refreshDashboard(); return;
+        chart_->clear();
+        if (benchController_) benchController_->connect(now()); else ownedBridgeClient_->connect(now());
+        refreshDashboard(); return;
     }
     if (dlcSelected()) { chart_->clear(); dlcSession_.start(now()); refreshDashboard(); return; }
     if (serialSelected() && port_->currentData().toString().isEmpty()) return;
@@ -487,7 +544,14 @@ void MainWindow::startSession() {
 #endif
     chart_->clear(); session_.start(now()); refreshDashboard();
 }
-void MainWindow::stopSession() { session_.stop(now()); dlcSession_.stop(now()); bridgeSession_->stop(now()); bridgeClient_->disconnect(now()); refreshDashboard(); }
+void MainWindow::stopSession() {
+    if (benchStopPending_) return;
+    session_.stop(now()); dlcSession_.stop(now()); bridgeSession_->stop(now());
+    if (benchController_ && benchController_->bridgeClient().info() && benchController_->responderInfo()) {
+        benchStopPending_ = true; benchStopDeadline_ = now() + 2500;
+    } else if (benchController_) benchController_->disconnect(now()); else ownedBridgeClient_->disconnect(now());
+    refreshDashboard();
+}
 void MainWindow::updateCapabilities(const std::optional<DeviceInfo>& info) {
     const auto flags = info ? info->capabilities : serialSelected() ? 0 : CapabilityScenario | CapabilityManual | CapabilityFaults | CapabilityQuality;
     scenario_->setEnabled((flags & CapabilityScenario) != 0); seed_->setEnabled(scenario_->isEnabled());
@@ -516,7 +580,7 @@ void MainWindow::refreshDashboard() {
         auto reading = measurements[i]; reading.value = activeModel().current(static_cast<Channel>(i), currentTime);
         if (i == 0) tachometer_->setReading(reading, elapsed); else cards_[i]->setReading(reading);
     }
-    chart_->setNow(currentTime); sessionStatus_->setText(bridge ? bridgeSessionName(bridgeClient_->state()) : honda ? dlcSessionName(dlcSession_.state()) : QStringLiteral("Сесія: ") + sessionName(session_.state()));
+    chart_->setNow(currentTime); sessionStatus_->setText(benchSelected() ? QStringLiteral("Стенд: ") + QString::fromUtf8(benchController_->stateName()) : bridge ? bridgeSessionName(bridgeClient_->state()) : honda ? dlcSessionName(dlcSession_.state()) : QStringLiteral("Сесія: ") + sessionName(session_.state()));
     sessionStatus_->setToolTip(QString::fromStdString(bridge ? bridgeClient_->error() + "; " + bridgeSession_->error() : honda ? dlcSession_.error() : session_.error()));
     const bool running = bridge ? bridgeSession_->state() == dlc::State::Polling && bridgeClient_->state() != bridge::State::Faulted : honda ? dlcSession_.state() == dlc::State::Polling : session_.state() == SessionState::Running;
     sessionStatus_->setStyleSheet(running ? QStringLiteral("color:#51d3ba;") : QStringLiteral("color:#ffca79;"));
@@ -528,22 +592,26 @@ void MainWindow::refreshDashboard() {
     statistics_->setText(QStringLiteral("%1 відп./с · Давність: %2 · Тайм-аути: %3 · Пошкоджені: %4 · Прийнято: %5 · Журнал: %6")
         .arg(stats.responseHz, 0, 'f', 1).arg(age).arg(stats.timeouts).arg(stats.corrupt).arg(stats.accepted).arg(recordState));
     statistics_->setToolTip({});
-    const bool bridgeDisconnected = bridgeClient_->state() == bridge::State::Disconnected;
+    const bool bridgeDisconnected = benchController_ ? benchController_->state() == bench::State::Disconnected : bridgeClient_->state() == bridge::State::Disconnected;
     const bool stopped = bridge ? bridgeDisconnected : honda ? dlcSession_.state() == dlc::State::Stopped || dlcSession_.state() == dlc::State::Faulted : session_.state() == SessionState::Stopped || session_.state() == SessionState::Faulted;
-    const bool usb = serialSelected() || bridgeSerialSelected();
+    const bool usb = serialSelected() || bridgeSerialSelected() || benchSelected();
     source_->setEnabled(stopped); port_->setEnabled(stopped); refreshPorts_->setEnabled(stopped);
     bridgeBackend_->setVisible(bridge); bridgeBackend_->setEnabled(stopped);
     port_->setVisible(usb); refreshPorts_->setVisible(usb); portDetails_->setVisible(usb);
+    for (QWidget* widget : std::array<QWidget*, 4>{responderPort_, benchPortsHint_, benchPeerInfo_, benchPeerHex_}) widget->setVisible(benchSelected());
+    responderPort_->setEnabled(stopped);
     start_->setText(bridge ? QStringLiteral("Старт / handshake") : usb ? QStringLiteral("Підключити") : QStringLiteral("Старт"));
     stop_->setText(usb ? QStringLiteral("Від’єднати") : QStringLiteral("Стоп"));
-    start_->setEnabled(stopped && (!usb || !port_->currentData().toString().isEmpty()));
-    stop_->setEnabled(bridge ? !bridgeDisconnected : honda ? dlcSession_.state() != dlc::State::Stopped : session_.state() != SessionState::Stopped);
+    const bool twoPorts = bench::distinctPorts(port_->currentData().toString().toStdString(), responderPort_->currentData().toString().toStdString());
+    start_->setEnabled(stopped && (!usb || !port_->currentData().toString().isEmpty()) && (!benchSelected() || twoPorts));
+    stop_->setEnabled(!benchStopPending_ && (bridge ? !bridgeDisconnected : honda ? dlcSession_.state() != dlc::State::Stopped : session_.state() != SessionState::Stopped));
     bridgeNewExperiment_->setVisible(bridge);
-    bridgeNewExperiment_->setEnabled(bridge && bridgeClient_->info().has_value() && (bridgeClient_->state() == bridge::State::Ready || bridgeClient_->state() == bridge::State::Faulted));
+    const bool benchReady = benchController_ && benchController_->responderInfo() && (benchController_->state() == bench::State::Ready || benchController_->state() == bench::State::Faulted);
+    bridgeNewExperiment_->setEnabled(!benchStopPending_ && bridge && bridgeClient_->info().has_value() && (benchSelected() ? benchReady : (bridgeClient_->state() == bridge::State::Ready || bridgeClient_->state() == bridge::State::Faulted)));
     scenario_->setVisible(!honda); demoNotice_->setVisible(!honda); seed_->setVisible(!honda); seedLabel_->setVisible(!honda);
     manualBox_->setVisible(!honda && scenario_->currentIndex() == 3); faultBox_->setVisible(!honda); dlcBox_->setVisible(dlcSelected()); bridgeBox_->setVisible(bridge);
     dlcProfile_->setEnabled(stopped);
-    warning_->setText(bridge ? QStringLiteral("ТЕСТОВИЙ МІСТ — ВІРТУАЛЬНИЙ ECU — ФІЗИЧНИЙ DLC ВИМКНЕНО") : honda ? QStringLiteral("ЛАБОРАТОРНА ЕМУЛЯЦІЯ HONDA DLC — ECU НЕ ПІДКЛЮЧЕНО") : usb ? QStringLiteral("ЕМУЛЯЦІЯ НА ПРИСТРОЇ — ECU НЕ ПІДКЛЮЧЕНО") : QStringLiteral("ЕМУЛЯЦІЯ — не підключено до автомобіля"));
+    warning_->setText(benchSelected() ? QStringLiteral("СТЕНД: ДВІ NANO — ЕМУЛЯТОР ECU — НЕ ПІДКЛЮЧАТИ ДО АВТОМОБІЛЯ") : bridge ? QStringLiteral("ТЕСТОВИЙ МІСТ — ВІРТУАЛЬНИЙ ECU — ФІЗИЧНИЙ DLC ВИМКНЕНО") : honda ? QStringLiteral("ЛАБОРАТОРНА ЕМУЛЯЦІЯ HONDA DLC — ECU НЕ ПІДКЛЮЧЕНО") : usb ? QStringLiteral("ЕМУЛЯЦІЯ НА ПРИСТРОЇ — ECU НЕ ПІДКЛЮЧЕНО") : QStringLiteral("ЕМУЛЯЦІЯ — не підключено до автомобіля"));
     if (offscreenScreenshot_) warning_->setText(warning_->text() + QStringLiteral(" · знімок offscreen (без звичайного GUI)"));
     const auto& info = session_.deviceInfo();
     QString identity = info ? QStringLiteral("%1 · firmware %2").arg(QString::fromStdString(info->endpoint), QString::fromStdString(info->firmware)) : usb ? QStringLiteral("Тестовий пристрій не розпізнано") : QStringLiteral("Синтетичний профіль у пам’яті ПК");
@@ -584,14 +652,20 @@ void MainWindow::refreshDlcDetails() {
 }
 void MainWindow::refreshBridgeDetails() {
     const auto& info = bridgeClient_->info();
-    QString identity = info ? QString::fromStdString(info->identity) + QStringLiteral("\nbackend=virtual · фізичний DLC вимкнено") : QStringLiteral("Bridge-lab endpoint не розпізнано");
+    QString identity = info ? QString::fromStdString(info->identity) + (benchSelected() ? QStringLiteral("\nGPIO стенда · зовнішній responder") : QStringLiteral("\nbackend=virtual · фізичний DLC вимкнено")) : QStringLiteral("Bridge endpoint не розпізнано");
     if (info) identity += QStringLiteral("\nFirmware %1 · bridge v%2\nRead-policy v%3 · покоління %4").arg(QString::fromStdString(info->firmware)).arg(info->protocolVersion).arg(info->policyVersion).arg(info->generation);
     if (bridgeSession_->stats().accepted) identity += QStringLiteral("\nОтримано коректне DLC-читання.");
     else identity += QStringLiteral("\nІніціалізація не розпізнає ECU.");
-    const auto error = !bridgeClient_->error().empty() ? bridgeClient_->error() : bridgeSession_->error();
+    const auto error = benchController_ && !benchController_->error().empty() ? benchController_->error() : !bridgeClient_->error().empty() ? bridgeClient_->error() : bridgeSession_->error();
     if (!error.empty()) identity += QStringLiteral("\nОБМІН ЗАБЛОКОВАНО: ") + QString::fromStdString(error);
+    if (benchSelected() && !benchStopError_.isEmpty()) identity += QStringLiteral("\n") + benchStopError_;
     deviceInfo_->setText(identity); deviceInfo_->setStyleSheet(error.empty() ? QStringLiteral("color:#91a5ba;") : QStringLiteral("color:#ff7e7e;"));
-    capabilities_->setText(QStringLiteral("USB handshake перевіряє протокол мосту. Це не підтвердження Nano чи ECU. Початок читань — окремою кнопкою нового експерименту."));
+    capabilities_->setText(benchSelected() ? QStringLiteral("Дві firmware identity; дані simulation/reference-derived. Identity не є електричним доказом. Новий експеримент узгоджує обидві плати; фізичні рівні й обмін ще потребують перевірки.") : QStringLiteral("USB handshake перевіряє протокол мосту. Це не підтвердження Nano чи ECU. Початок читань — окремою кнопкою нового експерименту."));
+    if (benchController_) {
+        const auto& peer = benchController_->responderInfo();
+        benchPeerInfo_->setText(peer ? QStringLiteral("Nano №2 · %1\nFirmware %2 · protocol/policy %3/%4\nGeneration %5").arg(QString::fromStdString(peer->identity), QString::fromStdString(peer->firmware)).arg(peer->protocolVersion).arg(peer->policyVersion).arg(peer->generation) : QStringLiteral("Nano №2 · responder не розпізнано"));
+        benchPeerHex_->setText(QStringLiteral("USB responder · лише керування\nTX: %1\nRX: %2").arg(responderOuterTx_, responderOuterRx_));
+    }
     bridgeScenario_->setEnabled(info.has_value());
     for (QWidget* widget : std::array<QWidget*, 8>{bridgeSilence_, bridgeDelay_, bridgeGap_, bridgeCorrupt_, bridgeTruncate_, bridgeLength_, bridgeHeader_, bridgeTrailing_}) widget->setEnabled(info.has_value());
     bridgeOuterHex_->setText(QStringLiteral("USB bridge frame · host\nTX: %1\nRX (останній фрагмент): %2").arg(bridgeOuterTx_, bridgeOuterRx_));
@@ -613,7 +687,7 @@ void MainWindow::refreshBridgeDetails() {
     };
     bridgePolicy_->setText(QStringLiteral("План: %1\nСвіжість: %2\nФакт: вікно до 10 с; «—» — мало даних.")
         .arg(QString::fromUtf8(dlc::BridgeSchedulerPolicy), QString::fromUtf8(dlc::BridgeFreshnessPolicy)));
-    bridgePolicy_->setToolTip(QStringLiteral("Політика HondaDash для віртуального мосту. Застосовується на межі нового експерименту. Давність — від початку host-запиту, не час вимірювання фізичного датчика. На рівності deadline значення ще видиме; Stale/приховування — після перевищення порога. Анімація приладу не є новими вимірюваннями."));
+    bridgePolicy_->setToolTip(QStringLiteral("Політика HondaDash для лабораторного мосту. Застосовується на межі нового експерименту. Давність — від початку host-запиту, не час вимірювання фізичного датчика. На рівності deadline значення ще видиме; Stale/приховування — після перевищення порога. Анімація приладу не є новими вимірюваннями."));
     QStringList diagnosticRows;
     QStringList channelDistributions;
     for (const auto channel : {Channel::Rpm, Channel::Coolant, Channel::Throttle}) {
@@ -649,7 +723,7 @@ void MainWindow::refreshBridgeDetails() {
     for (auto* trace : {bridgeOuterHex_, bridgeInnerHex_, bridgeTiming_, bridgePolicy_, bridgeChannelDiagnostics_}) trace->setMinimumHeight(trace->heightForWidth(240));
     statistics_->setText(QStringLiteral("Σ %1 транз./с · RPM %2/%3 · ECT %4/%5 · TPS %6/%7 · %8")
         .arg(stats.accepted >= 2 ? QString::number(stats.responseHz, 'f', 2) : QStringLiteral("—")).arg(achieved(Channel::Rpm) + QStringLiteral("Гц"), age(Channel::Rpm).remove(QLatin1Char(' ')), achieved(Channel::Coolant) + QStringLiteral("Гц"), age(Channel::Coolant).remove(QLatin1Char(' ')), achieved(Channel::Throttle) + QStringLiteral("Гц"), age(Channel::Throttle).remove(QLatin1Char(' ')), recorder_.active() ? QStringLiteral("ЗАПИС") : QStringLiteral("запис вимкн.")));
-    statistics_->setToolTip(QStringLiteral("Сумарні завершені read-транзакції та частота окремих каналів; обмежене вікно до 10 с. Кожне читання оновлює тільки один канал. Це програмні вимірювання віртуального backend."));
+    statistics_->setToolTip(QStringLiteral("Сумарні завершені read-транзакції та частота окремих каналів; обмежене вікно до 10 с. Кожне читання оновлює тільки один канал. Дані simulation; для стенда байти надходять від зовнішнього responder через GPIO."));
 }
 RecordingMetadata MainWindow::recordingMetadata() const {
     if (bridgeSelected()) {
@@ -674,7 +748,23 @@ RecordingMetadata MainWindow::recordingMetadata() const {
             metadata.firmware = info.firmware;
             metadata.bridgeVersion = info.protocolVersion; metadata.readPolicyVersion = info.policyVersion;
         }
-        if (bridgeSerialSelected()) { metadata.port = port_->currentData().toString().toStdString(); metadata.baud = 115200; }
+        if (bridgeSerialSelected() || benchSelected()) { metadata.port = port_->currentData().toString().toStdString(); metadata.baud = 115200; }
+        if (benchSelected()) {
+            metadata.outerProtocol = "hondadash-dlc-bridge-bench-v1";
+            metadata.backend = "two-nano-bench"; metadata.transport = "serial-two-port";
+            metadata.benchSchemaVersion = 1; metadata.benchIoEnabled = true;
+            metadata.vehicleConnectionAllowed = false;
+            metadata.firmwareTarget = "bridge-bench + responder-bench";
+            metadata.responderPort = responderPort_->currentData().toString().toStdString();
+            metadata.measurementScope = "two_nano_bench; MCU_reported_line_events; physical_electrical_verification_NOT_VERIFIED";
+            metadata.responderIdentity = "unrecognized";
+            if (benchController_->responderInfo()) {
+                const auto& peer = *benchController_->responderInfo();
+                metadata.responderIdentity = peer.identity; metadata.responderFirmware = peer.firmware;
+                metadata.responderProtocolVersion = peer.protocolVersion;
+                metadata.responderReadPolicyVersion = peer.policyVersion;
+            }
+        }
         return metadata;
     }
     if (dlcSelected()) {
@@ -1055,7 +1145,24 @@ QJsonObject MainWindow::smokeTest(const QString& screenshotPath) {
     port_->addItem(QStringLiteral("GUI smoke · bridge відсутній порт"), QStringLiteral("HondaDash_BRIDGE_SMOKE_NONEXISTENT_PORT_6491")); port_->setCurrentIndex(port_->count() - 1);
     start_->click(); advance(200);
     check(QStringLiteral("bridge_USB_missing_port_is_visible_and_never_becomes_native_bridge"), bridgeClient_->state() == bridge::State::Faulted && !bridgeClient_->info() && !bridgeClient_->error().empty() && !tachometer_->reading().value && !bridgeNewExperiment_->isEnabled());
-    stop_->click(); bridgeBackend_->setCurrentIndex(0);
+    stop_->click(); bridgeBackend_->setCurrentIndex(2); port_->setCurrentIndex(0); responderPort_->setCurrentIndex(0);
+    check(QStringLiteral("bench_two_explicit_ports_no_fallback_or_values"), benchSelected() && !start_->isEnabled() && !responderPort_->isHidden() && benchController_->state() == bench::State::Disconnected && !tachometer_->reading().value && bridgeInnerTx_.isEmpty());
+    check(QStringLiteral("bench_permanent_warning_and_separate_metadata"), warning_->text().contains(QStringLiteral("СТЕНД: ДВІ NANO — ЕМУЛЯТОР ECU — НЕ ПІДКЛЮЧАТИ ДО АВТОМОБІЛЯ")) && !warning_->text().contains(QStringLiteral("ФІЗИЧНИЙ DLC ВИМКНЕНО")) && recordingMetadata().benchIoEnabled && recordingMetadata().benchSchemaVersion == 1 && !recordingMetadata().vehicleConnectionAllowed);
+    port_->addItem(QStringLiteral("same test port"), QStringLiteral("COM991")); port_->setCurrentIndex(port_->count()-1);
+    responderPort_->addItem(QStringLiteral("same test port"), QStringLiteral("COM991")); responderPort_->setCurrentIndex(responderPort_->count()-1);
+    check(QStringLiteral("bench_rejects_same_port_alias_before_open"), !start_->isEnabled() && benchController_->state() == bench::State::Disconnected);
+    port_->setCurrentIndex(0); responderPort_->setCurrentIndex(0);
+    for (const auto size : {QSize(1024,600), QSize(1280,720)}) {
+        resize(size); settleControlLayout();
+        check(QStringLiteral("bench_layout_%1x%2").arg(size.width()).arg(size.height()), centralWidget()->width() <= size.width() && centralWidget()->height() <= size.height() && controlPanel_->width() <= controlScroll_->viewport()->width() && warning_->isVisible() && !tachometer_->reading().value);
+        if (!screenshotPath.isEmpty()) {
+            const QFileInfo info(screenshotPath);
+            const auto benchShot = info.dir().filePath(info.completeBaseName() + QStringLiteral("-bench-unconnected-%1.png").arg(size.width()));
+            bridgeScreenshots.append(benchShot);
+            check(QStringLiteral("bench_unconnected_screenshot_%1").arg(size.width()), grab().save(benchShot));
+        }
+    }
+    bridgeBackend_->setCurrentIndex(0);
 #else
     check(QStringLiteral("bridge_simulation_only_has_native_backend_without_SerialPort"), bridgeBackend_->count() == 1 && bridgeBackend_->currentData().toInt() == 0);
 #endif
@@ -1079,5 +1186,13 @@ void MainWindow::keyPressEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Escape && isFullScreen()) { showNormal(); event->accept(); return; }
     QMainWindow::keyPressEvent(event);
 }
-void MainWindow::closeEvent(QCloseEvent* event) { timer_->stop(); session_.stop(now()); dlcSession_.stop(now()); bridgeSession_->stop(now()); bridgeClient_->disconnect(now()); recorder_.stop(); refreshDashboard(); event->accept(); }
+void MainWindow::closeEvent(QCloseEvent* event) {
+    if (benchController_ && benchController_->state() != bench::State::Disconnected) {
+        if (!benchStopPending_) stopSession();
+        if (benchStopPending_) { closePending_ = true; event->ignore(); return; }
+    }
+    timer_->stop(); session_.stop(now()); dlcSession_.stop(now()); bridgeSession_->stop(now());
+    if (benchController_) benchController_->disconnect(now()); else ownedBridgeClient_->disconnect(now());
+    recorder_.stop(); refreshDashboard(); event->accept();
+}
 }

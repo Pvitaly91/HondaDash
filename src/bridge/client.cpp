@@ -1,5 +1,6 @@
 #include "bridge/client.hpp"
 #include "../../firmware/nano_dlc_bridge_lab/wire.hpp"
+#include "../../firmware/shared/bench_wire.hpp"
 #include "honda_dlc/profile.hpp"
 #include <algorithm>
 #include <atomic>
@@ -21,6 +22,14 @@ Client::~Client() {
     lifetime_.reset();
     transport_.close();
 }
+std::uint8_t Client::version() const {
+    return settings_.backend == Backend::TwoNanoBench ? std::uint8_t(hd_bench::Version)
+                                                      : std::uint8_t(w::Version);
+}
+std::uint8_t Client::policy() const {
+    return settings_.backend == Backend::TwoNanoBench ? std::uint8_t(hd_bench::PolicyVersion)
+                                                      : std::uint8_t(w::PolicyVersion);
+}
 const char *Client::stateName() const {
     switch (state_) {
     case State::Disconnected:
@@ -38,7 +47,7 @@ const char *Client::stateName() const {
     case State::Initializing:
         return "Initializing DLC";
     case State::Running:
-        return "Running virtual DLC";
+        return settings_.backend == Backend::TwoNanoBench ? "Running two-Nano bench" : "Running virtual DLC";
     case State::Faulted:
         return "Faulted — needs new experiment";
     }
@@ -51,7 +60,8 @@ void Client::emitRaw(std::string kind, Time now, std::string detail, std::span<c
                    associated && pending_ ? pending_->transaction : 0,
                    std::move(kind),
                    std::move(detail),
-                   {bytes.begin(), bytes.end()}, std::move(trace)};
+                   {bytes.begin(), bytes.end()},
+                   std::move(trace)};
     if (onRaw)
         onRaw(event);
     if (!onRaw && callbacks_.raw)
@@ -67,6 +77,9 @@ void Client::connect(Time now) {
     info_.reset();
     error_.clear();
     diagnostics_ = {};
+    deviceDiagnostics_.clear();
+    peerGeneration_ = 0;
+    benchBoundaryReady_ = false;
     eventSequence_ = 0;
     static std::atomic<std::uint32_t> ids{0x42000000};
     session_ = ++ids;
@@ -126,6 +139,10 @@ void Client::start(std::uint32_t session, Time now, dlc::LinkCallbacks callbacks
     modelSession_ = session;
     startRequested_ = true;
     now_ = now;
+    if (settings_.backend == Backend::TwoNanoBench && !peerGeneration_) {
+        fail("Bench requires acknowledged external responder quiescence before NEW", now);
+        return;
+    }
     if (transport_.isOpen() && info_ && !pending_)
         boundary(now);
     else if (state_ != State::Opening && state_ != State::BootWaiting && state_ != State::Handshaking) {
@@ -134,6 +151,31 @@ void Client::start(std::uint32_t session, Time now, dlc::LinkCallbacks callbacks
         if (state_ != State::Faulted)
             startRequested_ = true;
     }
+}
+void Client::prepareBench(std::uint32_t session, std::uint32_t peerGeneration, Time now,
+                          dlc::LinkCallbacks callbacks) {
+    if (settings_.backend != Backend::TwoNanoBench || !peerGeneration || !info_ || pending_) {
+        fail("Bench boundary preparation requires verified idle bridge and peer generation", now);
+        return;
+    }
+    peerGeneration_ = peerGeneration;
+    benchBoundaryReady_ = false;
+    start(session, now, std::move(callbacks));
+}
+bool Client::activateBench(Time now) {
+    if (settings_.backend != Backend::TwoNanoBench || !benchBoundaryReady_ || !startRequested_ ||
+        state_ != State::Starting || pending_ || !info_)
+        return false;
+    benchBoundaryReady_ = false;
+    state_ = State::Initializing;
+    command(w::Initialize, {policy()}, now, 0, {}, dlc::Initialization);
+    return pending_.has_value();
+}
+bool Client::requestDiagnostics(Time now) {
+    if (!info_ || pending_ || !transport_.isOpen())
+        return false;
+    command(w::Diagnostics, {policy()}, now);
+    return pending_.has_value();
 }
 void Client::command(std::uint8_t operation, std::vector<std::uint8_t> payload, Time now,
                      std::uint32_t transaction, dlc::Read read, std::span<const std::uint8_t> bytes) {
@@ -154,18 +196,24 @@ void Client::command(std::uint8_t operation, std::vector<std::uint8_t> payload, 
 void Client::boundary(Time now) {
     state_ = State::Starting;
     error_.clear();
-    command(w::NewExperiment, {w::PolicyVersion}, now);
+    std::vector<std::uint8_t> payload{policy()};
+    if (settings_.backend == Backend::TwoNanoBench) {
+        payload.resize(5);
+        w::store32(payload.data() + 1, peerGeneration_);
+    }
+    command(w::NewExperiment, std::move(payload), now);
 }
 void Client::abort(Time now) {
     now_ = std::max(now_, now);
     startRequested_ = false;
+    benchBoundaryReady_ = false;
     if (!transport_.isOpen() || !info_)
         return;
     // The active outer ID is retired. An old result is still parsed and logged,
     // but cannot be delivered to a newly selected read of the same DLC length.
     pending_.reset();
     state_ = State::Ready;
-    command(w::Abort, {w::PolicyVersion}, now_);
+    command(w::Abort, {policy()}, now_);
 }
 bool Client::canExecute() const {
     return state_ == State::Running && !pending_ && !configDirty_ && info_.has_value();
@@ -175,7 +223,7 @@ bool Client::execute(std::span<const std::uint8_t> bytes, dlc::Read read, std::u
     const auto expected = dlc::encode(dlc::Operation::Read, read);
     if (!canExecute() || !expected || !equal(bytes, *expected))
         return false;
-    std::vector<std::uint8_t> payload{w::PolicyVersion, static_cast<std::uint8_t>(read.length + 3)};
+    std::vector<std::uint8_t> payload{policy(), static_cast<std::uint8_t>(read.length + 3)};
     payload.insert(payload.end(), bytes.begin(), bytes.end());
     command(w::Execute, std::move(payload), now, transaction, read, bytes);
     return pending_.has_value();
@@ -191,6 +239,10 @@ void Client::setFaults(dlc::Faults faults) {
     ++configRevision_;
 }
 void Client::configure(Time now) {
+    if (settings_.backend == Backend::TwoNanoBench) {
+        fail("Bench configuration belongs exclusively to external responder USB control", now);
+        return;
+    }
     if (scenario_ != dlc::Scenario::Baseline && scenario_ != dlc::Scenario::Higher &&
         scenario_ != dlc::Scenario::Boundary) {
         fail("Bridge-lab supports raw A/B/boundary only", now);
@@ -256,7 +308,7 @@ void Client::frame(const Frame &value, Time now) {
     }
     const auto &p = value.payload;
     if (value.type == w::Event) {
-        if (!info_ || value.request != 0 || p.size() < w::EventHeader || p[0] != w::Version ||
+        if (!info_ || value.request != 0 || p.size() < w::EventHeader || p[0] != version() ||
             p.size() != std::size_t(w::EventHeader) + p[10] || p[10] > w::MaxDlcRx) {
             fail("Malformed bridge event", now);
             return;
@@ -287,7 +339,7 @@ void Client::frame(const Frame &value, Time now) {
         return;
     }
     if (!pending_ || value.request != pending_->id) {
-        if (value.type == w::Result && p.size() >= w::ResultHeader && p[0] == w::Version && p[9] <= 11 &&
+        if (value.type == w::Result && p.size() >= w::ResultHeader && p[0] == version() && p[9] <= 11 &&
             p[10] <= w::MaxDlcRx && p.size() == std::size_t(w::ResultHeader) + p[9] + p[10]) {
             BridgeTrace trace;
             trace.generation = w::load32(p.data() + 1);
@@ -307,28 +359,54 @@ void Client::frame(const Frame &value, Time now) {
         return;
     }
     const auto operation = *pending_;
-    if (operation.command == w::Hello) {
-        if (value.type != w::HelloInfo || p.size() < 15 || p[0] != w::Version || p[1] != w::PolicyVersion ||
-            p[2] != w::BackendVirtual || p[3] != 0 || w::load16(p.data() + 4) != w::Capabilities ||
-            p[10] > w::Faulted || p[11] != 1 || p[12] != 0 || p[13] != 0 || p.size() != 15u + p[14] ||
-            std::string(p.begin() + 15, p.end()) != w::Identity) {
-            info_.reset();
-            fail("Endpoint is not the supported virtual bridge-lab identity/version/policy (M1 rejected)",
-                 now);
+    if (operation.command == w::Diagnostics) {
+        const auto expected = settings_.backend == Backend::TwoNanoBench ? 52u : 26u;
+        if (value.type != w::DiagnosticInfo || p.size() != expected || p[0] != version() || !info_ ||
+            w::load32(p.data() + 1) != info_->generation) {
+            fail("Bridge diagnostic context/length mismatch", now);
             return;
         }
-        info_ = Info{w::Identity, p[0], p[1], p[2], false, w::load16(p.data() + 4), w::load32(p.data() + 6),
-                     std::to_string(p[11]) + "." + std::to_string(p[12]) + "." + std::to_string(p[13])};
+        deviceDiagnostics_ = p;
+        pending_.reset();
+        emitRaw("bridge_diagnostics", now,
+                "MCU-reported engine/driver counters; not external analyzer measurements", p, {}, false);
+        return;
+    }
+    if (operation.command == w::Hello) {
+        const bool bench = settings_.backend == Backend::TwoNanoBench;
+        const auto expectedIdentity = bench ? hd_bench::BridgeIdentity : w::Identity;
+        const auto expectedBackend = bench ? int(hd_bench::BackendBridge) : int(w::BackendVirtual);
+        const auto expectedCapabilities = bench ? int(hd_bench::BridgeCapabilities) : int(w::Capabilities);
+        if (value.type != w::HelloInfo || p.size() < 15 || p[0] != version() || p[1] != policy() ||
+            p[2] != expectedBackend || p[3] != (bench ? 1 : 0) ||
+            w::load16(p.data() + 4) != expectedCapabilities || p[10] > w::Faulted || p[11] != 1 ||
+            p[12] != 0 || p[13] != 0 || p.size() != 15u + p[14] ||
+            std::string(p.begin() + 15, p.end()) != expectedIdentity) {
+            info_.reset();
+            fail("Endpoint does not match explicitly selected bridge identity/version/policy/backend", now);
+            return;
+        }
+        info_ = Info{expectedIdentity,
+                     p[0],
+                     p[1],
+                     p[2],
+                     false,
+                     w::load16(p.data() + 4),
+                     w::load32(p.data() + 6),
+                     std::to_string(p[11]) + "." + std::to_string(p[12]) + "." + std::to_string(p[13]),
+                     bench};
         pending_.reset();
         state_ = State::Ready;
         emitRaw("bridge_state", now,
-                "Verified virtual bridge protocol identity; not hardware authentication");
+                bench ? "Verified bench bridge identity; GPIO bench enabled; vehicle forbidden; identity is "
+                        "not authentication"
+                      : "Verified virtual bridge protocol identity; not hardware authentication");
         if (startRequested_ && state_ == State::Ready && !pending_ && info_)
             boundary(now);
         return;
     }
     if (value.type == w::Ack || value.type == w::Error) {
-        if (p.size() != w::AckSize || p[0] != w::Version || p[5] != operation.command || !info_) {
+        if (p.size() != w::AckSize || p[0] != version() || p[5] != operation.command || !info_) {
             fail("Malformed bridge ACK/error", now);
             return;
         }
@@ -350,7 +428,16 @@ void Client::frame(const Frame &value, Time now) {
         if (operation.command == w::NewExperiment) {
             info_->generation = generation;
             eventSequence_ = 0;
-            configDirty_ = true;
+            configDirty_ = settings_.backend != Backend::TwoNanoBench;
+            if (settings_.backend == Backend::TwoNanoBench) {
+                benchBoundaryReady_ = true;
+                emitRaw("bench_boundary", now,
+                        "Bridge RX drained and bus idle confirmed; external responder generation=" +
+                            std::to_string(peerGeneration_) + "; awaiting explicit peer ARM before INIT");
+                if (onBenchBoundaryReady)
+                    onBenchBoundaryReady(now);
+                return;
+            }
             emitRaw("bridge_boundary", now,
                     "Explicit NEW_EXPERIMENT replaced VirtualHondaEcu and discarded old events; not physical "
                     "ECU recovery");
@@ -375,7 +462,7 @@ void Client::frame(const Frame &value, Time now) {
         }
         return;
     }
-    if (value.type != w::Result || p.size() < w::ResultHeader || p[0] != w::Version || !info_ ||
+    if (value.type != w::Result || p.size() < w::ResultHeader || p[0] != version() || !info_ ||
         w::load32(p.data() + 1) != info_->generation || p[6] != operation.command ||
         p[7] != operation.read.address || p[8] != operation.read.length || p[9] > operation.dlcBytes.size() ||
         (p[5] == w::Ok && p[9] != operation.dlcBytes.size()) || p[10] > w::MaxDlcRx ||
@@ -468,7 +555,7 @@ void Client::tick(Time now) {
         fail("USB open watchdog: transport did not report opened", now, true);
     if (state_ == State::BootWaiting && now >= bootAt_) {
         state_ = State::Handshaking;
-        command(w::Hello, {w::Version, w::PolicyVersion}, now);
+        command(w::Hello, {version(), policy()}, now);
     }
     if (pending_) {
         const auto &p = *pending_;

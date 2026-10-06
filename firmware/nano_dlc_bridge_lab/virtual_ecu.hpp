@@ -13,6 +13,12 @@ class VirtualHondaEcu : public DlcPort {
     bool readByte(uint8_t &byte, uint32_t now, uint32_t &observedAt);
     uint8_t pending() const { return uint8_t(replySize_ - replyAt_); }
     uint32_t txBytes() const { return txBytes_; }
+    uint8_t pendingRx() const { return pending(); }
+    void resetBackend() { *this = VirtualHondaEcu(); }
+    void newExperimentBackend() { newExperiment(); }
+    bool configureBackend(uint8_t scenario, uint8_t fault, uint16_t delay, uint16_t gap) {
+        return configure(scenario, fault, delay, gap);
+    }
 
   private:
     void dispatch(uint32_t now);

@@ -1,5 +1,9 @@
 # M2c — повторювана перевірка virtual bridge
 
+Цей документ описує незмінені `native`/`serial` backend. Окремий M3a
+`two-nano-bench` використовує той самий Runner з двома обов'язковими портами
+та зовнішнім QUIESCE/generation recovery: [TWO_NANO_ACCEPTANCE.md](TWO_NANO_ACCEPTANCE.md).
+
 HondaDashBridgeCheck використовує той самий acceptance::Runner у CLI,
 нативних тестах і Linux PTY. Шлях production:
 dlc::Session → bridge::Client → Transport → BridgeEndpoint → VirtualHondaEcu

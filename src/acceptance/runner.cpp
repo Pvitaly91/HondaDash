@@ -1,5 +1,6 @@
 #include "acceptance/runner.hpp"
 #include "../../firmware/nano_dlc_bridge_lab/wire.hpp"
+#include "../../firmware/shared/bench_wire.hpp"
 #include "honda_dlc/polling.hpp"
 #include <algorithm>
 #include <array>
@@ -14,7 +15,7 @@ namespace hd::acceptance {
 namespace {
 constexpr std::array<Channel, 3> Channels{Channel::Rpm, Channel::Coolant, Channel::Throttle};
 constexpr std::array<double, 3> A{750, 61, 32}, B{1500, 89, 75};
-enum class Phase { Idle, Handshake, A, B, Observe, Fault, Aging, Recovery, Done };
+enum class Phase { Idle, Handshake, A, B, Observe, Fault, Aging, Recovery, Closing, Done };
 const char *name(Phase phase) {
     switch (phase) {
     case Phase::Idle:
@@ -35,6 +36,8 @@ const char *name(Phase phase) {
         return "explicit_new_experiment_recovery";
     case Phase::Done:
         return "done";
+    case Phase::Closing:
+        return "quiesce_and_close_both_devices";
     }
     return "unknown";
 }
@@ -100,18 +103,37 @@ void summaryJson(std::ostream &out, const dlc::DistributionSummary &summary) {
         << ",\"min\":" << number(summary.min) << ",\"median\":" << number(summary.median)
         << ",\"p95\":" << number(summary.p95) << ",\"max\":" << number(summary.max) << '}';
 }
+void driverJson(std::ostream &out, const std::vector<std::uint8_t> &bytes, std::size_t offset) {
+    if (bytes.size() != offset + 22) {
+        out << "null";
+        return;
+    }
+    constexpr std::array<const char *, 11> names{"rx_bytes",   "tx_bytes",    "echo_bytes",  "false_starts",
+                                                 "framing",    "rx_overflow", "tx_overflow", "stuck_low",
+                                                 "collisions", "timing",      "line_busy"};
+    out << '{';
+    for (std::size_t i = 0; i < names.size(); ++i) {
+        if (i)
+            out << ',';
+        out << quote(names[i]) << ':' << hd_bridge::load16(bytes.data() + offset + 2 * i);
+    }
+    out << '}';
+}
 } // namespace
 
 struct Runner::Impl {
     Transport &transport;
+    Transport *responderTransport;
     Config config;
     Recorder recorder;
-    bridge::Client client;
+    std::unique_ptr<bridge::Client> virtualClient;
+    std::unique_ptr<bench::Controller> benchController;
+    const bridge::Client &client;
     dlc::Session session;
     Phase phase{Phase::Idle};
     ExitCode code{ExitCode::Assertion};
     std::string message{"not started"}, recordingFailure;
-    std::optional<bridge::Info> identity;
+    std::optional<bridge::Info> identity, peerIdentity;
     Time started{}, phaseAt{}, lastTick{}, observedAt{}, observedUntil{};
     std::array<Metrics, 3> metrics{};
     std::array<dlc::DistributionSummary, 3> scheduleDelays{};
@@ -120,15 +142,24 @@ struct Runner::Impl {
     std::vector<RawEvent> handshakeTrace;
     std::uint64_t acceptedTotal{}, readIntents{}, intentsAtFault{}, discarded{}, faultCount{},
         expectedFaultCount{};
-    std::uint64_t usbTx{}, usbRx{}, innerTx{}, innerRx{}, lateRx{};
+    std::uint64_t usbTx{}, usbRx{}, innerTx{}, innerRx{}, lateRx{}, responderTx{}, responderRx{};
     std::size_t maxPending{};
     bool recordingStarted{}, finishing{};
 
-    Impl(Transport &value, Config settings, Recorder::WriteHook hook)
-        : transport(value), config(std::move(settings)), recorder(256, std::move(hook)),
-          client(transport, config.bridgeSettings),
-          session(client, dlc::bridgePollingSettings(), dlc::bridgeFreshness()) {
-        client.onRaw = [this](const RawEvent &event) { raw(event); };
+    Impl(Transport &value, Transport *peer, Config settings, Recorder::WriteHook hook)
+        : transport(value), responderTransport(peer), config(std::move(settings)),
+          recorder(256, std::move(hook)),
+          virtualClient(peer ? nullptr : std::make_unique<bridge::Client>(value, config.bridgeSettings)),
+          benchController(peer ? std::make_unique<bench::Controller>(value, *peer, config.bridgeSettings)
+                               : nullptr),
+          client(peer ? benchController->bridgeClient() : *virtualClient),
+          session(peer ? static_cast<dlc::Link &>(*benchController)
+                       : static_cast<dlc::Link &>(*virtualClient),
+                  dlc::bridgePollingSettings(), dlc::bridgeFreshness()) {
+        if (benchController)
+            benchController->onRaw = [this](const RawEvent &event) { raw(event); };
+        else
+            virtualClient->onRaw = [this](const RawEvent &event) { raw(event); };
         session.onRaw = [this](const RawEvent &event) { raw(event); };
         session.onSample = [this](const Sample &sample) { sampleReceived(sample); };
         handshakeTrace.reserve(64);
@@ -144,7 +175,7 @@ struct Runner::Impl {
         metadata.endpoint = identity ? identity->identity : "unrecognized endpoint";
         metadata.firmware = identity ? identity->firmware : "unverified";
         metadata.port = config.port;
-        metadata.baud = config.backend == Backend::Serial ? 115200 : 0;
+        metadata.baud = config.backend != Backend::Native ? 115200 : 0;
         metadata.wireProtocol = "honda-dlc";
         metadata.profile = dlc::ProfileId;
         metadata.profileVersion = dlc::ProfileVersion;
@@ -155,8 +186,8 @@ struct Runner::Impl {
         metadata.bridgeIdentity = identity ? identity->identity : "unverified";
         metadata.bridgeVersion = identity ? identity->protocolVersion : 0;
         metadata.readPolicyVersion = identity ? identity->policyVersion : 0;
-        metadata.backend = identity ? "virtual" : "unverified";
-        metadata.outerProtocol = hd_bridge::Identity;
+        metadata.backend = identity ? (benchController ? "two-nano-bench" : "virtual") : "unverified";
+        metadata.outerProtocol = benchController ? hd_bench::BridgeIdentity : hd_bridge::Identity;
         metadata.schedulerPolicy = dlc::BridgeSchedulerPolicy;
         metadata.schedulerPolicyVersion = dlc::BridgeSchedulerVersion;
         metadata.requestedIntervals = dlc::bridgeRequestedIntervals();
@@ -164,6 +195,20 @@ struct Runner::Impl {
         metadata.freshnessPolicyVersion = dlc::BridgeFreshnessVersion;
         metadata.timingEstimateSource = "host_request_start_lower_bound";
         metadata.measurementScope = "virtual bridge acceptance; physical hardware unverified";
+        if (benchController) {
+            const auto &peer = benchController->responderInfo();
+            metadata.benchSchemaVersion = 1;
+            metadata.benchIoEnabled = true;
+            metadata.vehicleConnectionAllowed = false;
+            metadata.responderIdentity = peer ? peer->identity : "unverified";
+            metadata.responderFirmware = peer ? peer->firmware : "unverified";
+            metadata.responderProtocolVersion = peer ? peer->protocolVersion : 0;
+            metadata.responderReadPolicyVersion = peer ? peer->policyVersion : 0;
+            metadata.responderPort = config.responderPort;
+            metadata.firmwareTarget = "bridge-bench + responder-bench";
+            metadata.measurementScope =
+                "two-Nano low-voltage bench path; software model is not physical hardware verification";
+        }
         recordingStarted = recorder.start(config.reportDirectory / "journals", metadata);
         if (!recordingStarted) {
             recordingFailure = recorder.error();
@@ -180,6 +225,10 @@ struct Runner::Impl {
             usbTx += event.bytes.size();
         if (event.kind == "usb_rx")
             usbRx += event.bytes.size();
+        if (event.kind == "responder_usb_tx")
+            responderTx += event.bytes.size();
+        if (event.kind == "responder_usb_rx")
+            responderRx += event.bytes.size();
         if (event.kind == "bridge_dlc_tx")
             innerTx += event.bytes.size();
         if (event.kind == "bridge_dlc_rx")
@@ -256,13 +305,20 @@ struct Runner::Impl {
             << ",\"exit_code\":" << static_cast<int>(code) << ",\"message\":" << quote(message)
             << ",\"desktop_version\":" << quote(config.desktopVersion)
             << ",\"desktop_sha\":" << quote(config.desktopSha) << ",\"os\":" << quote(config.os)
-            << ",\"backend\":" << quote(config.backend == Backend::Native ? "native" : "serial")
+            << ",\"backend\":"
+            << quote(config.backend == Backend::Native ? "native"
+                     : benchController                 ? "two-nano-bench"
+                                                       : "serial")
             << ",\"transport\":" << quote(transport.name()) << ",\"port\":" << quote(config.port)
-            << ",\"baud\":" << (config.backend == Backend::Serial ? 115200 : 0)
-            << ",\"source\":\"simulation\",\"scope\":\"production virtual bridge path; serial may be "
-               "software PTY\""
-            << ",\"hardware_verified\":false,\"live_enabled\":false,\"physical_dlc_enabled\":"
-            << (identity ? "false" : "null")
+            << ",\"baud\":" << (config.backend != Backend::Native ? 115200 : 0)
+            << ",\"source\":\"simulation\",\"scope\":"
+            << quote(benchController ? "production bench bridge and external responder path; test transport "
+                                       "may be software bit-line model"
+                                     : "production virtual bridge path; serial may be software PTY")
+            << ",\"hardware_verified\":false,\"live_enabled\":false"
+            << (benchController ? ",\"bench_schema_version\":1,\"bench_io_enabled\":true,\"vehicle_"
+                                  "connection_allowed\":false"
+                                : ",\"physical_dlc_enabled\":false")
             << ",\"firmware_identity\":" << (identity ? quote(identity->identity) : "null")
             << ",\"firmware_version\":" << (identity ? quote(identity->firmware) : "null")
             << ",\"protocol_version\":" << (identity ? std::to_string(identity->protocolVersion) : "null")
@@ -284,14 +340,34 @@ struct Runner::Impl {
                "when n=0\""
             << ",\"accepted_total\":" << acceptedTotal << ",\"faults\":" << faultCount
             << ",\"expected_dlc_faults\":" << expectedFaultCount << ",\"discarded_results\":" << discarded
-            << ",\"max_pending_host_bytes\":" << maxPending
-            << ",\"port_closed\":" << (!transport.isOpen() ? "true" : "false")
+            << ",\"max_pending_host_bytes\":" << maxPending << ",\"port_closed\":"
+            << (!transport.isOpen() && (!responderTransport || !responderTransport->isOpen()) ? "true"
+                                                                                              : "false")
             << ",\"journal_closed\":true,\"journal_error\":" << quote(recorder.error())
             << ",\"raw_jsonl\":" << quote(pathText(recorder.directory() / "raw.jsonl"))
             << ",\"measurements_csv\":" << quote(pathText(recorder.directory() / "measurements.csv"))
             << ",\"raw_bytes\":{\"usb_tx\":" << usbTx << ",\"usb_rx\":" << usbRx
             << ",\"bridge_reported_dlc_tx\":" << innerTx << ",\"bridge_reported_dlc_rx\":" << innerRx
-            << ",\"unassociated_dlc_rx\":" << lateRx << "},\n\"channels\":[";
+            << ",\"unassociated_dlc_rx\":" << lateRx << '}';
+        if (benchController) {
+            out << ",\"responder_port\":" << quote(config.responderPort)
+                << ",\"responder_identity\":" << (peerIdentity ? quote(peerIdentity->identity) : "null")
+                << ",\"responder_firmware\":" << (peerIdentity ? quote(peerIdentity->firmware) : "null")
+                << ",\"responder_protocol_version\":"
+                << (peerIdentity ? std::to_string(peerIdentity->protocolVersion) : "null")
+                << ",\"responder_read_policy_version\":"
+                << (peerIdentity ? std::to_string(peerIdentity->policyVersion) : "null")
+                << ",\"firmware_target\":\"bridge-bench + responder-bench\""
+                << ",\"responder_control_rx_bytes\":" << responderRx
+                << ",\"responder_control_tx_bytes\":" << responderTx;
+            out << ",\"driver_counters\":{\"source\":\"MCU_reported; software model when using test "
+                   "transport\",\"bridge\":";
+            driverJson(out, client.deviceDiagnostics(), 30);
+            out << ",\"responder\":";
+            driverJson(out, benchController->responderDiagnostics(), 38);
+            out << '}';
+        }
+        out << ",\n\"channels\":[";
         std::uint64_t acceptedObserved = 0;
         for (std::size_t i = 0; i < Channels.size(); ++i) {
             if (i)
@@ -343,13 +419,25 @@ struct Runner::Impl {
         }
         out << "],\"unperformed_hardware_steps\":[\"physical Nano identity/board/USB chip\","
                "\"physical reset button\",\"physical USB unplug/replug\",\"electrical DLC interface\",\"real "
-               "ECU\"]}\n";
+               "ECU\",\"two physical Nano signal exchange\",\"logic analyzer timing/levels/edges\"]}\n";
         out.flush();
         out.close();
     }
-    void finish(ExitCode result, std::string detail, Time now) {
+    void finish(ExitCode result, std::string detail, Time now, bool force = false) {
         if (phase == Phase::Done || finishing)
             return;
+        if (phase == Phase::Closing && !force)
+            return;
+        if (!force && benchController && benchController->responderInfo() && client.info()) {
+            code = result;
+            message = std::move(detail);
+            if (result != ExitCode::Success)
+                steps.push_back({name(phase), "FAIL", message, phaseAt, now});
+            session.stop(now);
+            phase = Phase::Closing;
+            phaseAt = now;
+            return;
+        }
         finishing = true;
         code = result;
         message = std::move(detail);
@@ -359,15 +447,22 @@ struct Runner::Impl {
             observedUntil = now;
         if (!recordingStarted && code != ExitCode::Arguments && code != ExitCode::Report)
             beginRecording();
-        session.stop(now);
-        client.disconnect(now);
+        if (phase != Phase::Closing)
+            session.stop(now);
+        if (benchController)
+            benchController->disconnect(now);
+        else
+            virtualClient->disconnect(now);
         recorder.stop();
         if ((!recordingFailure.empty() || !recorder.error().empty()) && code != ExitCode::Report) {
             code = ExitCode::Recording;
             message = recordingFailure.empty() ? recorder.error() : recordingFailure;
         }
         try {
-            if (!config.reportDirectory.empty())
+            if (code == ExitCode::Arguments) {
+                // Invalid arguments must not open devices or create/overwrite a
+                // report destination that has not passed the startup preflight.
+            } else if (!config.reportDirectory.empty())
                 writeReport(now);
             else if (code != ExitCode::Arguments)
                 throw std::runtime_error("empty report directory");
@@ -388,6 +483,17 @@ struct Runner::Impl {
         const auto delta = now - lastTick;
         lastTick = now;
         session.tick(now);
+        if (phase == Phase::Closing) {
+            if (benchController->quiescent()) {
+                pass(now,
+                     "Both devices stopped; responder physical TX completion acknowledged before USB close");
+                finish(code, message, now, true);
+            } else if (now - phaseAt >= 2 * config.bridgeSettings.acceptMs + 100) {
+                finish(code == ExitCode::Success ? ExitCode::Timeout : code,
+                       message + "; final responder quiescence not acknowledged", now, true);
+            }
+            return;
+        }
         maxPending = std::max(maxPending, session.pendingBytes());
         if (!recordingFailure.empty() || !recorder.error().empty()) {
             finish(ExitCode::Recording, "recording failed", now);
@@ -401,21 +507,30 @@ struct Runner::Impl {
             finish(ExitCode::Timeout, std::string(name(phase)) + " deadline", now);
             return;
         }
-        if ((client.state() == bridge::State::Faulted || session.state() == dlc::State::Faulted) &&
+        if ((client.state() == bridge::State::Faulted ||
+             (benchController && benchController->state() == bench::State::Faulted) ||
+             session.state() == dlc::State::Faulted) &&
             phase != Phase::Fault && phase != Phase::Aging) {
-            finish(client.error().find("watchdog") != std::string::npos ? ExitCode::Timeout
-                                                                        : ExitCode::Endpoint,
-                   "Unexpected bridge failure: " + client.error() + "; " + session.error(), now);
+            const auto failure = benchController ? benchController->error() : client.error();
+            finish(failure.find("watchdog") != std::string::npos ? ExitCode::Timeout : ExitCode::Endpoint,
+                   "Unexpected bridge failure: " + failure + "; " + session.error(), now);
             return;
         }
         switch (phase) {
         case Phase::Handshake:
-            if (client.state() != bridge::State::Ready)
+            if (client.state() != bridge::State::Ready ||
+                (benchController && benchController->state() != bench::State::Ready))
                 break;
             identity = client.info();
-            if (!identity || identity->identity != hd_bridge::Identity || identity->protocolVersion != 1 ||
-                identity->policyVersion != 1 || identity->backend != 1 || identity->physicalDlcEnabled ||
-                identity->firmware != "1.0.0" || identity->capabilities != 7 || innerTx) {
+            if (benchController)
+                peerIdentity = benchController->responderInfo();
+            if ((!benchController &&
+                 (!identity || identity->identity != hd_bridge::Identity || identity->protocolVersion != 1 ||
+                  identity->policyVersion != 1 || identity->backend != 1 || identity->physicalDlcEnabled ||
+                  identity->firmware != "1.0.0" || identity->capabilities != 7)) ||
+                (benchController && (!identity || !peerIdentity || !identity->benchIoEnabled ||
+                                     !peerIdentity->benchIoEnabled)) ||
+                innerTx) {
                 finish(ExitCode::Endpoint, "handshake identity/capability mismatch or unexpected DLC TX",
                        now);
                 break;
@@ -424,9 +539,15 @@ struct Runner::Impl {
                 finish(ExitCode::Recording, "cannot start recording", now);
                 break;
             }
-            pass(now, "Exact virtual-only identity verified; handshake performed no DLC operation");
+            pass(now, benchController
+                          ? "Both exact bench identities verified before any line operation"
+                          : "Exact virtual-only identity verified; handshake performed no DLC operation");
             enter(Phase::A, now);
-            client.onRaw = {}; // Session receives production timing facts and forwards raw events.
+            if (benchController)
+                benchController->onRaw = {};
+            else
+                virtualClient
+                    ->onRaw = {}; // Session receives production timing facts and forwards raw events.
             session.setScenario(dlc::Scenario::Baseline);
             session.setFaults({});
             session.start(now);
@@ -531,13 +652,19 @@ struct Runner::Impl {
 };
 
 Runner::Runner(Transport &transport, Config config, Recorder::WriteHook hook)
-    : impl_(std::make_unique<Impl>(transport, std::move(config), std::move(hook))) {}
+    : impl_(std::make_unique<Impl>(transport, nullptr, std::move(config), std::move(hook))) {}
+Runner::Runner(Transport &transport, Transport &responder, Config config, Recorder::WriteHook hook)
+    : impl_(std::make_unique<Impl>(transport, &responder, std::move(config), std::move(hook))) {}
 Runner::~Runner() {
     if (impl_->phase != Phase::Done && impl_->phase != Phase::Idle)
-        cancel(impl_->lastTick);
+        impl_->finish(ExitCode::Cancelled, "Runner destroyed before asynchronous completion", impl_->lastTick,
+                      true);
     impl_->session.onRaw = {};
     impl_->session.onSample = {};
-    impl_->client.onRaw = {};
+    if (impl_->benchController)
+        impl_->benchController->onRaw = {};
+    else
+        impl_->virtualClient->onRaw = {};
 }
 void Runner::start(Time now) {
     auto &value = *impl_;
@@ -547,7 +674,12 @@ void Runner::start(Time now) {
     if (value.config.reportDirectory.empty() || !value.config.observationMs || !value.config.phaseTimeoutMs ||
         !value.config.overallTimeoutMs ||
         (value.config.backend == Backend::Serial && value.config.port.empty()) ||
-        (value.config.backend == Backend::Native && !value.config.port.empty())) {
+        (value.config.backend == Backend::Native && !value.config.port.empty()) ||
+        (value.config.backend == Backend::TwoNanoBench &&
+         (!value.benchController || value.config.port.empty() ||
+          !bench::distinctPorts(value.config.port, value.config.responderPort))) ||
+        (value.config.backend != Backend::TwoNanoBench &&
+         (value.benchController || !value.config.responderPort.empty()))) {
         value.finish(ExitCode::Arguments,
                      "Explicit backend, report directory and serial-only explicit port required", now);
         return;
@@ -556,8 +688,7 @@ void Runner::start(Time now) {
         std::filesystem::create_directories(value.config.reportDirectory);
         // Detect a bad destination before endpoint operations and retire an old
         // PASS immediately: abrupt process termination must leave RUNNING.
-        std::ofstream probe(value.config.reportDirectory / "report.json",
-                            std::ios::binary | std::ios::trunc);
+        std::ofstream probe(value.config.reportDirectory / "report.json", std::ios::binary | std::ios::trunc);
         probe.exceptions(std::ios::badbit | std::ios::failbit);
         probe << "{\"format_version\":1,\"result\":\"RUNNING\",\"exit_code\":null,\"desktop_sha\":"
               << quote(value.config.desktopSha)
@@ -569,7 +700,10 @@ void Runner::start(Time now) {
         return;
     }
     value.enter(Phase::Handshake, now);
-    value.client.connect(now);
+    if (value.benchController)
+        value.benchController->connect(now);
+    else
+        value.virtualClient->connect(now);
 }
 void Runner::tick(Time now) {
     impl_->tick(now);
@@ -600,6 +734,9 @@ const dlc::Session &Runner::session() const {
 }
 const bridge::Client &Runner::client() const {
     return impl_->client;
+}
+const bench::Controller *Runner::benchController() const {
+    return impl_->benchController.get();
 }
 bool Runner::flushRecording(std::chrono::milliseconds timeout) {
     return !impl_->recordingStarted || impl_->recorder.waitUntilIdle(timeout);
