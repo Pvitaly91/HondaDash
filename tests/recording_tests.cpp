@@ -257,6 +257,61 @@ void bridgeTraceMetadata() {
     recorder.stop();
 }
 
+void channelPolicyAndIdle() {
+    TemporaryDirectory temp;
+    hd::RecordingMetadata metadata{"raw-a", 0};
+    metadata.formatVersion = 3;
+    metadata.schedulerPolicy = "bridge-slots-v1";
+    metadata.freshnessPolicy = "bridge-bounded-v1";
+    metadata.schedulerPolicyVersion = metadata.freshnessPolicyVersion = 1;
+    metadata.timingEstimateSource = "host_request_start_lower_bound";
+    metadata.measurementScope = "virtual_only";
+    metadata.requestedIntervals[0] = 800;
+    metadata.requestedIntervals[2] = 1600;
+    metadata.freshness.channels[0] = hd::FreshnessThresholds{1400, 4200};
+    metadata.freshness.channels[2] = hd::FreshnessThresholds{2100, 6300};
+    hd::Recorder recorder;
+    require(recorder.start(temp.path, metadata), "per-channel metadata start failed");
+    require(recorder.waitUntilIdle(std::chrono::seconds(5)), "startup did not become idle");
+    hd::Sample sample;
+    sample.time = 320;
+    sample.freshnessSince = 0;
+    sample.updatedMask = 5;
+    sample.values[0] = 0;
+    sample.values[2] = 61;
+    sample.qualities[0] = sample.qualities[2] = hd::Quality::Valid;
+    require(recorder.enqueueSample(sample), "policy first sample enqueue failed");
+    sample.time = 1400;
+    sample.updatedMask = 0;
+    require(recorder.enqueueSample(sample), "equality snapshot enqueue failed");
+    sample.time = 1401;
+    require(recorder.enqueueSample(sample), "past boundary snapshot enqueue failed");
+    sample.time = 2101;
+    sample.updatedMask = 1;
+    sample.freshnessSince = 500;
+    require(recorder.enqueueSample(sample), "already stale enqueue failed");
+    require(recorder.waitUntilIdle(std::chrono::seconds(5)), "writer did not flush accepted samples");
+    const auto raw = readFile(recorder.directory() / "raw.jsonl");
+    require(raw.find("\"scheduler_policy\":\"bridge-slots-v1\"") != std::string::npos &&
+            raw.find("\"freshness_policy_version\":1") != std::string::npos &&
+            raw.find("\"requested_intervals_ms\":{\"rpm\":800,\"speed\":0,\"coolant\":1600") != std::string::npos &&
+            raw.find("\"freshness_by_channel\":{\"rpm\":{\"stale_after_ms\":1400,\"hide_after_ms\":4200}") != std::string::npos &&
+            raw.find("\"freshness_boundary\":\"age_gt_threshold\"") != std::string::npos,
+            "reproducible per-channel policy metadata missing");
+    require(raw.find("\"quality\":\"Valid\",\"last_valid_ms\":0,\"age_ms\":1400") != std::string::npos &&
+            raw.find("\"quality\":\"Stale\",\"last_valid_ms\":0,\"age_ms\":1401") != std::string::npos &&
+            raw.find("\"quality\":\"Valid\",\"last_valid_ms\":0,\"age_ms\":1401") != std::string::npos &&
+            raw.find("\"value\":0,\"quality\":\"Stale\",\"last_valid_ms\":500,\"age_ms\":1601") != std::string::npos,
+            "recorded channel qualities diverge from model boundaries/lower bound");
+    recorder.stop();
+    metadata.formatVersion = 2;
+    require(!recorder.start(temp.path, metadata), "v2 silently accepted channel policy");
+    metadata = {"raw-a", 0};
+    metadata.formatVersion = 3;
+    metadata.freshness.channels[2] = hd::FreshnessThresholds{200, 100};
+    require(!recorder.start(temp.path, metadata), "invalid per-channel thresholds accepted");
+}
+
 void visibleFailures() {
     TemporaryDirectory temp;
     hd::Recorder recorder;
@@ -266,6 +321,7 @@ void visibleFailures() {
     require(recorder.start(notDirectory, {"demo", 1}), "async invalid path start should be accepted");
     recorder.stop();
     require(!recorder.active() && !recorder.error().empty(), "directory/open failure was not visible");
+    require(!recorder.waitUntilIdle(std::chrono::seconds(1)), "writer error reported as idle success");
     hd::Recorder failing(8, [] { return false; });
     require(failing.start(temp.path, {"demo", 1}), "write failure start failed");
     require(failing.enqueueRaw({1, 1, 1, "TX", {}, {1}}), "write failure enqueue failed");
@@ -294,6 +350,7 @@ void boundedQueue() {
         require(observed, "worker did not reach the test gate");
     }
     const auto second = recorder.enqueueRaw({2, 1, 2, "RX", {}, {2}});
+    const auto idleWhileBlocked = recorder.waitUntilIdle(std::chrono::milliseconds(0));
     const auto overflow = recorder.enqueueRaw({3, 1, 3, "RX", {}, {3}});
     {
         std::lock_guard lock(mutex);
@@ -301,6 +358,7 @@ void boundedQueue() {
         wake.notify_all();
     }
     recorder.stop();
+    require(!idleWhileBlocked, "in-flight writer reported idle while blocked");
     require(second && !overflow, "bounded queue did not reject overflowing record");
     require(!recorder.error().empty() && !recorder.active(), "queue overflow was not visible");
     const auto raw = readFile(recorder.directory() / "raw.jsonl");
@@ -314,6 +372,7 @@ int main() {
         outputAndLifecycle();
         partialFormatAndProvenance();
         bridgeTraceMetadata();
+        channelPolicyAndIdle();
         visibleFailures();
         boundedQueue();
         std::cout << "recording: v2/v3 CSV/JSONL, partial provenance/age, Unicode paths, lifecycle, failures and bounds passed\n";

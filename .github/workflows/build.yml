@@ -1,4 +1,4 @@
-name: Build and test M2b virtual bridge
+name: Build and test M2c polling and acceptance
 
 on:
   push:
@@ -64,6 +64,12 @@ jobs:
             build/windows/smoke*.json
             build/windows/smoke*.png
             build/windows/dashboard*.png
+            build/windows/timing-reports/
+            build/windows/acceptance-reports/
+            build/windows/acceptance-native-cli/
+            build/windows-simulation/timing-reports/
+            build/windows-simulation/acceptance-reports/
+            build/windows-simulation/acceptance-native-cli/
 
   linux:
     runs-on: ubuntu-22.04
@@ -115,6 +121,13 @@ jobs:
             build/linux-simulation/ctest.xml
             build/linux-simulation/smoke*.json
             build/linux-simulation/smoke*.png
+            build/linux/timing-reports/
+            build/linux/acceptance-reports/
+            build/linux/acceptance-native-cli/
+            build/linux/acceptance-pty-reports/
+            build/linux-simulation/timing-reports/
+            build/linux-simulation/acceptance-reports/
+            build/linux-simulation/acceptance-native-cli/
 
   firmware:
     runs-on: ubuntu-22.04

@@ -140,7 +140,7 @@ void HistoryChart::pushSample(const Sample& sample) {
         const std::size_t index = (starts_[channel] + counts_[channel]) % Capacity;
         // Plot continuity tolerates the slow ECT polling interval plus GUI
         // scheduling jitter; this never alters per-channel model freshness.
-        const Time gap = sample.source != "synthetic-demo-v1" && channel == channelIndex(Channel::Coolant) ? 1250 : 250;
+        const Time gap = gapLimits_[channel].value_or(sample.source != "synthetic-demo-v1" && channel == channelIndex(Channel::Coolant) ? 1250 : 250);
         samples_[channel][index] = Point{sample.time, sample.values[channel], sample.qualities[channel], gap};
         if (counts_[channel] < Capacity) ++counts_[channel]; else starts_[channel] = (starts_[channel] + 1) % Capacity;
     }
@@ -148,6 +148,7 @@ void HistoryChart::pushSample(const Sample& sample) {
 }
 void HistoryChart::setNow(Time now) { now_ = now; update(); }
 void HistoryChart::setChannel(Channel channel) { channel_ = channel; update(); }
+void HistoryChart::setGapLimits(std::array<std::optional<Time>, ChannelCount> limits) { gapLimits_ = limits; }
 void HistoryChart::clear() { starts_.fill(0); counts_.fill(0); update(); }
 void HistoryChart::paintEvent(QPaintEvent*) {
     QPainter p(this); p.setRenderHint(QPainter::Antialiasing); card(p, rect());

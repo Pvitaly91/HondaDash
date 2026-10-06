@@ -9,6 +9,9 @@ struct NativeOptions {
     Time usbDelayMs{};
     std::size_t fragmentSize{7};
 };
+struct NativeQueueMetrics {
+    std::size_t usbDeliveryBytes{}, outerRxBytes{}, outerTxBytes{}, dlcRxBytes{};
+};
 // This owns the exact C++11 endpoint compiled for AVR, not a desktop mock.
 class NativeTransport final : public Transport {
   public:
@@ -25,6 +28,7 @@ class NativeTransport final : public Transport {
     hd_bridge::BridgeEndpoint &endpoint() { return endpoint_; }
     void resetDevice(Time now);
     void setUsbDelay(Time value) { options_.usbDelayMs = value; }
+    const NativeQueueMetrics &queueMetrics() const { return queueMetrics_; }
     static constexpr std::size_t Capacity = 512;
 
   private:
@@ -38,6 +42,7 @@ class NativeTransport final : public Transport {
     TransportCallbacks callbacks_;
     std::deque<Delivery> deliveries_;
     std::size_t queuedBytes_{};
+    NativeQueueMetrics queueMetrics_;
     std::uint64_t generation_{};
     bool open_{};
 };

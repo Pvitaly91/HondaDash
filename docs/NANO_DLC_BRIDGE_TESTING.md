@@ -1,5 +1,12 @@
 # M2b — перевірки тестового мосту
 
+M2c додає до цього набору перевірок окрему політику
+[polling/freshness](POLLING_AND_FRESHNESS.md) та явний
+[acceptance runner](BRIDGE_ACCEPTANCE_CHECK.md). Console входить до Windows
+ZIP і перевіряється після розпакування з очищеним PATH. Native і Linux PTY
+виконують той самий Runner; жоден PASS не виконує hardware-чекліст нижче.
+Firmware, whitelist і200ms observation window не змінені.
+
 Усі дані simulation/reference-derived. Реальні Honda captures відсутні.
 Фізична Nano/USB, Windows COM end-to-end з платою, електричний DLC,
 реальний ECU та stack high-water на MCU: **NOT VERIFIED**.

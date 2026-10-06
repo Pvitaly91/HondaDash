@@ -1,4 +1,58 @@
-# Перевірки M0/M1, M2a та M2b
+# Перевірки M0/M1, M2a, M2b та M2c
+
+## M2c — фактично виконані перевірки, 6 жовтня 2026
+
+Baseline M2b `1644a7296febb5d190e117237d6c5c7ab069d0b6` до змін:
+Windows Release11/11 PASS (`build/windows/m2c-baseline.xml`). До редагування
+production коду також записано600000ms baseline після першого заповнення
+каналів: ECT597 Stale-подій/122385ms. Відтворюваний legacy baseline після
+змін збігається з усіма початковими timing/count/age полями.
+
+Нові CTest targets: `polling`, `acceptance`, `acceptance_native_cli`;
+Linux додатково `acceptance_pty`. Попередні targets не вилучено. Це кількість
+виконуваних тестових програм, а не assertions. `polling` містить61 перевірку;
+GUI з actual screenshots —103 checks у повній збірці та95 без SerialPort.
+Acceptance unit має42 assertions, Linux acceptance PTY —20; власні
+лічильники виводяться в LastTest.log і не є кількістю CTest targets.
+
+| Середовище | Результат |
+| --- | --- |
+| Windows x64, MSVC19.34.31948.0, Debug | CTest14/14 PASS; GUI103/103 |
+| Windows x64, Release | CTest14/14 PASS |
+| Windows Release без SerialPort | CTest13/13 PASS; native CLI PASS; GUI95/95 |
+| WSL Ubuntu24.04.3, GCC13.3.0, Release | CTest17/17 PASS, M1/M2b PTY та acceptance PTY |
+| Linux Release без SerialPort | CTest13/13 PASS; native CLI PASS; GUI95/95 |
+| Розпакований Windows ZIP, clean PATH | Native windows/offscreen=false; GUI103/103 при100% і150%; native acceptance PASS |
+| M1 та bridge-lab × atmega328/atmega328old | Windows AVR compilation PASS; M1 SRAM819, bridge SRAM860 |
+
+Qt/SerialPort6.8.3, CMake3.31.6; Linux Ninja1.11.1. Firmware CLI1.2.2,
+AVR Boards1.8.6, avr-g++7.3.0-atmel3.6.1-arduino7. Embedded source/version
+не змінено, Flash5736/8266 bytes відповідно. Жоден build не відкривав
+фізичний порт і не виконував upload.
+
+Логічні deadline-перевірки використовують керований час. `polling` зберігає
+`timing-reports/baseline-normal.json`, `after-normal.json` і однакові
+baseline/after сценарії jitter≤20ms+USB50ms, а також overload/USB600ms.
+After normal: RPM/TPS1.25Hz, ECT0.625Hz, разом3.125Hz; result201ms;
+Stale/hidden0. Jitter: разом3.03Hz, result264..280ms; Stale/hidden0.
+Ці model-time числа не є вимірюваннями фізичної Nano. Повна таблиця,
+межі й правила percentile: [POLLING_AND_FRESHNESS.md](POLLING_AND_FRESHNESS.md).
+
+`acceptance_native_cli` та `acceptance_pty` виконують10s нормального
+спостереження й повний A/B/fault/aging/recovery сценарій у реальному часі,
+приблизно20s на запуск. Є окремі negative cases identity/M1, outer CRC,
+inner checksum, missing/busy port, timeout, cancellation, disk/report error.
+Типовий real-time throughput близько3.1Hz, точні latency/interval distributions
+належать JSON конкретного запуску. Жодна точність OS wakeup не використана
+як логічна гарантія. [Acceptance contract](BRIDGE_ACCEPTANCE_CHECK.md).
+
+CI публікує timing/acceptance reports, journals, GUI screenshots, Windows ZIP
+і дві firmware artifacts. Факт наявності workflow не є результатом прогону;
+статус конкретного опублікованого SHA перевіряється окремо.
+Фізична Nano, USB-chip/board, reset/unplug, електричний DLC, ECU та physical
+stack high-water залишаються **NOT VERIFIED**.
+
+## Історичний M2b
 
 M2b додає `bridge_embedded`, `bridge`, Linux `bridge_pty` та assertions
 нового GUI-режиму. [Детальний чекліст і команди](NANO_DLC_BRIDGE_TESTING.md),

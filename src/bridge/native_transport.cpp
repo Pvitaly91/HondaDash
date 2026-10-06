@@ -17,6 +17,7 @@ void NativeTransport::resetDevice(Time now) {
 void NativeTransport::start(TransportCallbacks callbacks, Time now) {
     close();
     callbacks_ = std::move(callbacks);
+    queueMetrics_ = {};
     open_ = true;
     // Reopening host USB is not a hidden NEW_EXPERIMENT: the same endpoint and
     // pending virtual DLC bytes survive. Only explicit resetDevice/New clear it.
@@ -38,8 +39,11 @@ bool NativeTransport::send(std::span<const std::uint8_t> bytes, Time now) {
         callbacks_.raw("TX", bytes, now);
     if (generation != generation_ || !open_)
         return false;
-    for (auto byte : bytes)
+    for (auto byte : bytes) {
         endpoint_.receive(byte, deviceTime(now));
+        queueMetrics_.outerRxBytes = std::max(queueMetrics_.outerRxBytes, endpoint_.buffered());
+        queueMetrics_.outerTxBytes = std::max(queueMetrics_.outerTxBytes, endpoint_.available());
+    }
     if (callbacks_.sent)
         callbacks_.sent(now);
     return true;
@@ -49,6 +53,9 @@ void NativeTransport::tick(Time now) {
         return;
     const auto generation = generation_;
     endpoint_.tick(deviceTime(now));
+    queueMetrics_.outerTxBytes = std::max(queueMetrics_.outerTxBytes, endpoint_.available());
+    queueMetrics_.dlcRxBytes =
+        std::max(queueMetrics_.dlcRxBytes, static_cast<std::size_t>(endpoint_.pendingDlcRx()));
     std::array<std::uint8_t, 79> bytes{};
     // Bounded work even when the consumer has stopped progressing.
     for (unsigned i = 0; i < 16 && endpoint_.available(); ++i) {
@@ -60,6 +67,7 @@ void NativeTransport::tick(Time now) {
         }
         deliveries_.push_back({now + options_.usbDelayMs, {bytes.begin(), bytes.begin() + size}});
         queuedBytes_ += size;
+        queueMetrics_.usbDeliveryBytes = std::max(queueMetrics_.usbDeliveryBytes, queuedBytes_);
     }
     while (!deliveries_.empty() && deliveries_.front().due <= now) {
         auto delivery = std::move(deliveries_.front());

@@ -46,7 +46,7 @@ std::string metadataJson(const RecordingMetadata& metadata) {
     const auto wallTime = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
     out << "{\"kind\":\"metadata\",\"format_version\":" << metadata.formatVersion
-        << ",\"app_version\":\"0.4.0\",\"source\":\"simulation\",\"profile\":"
+        << ",\"app_version\":\"0.5.0\",\"source\":\"simulation\",\"profile\":"
         << jsonString(metadata.profile) << ",\"scenario\":"
         << jsonString(metadata.scenario) << ",\"seed\":" << metadata.seed
         << ",\"transport\":" << jsonString(metadata.transport) << ",\"endpoint\":" << jsonString(metadata.endpoint)
@@ -62,7 +62,30 @@ std::string metadataJson(const RecordingMetadata& metadata) {
             << ",\"live_enabled\":" << (metadata.liveEnabled ? "true" : "false")
             << ",\"transaction_id_origin\":\"host_only_not_ecu_wire\""
             << ",\"stale_after_ms\":" << metadata.freshness.staleMs
-            << ",\"hide_after_ms\":" << metadata.freshness.hideMs;
+            << ",\"hide_after_ms\":" << metadata.freshness.hideMs
+            << ",\"freshness_boundary\":\"age_gt_threshold\""
+            << ",\"freshness_by_channel\":{";
+        for (std::size_t i = 0; i < ChannelCount; ++i) {
+            if (i) out << ',';
+            const auto thresholds = metadata.freshness.effective(static_cast<Channel>(i));
+            out << jsonString(Names[i]) << ":{\"stale_after_ms\":" << thresholds.staleMs
+                << ",\"hide_after_ms\":" << thresholds.hideMs << '}';
+        }
+        out << '}';
+        if (!metadata.schedulerPolicy.empty() || !metadata.freshnessPolicy.empty()) {
+            out << ",\"scheduler_policy\":" << jsonString(metadata.schedulerPolicy)
+                << ",\"scheduler_policy_version\":" << metadata.schedulerPolicyVersion
+                << ",\"freshness_policy\":" << jsonString(metadata.freshnessPolicy)
+                << ",\"freshness_policy_version\":" << metadata.freshnessPolicyVersion
+                << ",\"timing_estimate_source\":" << jsonString(metadata.timingEstimateSource)
+                << ",\"measurement_scope\":" << jsonString(metadata.measurementScope)
+                << ",\"requested_intervals_ms\":{";
+            for (std::size_t i = 0; i < ChannelCount; ++i) {
+                if (i) out << ',';
+                out << jsonString(Names[i]) << ':' << metadata.requestedIntervals[i];
+            }
+            out << '}';
+        }
         if (!metadata.outerProtocol.empty()) {
             out << ",\"outer_protocol\":" << jsonString(metadata.outerProtocol)
                 << ",\"bridge_identity\":" << jsonString(metadata.bridgeIdentity)
@@ -189,13 +212,13 @@ struct Recorder::Impl {
     const std::size_t capacity;
     WriteHook beforeWrite;
     mutable std::mutex mutex;
-    std::condition_variable wake;
+    std::condition_variable wake, drained;
     std::deque<Record> queue;
     std::thread worker;
     std::filesystem::path directory;
     std::string error;
     std::uint32_t formatVersion{2};
-    bool accepting{}, stopping{}, ready{}, workerRunning{};
+    bool accepting{}, stopping{}, ready{}, workerRunning{}, inFlight{};
 
     void fail(std::string message, bool discard) {
         std::lock_guard lock(mutex);
@@ -204,6 +227,7 @@ struct Recorder::Impl {
         stopping = true;
         if (discard) queue.clear();
         wake.notify_all();
+        drained.notify_all();
     }
 
     bool enqueue(Record record) {
@@ -214,6 +238,7 @@ struct Recorder::Impl {
             accepting = false;
             stopping = true;
             wake.notify_all();
+            drained.notify_all();
             return false;
         }
         if (const auto* sample = std::get_if<Sample>(&record);
@@ -223,6 +248,7 @@ struct Recorder::Impl {
             accepting = false;
             stopping = true;
             wake.notify_all();
+            drained.notify_all();
             return false;
         }
         if (queue.size() >= capacity) {
@@ -230,6 +256,7 @@ struct Recorder::Impl {
             accepting = false;
             stopping = true;
             wake.notify_all();
+            drained.notify_all();
             return false;
         }
         queue.push_back(std::move(record));
@@ -278,6 +305,8 @@ struct Recorder::Impl {
                 std::lock_guard lock(mutex);
                 directory = target;
                 ready = true;
+                inFlight = false;
+                drained.notify_all();
             }
             Model state(metadata.freshness);
             std::optional<std::uint32_t> sampleSession;
@@ -290,6 +319,7 @@ struct Recorder::Impl {
                     if (queue.empty()) break;
                     record = std::move(queue.front());
                     queue.pop_front();
+                    inFlight = true;
                 }
                 if (beforeWrite && !beforeWrite()) throw std::runtime_error("injected write failure");
                 if (const auto* event = std::get_if<RawEvent>(&record)) {
@@ -311,6 +341,11 @@ struct Recorder::Impl {
                     } else csv << sampleCsv(sample) << '\n';
                     csv.flush();
                 }
+                {
+                    std::lock_guard lock(mutex);
+                    inFlight = false;
+                    drained.notify_all();
+                }
             }
             csv.flush();
             raw.flush();
@@ -324,6 +359,8 @@ struct Recorder::Impl {
         std::lock_guard lock(mutex);
         accepting = false;
         workerRunning = false;
+        inFlight = false;
+        drained.notify_all();
     }
 };
 
@@ -341,8 +378,15 @@ bool Recorder::start(std::filesystem::path directory, RecordingMetadata metadata
     impl_->error.clear();
     if ((metadata.formatVersion != 2 && metadata.formatVersion != 3) ||
         (metadata.formatVersion == 2 && (metadata.profile != "synthetic-demo-v1" ||
-                                        metadata.wireProtocol != "synthetic-demo-v1")) ||
-        metadata.freshness.hideMs < metadata.freshness.staleMs) {
+                                        metadata.wireProtocol != "synthetic-demo-v1" ||
+                                        !metadata.schedulerPolicy.empty() || !metadata.freshnessPolicy.empty() ||
+                                        !metadata.timingEstimateSource.empty() || !metadata.measurementScope.empty() ||
+                                        metadata.schedulerPolicyVersion || metadata.freshnessPolicyVersion ||
+                                        std::any_of(metadata.requestedIntervals.begin(), metadata.requestedIntervals.end(),
+                                                    [](Time value) { return value != 0; }) ||
+                                        std::any_of(metadata.freshness.channels.begin(), metadata.freshness.channels.end(),
+                                                    [](const auto& value) { return value.has_value(); }))) ||
+        !metadata.freshness.valid()) {
         impl_->error = "Непідтримувана версія або несумісні метадані журналу.";
         return false;
     }
@@ -357,6 +401,7 @@ bool Recorder::start(std::filesystem::path directory, RecordingMetadata metadata
     impl_->stopping = false;
     impl_->ready = false;
     impl_->workerRunning = true;
+    impl_->inFlight = true;
     try {
         impl_->worker = std::thread([this, directory = std::move(directory), metadata = std::move(metadata)]() mutable {
             impl_->run(std::move(directory), std::move(metadata));
@@ -364,6 +409,7 @@ bool Recorder::start(std::filesystem::path directory, RecordingMetadata metadata
     } catch (const std::exception& exception) {
         impl_->error = "Не вдалося почати запис: " + std::string(exception.what());
         impl_->accepting = impl_->workerRunning = false;
+        impl_->inFlight = false;
         return false;
     }
     return true;
@@ -377,6 +423,13 @@ void Recorder::stop() {
         impl_->wake.notify_all();
     }
     if (impl_->worker.joinable()) impl_->worker.join();
+}
+bool Recorder::waitUntilIdle(std::chrono::milliseconds timeout) {
+    std::unique_lock lock(impl_->mutex);
+    const auto settled = impl_->drained.wait_for(lock, timeout, [this] {
+        return (!impl_->inFlight && impl_->queue.empty()) || !impl_->error.empty() || !impl_->workerRunning;
+    });
+    return settled && impl_->error.empty() && impl_->queue.empty() && !impl_->inFlight;
 }
 bool Recorder::enqueueRaw(const RawEvent& event) { return impl_->enqueue(event); }
 bool Recorder::enqueueSample(const Sample& sample) { return impl_->enqueue(sample); }

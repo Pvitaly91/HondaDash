@@ -1,4 +1,5 @@
 #include "ui/main_window.hpp"
+#include "honda_dlc/polling.hpp"
 #include <QApplication>
 #include <QCheckBox>
 #include <QCloseEvent>
@@ -34,6 +35,7 @@
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
+#include <utility>
 
 namespace hd::ui {
 namespace {
@@ -92,7 +94,7 @@ MainWindow::MainWindow(bool managedTime, QWidget* parent) : QMainWindow(parent),
     serialTransport_ = std::make_unique<SerialTransport>([this] { return now(); });
 #endif
     injectedQualities_.fill(Quality::Valid);
-    setWindowTitle(QStringLiteral("HondaDash · M2b · virtual bridge laboratory"));
+    setWindowTitle(QStringLiteral("HondaDash · M2c · virtual bridge laboratory"));
     resize(1280, 720); setMinimumSize(980, 560);
     setStyleSheet(QStringLiteral(
         "QMainWindow,QWidget{background:#0c121d;color:#e8f0f8;font-family:'Segoe UI';font-size:11px;}"
@@ -109,7 +111,7 @@ MainWindow::MainWindow(bool managedTime, QWidget* parent) : QMainWindow(parent),
     auto* root = new QWidget;
     auto* layout = new QVBoxLayout(root); layout->setContentsMargins(12, 10, 12, 10); layout->setSpacing(8);
     auto* top = new QHBoxLayout;
-    auto* title = label(QStringLiteral("HONDA<span style='color:#51d3ba'>DASH</span>  <span style='font-size:10px;color:#91a5ba'>M2b · лабораторія мосту</span>"));
+    auto* title = label(QStringLiteral("HONDA<span style='color:#51d3ba'>DASH</span>  <span style='font-size:10px;color:#91a5ba'>M2c · лабораторія мосту</span>"));
     title->setTextFormat(Qt::RichText); title->setStyleSheet(QStringLiteral("font-size:19px;font-weight:bold;"));
     top->addWidget(title, 1);
     auto* fullscreen = new QPushButton(QStringLiteral("На весь екран · F11"));
@@ -279,6 +281,13 @@ MainWindow::MainWindow(bool managedTime, QWidget* parent) : QMainWindow(parent),
     auto* bridgeLayout = new QVBoxLayout(bridgeBox_); bridgeLayout->setContentsMargins(9, 17, 9, 8); bridgeLayout->setSpacing(6);
     auto* bridgeProfile = label(QStringLiteral("kerpz OBD1 · reference v1\nRPM / ECT / TPS · ECU не перевірено"));
     bridgeProfile->setToolTip(QStringLiteral("honda-dlc-kerpz-obd1-reference-v1 · hardware_verified=false · live_enabled=false")); bridgeLayout->addWidget(bridgeProfile);
+    bridgePolicy_ = label({}); bridgePolicy_->setObjectName(QStringLiteral("bridgePolicy"));
+    bridgePolicy_->setTextFormat(Qt::PlainText);
+    bridgePolicy_->setStyleSheet(QStringLiteral("color:#91a5ba;font-size:10px;")); bridgeLayout->addWidget(bridgePolicy_);
+    bridgeChannelDiagnostics_ = label({}); bridgeChannelDiagnostics_->setObjectName(QStringLiteral("bridgeChannelDiagnostics"));
+    bridgeChannelDiagnostics_->setTextFormat(Qt::PlainText);
+    bridgeChannelDiagnostics_->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    bridgeChannelDiagnostics_->setStyleSheet(QStringLiteral("color:#b7cbdd;font-size:10px;")); bridgeLayout->addWidget(bridgeChannelDiagnostics_);
     bridgeScenario_ = new QComboBox; bridgeScenario_->setObjectName(QStringLiteral("bridgeScenario"));
     bridgeScenario_->addItems({QStringLiteral("Набір A · 750 / 61 / 32"), QStringLiteral("Набір B · 1500 / 89 / 75")});
     bridgeLayout->addWidget(bridgeScenario_);
@@ -357,19 +366,30 @@ void MainWindow::rebuildBridge() {
     else
 #endif
         bridgeClient_ = std::make_unique<bridge::Client>(nativeBridge_, settings);
-    bridgeSession_ = std::make_unique<dlc::Session>(*bridgeClient_);
+    bridgeSession_ = std::make_unique<dlc::Session>(*bridgeClient_, dlc::bridgePollingSettings(), dlc::bridgeFreshness());
+    std::array<std::optional<Time>, ChannelCount> plotGaps{};
+    if (bridgeSelected()) for (const auto& field : dlc::fields())
+        plotGaps[channelIndex(field.channel)] = dlc::bridgeMaximumRequestInterval(field.channel) + dlc::BridgeResultBudgetMs;
+    chart_->setGapLimits(plotGaps);
     bridgeSession_->setScenario(static_cast<dlc::Scenario>(bridgeScenario_->currentIndex()));
     bridgeSession_->setFaults(bridgeFaults_);
     bridgeSession_->onSample = [this](const Sample& sample) {
         if (!bridgeSelected()) return;
         if (sample.updatedMask != AllChannelsMask && sample.request == bridgeDisplayedRequest_)
             bridgeInnerCheck_ = QStringLiteral("Міст і ПК: header / length / checksum OK; калібрування ECU не перевірено");
-        chart_->pushSample(sample); if (recorder_.active()) recorder_.enqueueSample(sample);
+        auto plotSample = sample;
+        for (std::size_t i = 0; i < ChannelCount; ++i)
+            if ((sample.updatedMask & (1u << i)) != 0) {
+                plotSample.qualities[i] = bridgeSession_->model().channels()[i].quality;
+                if (sample.request) bridgeLastUpdatedChannel_ = static_cast<Channel>(i);
+            }
+        chart_->pushSample(plotSample); if (recorder_.active()) recorder_.enqueueSample(sample);
     };
-    bridgeSession_->onRaw = [this](const RawEvent& event) { if (bridgeSelected() && recorder_.active()) recorder_.enqueueRaw(event); };
+    bridgeSession_->onRaw = [this](const RawEvent& event) { bridgeRaw(event); };
     bridgeClient_->onRaw = [this](const RawEvent& event) { bridgeRaw(event); };
     bridgeOuterTx_.clear(); bridgeOuterRx_.clear(); bridgeInnerTx_.clear(); bridgeInnerRx_.clear();
     bridgeInnerRead_.clear(); bridgeInnerFormula_.clear(); bridgeInnerCheck_.clear(); bridgeDisplayedRequest_ = 0;
+    bridgeLastUpdatedChannel_.reset();
 }
 void MainWindow::bridgeRaw(const RawEvent& event) {
     if (!bridgeSelected()) return;
@@ -390,6 +410,10 @@ void MainWindow::newBridgeExperiment() {
     if (!bridgeSelected() || !bridgeClient_->info()) return;
     chart_->clear(); bridgeInnerTx_.clear(); bridgeInnerRx_.clear();
     bridgeInnerRead_.clear(); bridgeInnerFormula_.clear(); bridgeInnerCheck_.clear(); bridgeDisplayedRequest_ = 0;
+    bridgeLastUpdatedChannel_.reset();
+    // Client uses one raw sink. Once Session owns the experiment, route its
+    // bridge events through Session metrics and then the same GUI/log sink.
+    bridgeClient_->onRaw = {};
     bridgeSession_->start(now()); refreshDashboard();
 }
 void MainWindow::applyBridgeFaults(dlc::Faults faults) {
@@ -503,6 +527,7 @@ void MainWindow::refreshDashboard() {
     const auto recordState = !error.isEmpty() ? QStringLiteral("ПОМИЛКА") : recorder_.active() ? QStringLiteral("ЗАПИС") : QStringLiteral("зупинено");
     statistics_->setText(QStringLiteral("%1 відп./с · Давність: %2 · Тайм-аути: %3 · Пошкоджені: %4 · Прийнято: %5 · Журнал: %6")
         .arg(stats.responseHz, 0, 'f', 1).arg(age).arg(stats.timeouts).arg(stats.corrupt).arg(stats.accepted).arg(recordState));
+    statistics_->setToolTip({});
     const bool bridgeDisconnected = bridgeClient_->state() == bridge::State::Disconnected;
     const bool stopped = bridge ? bridgeDisconnected : honda ? dlcSession_.state() == dlc::State::Stopped || dlcSession_.state() == dlc::State::Faulted : session_.state() == SessionState::Stopped || session_.state() == SessionState::Faulted;
     const bool usb = serialSelected() || bridgeSerialSelected();
@@ -573,16 +598,58 @@ void MainWindow::refreshBridgeDetails() {
     bridgeInnerHex_->setText(QStringLiteral("DLC · повідомлено мостом\nОстанній завершений result\nTX: %1\nRX: %2\nЧитання: %3\nПеревірка: %4\nФормула: %5")
         .arg(bridgeInnerTx_, bridgeInnerRx_, bridgeInnerRead_, bridgeInnerCheck_, bridgeInnerFormula_));
     bridgeInnerHex_->setToolTip(bridgeInnerFormula_);
-    const auto& timing = bridgeClient_->diagnostics();
-    bridgeTiming_->setText(QStringLiteral("Час пристрою · відносний\nTX %1 мс · RX %2 мс\nНайбільша пауза %3 мс\n%4\nЧас ПК і пристрою не синхронізовано.")
-        .arg(timing.txElapsedMs).arg(timing.rxElapsedMs).arg(timing.maxGapMs).arg(QString::fromStdString(timing.summary)));
-    bridgeTiming_->setToolTip(QStringLiteral("Свіжість відраховується консервативно від початку запиту на ПК. Поріг Stale — 1000 мс, приховування — 3000 мс. ECT може коротко ставати Stale між читаннями через перевірку кінця DLC-відповіді; фактичні частоти й давність показані внизу."));
-    for (auto* trace : {bridgeOuterHex_, bridgeInnerHex_, bridgeTiming_}) trace->setMinimumHeight(trace->heightForWidth(240));
     const auto& stats = bridgeSession_->stats();
+    const auto& metrics = bridgeSession_->metrics();
     const auto& channels = bridgeSession_->model().channels();
-    const auto age = [&](Channel channel) { const auto& reading = channels[channelIndex(channel)]; return reading.lastValid ? QString::number(now() - *reading.lastValid) + QStringLiteral(" мс") : QStringLiteral("—"); };
-    statistics_->setText(QStringLiteral("RPM %1 Гц / %2 · ECT %3 Гц / %4 · TPS %5 Гц / %6 · Прийнято %7 · Журнал: %8")
-        .arg(stats.channelHz[0], 0, 'f', 1).arg(age(Channel::Rpm)).arg(stats.channelHz[2], 0, 'f', 1).arg(age(Channel::Coolant)).arg(stats.channelHz[4], 0, 'f', 1).arg(age(Channel::Throttle)).arg(stats.accepted).arg(recorder_.active() ? QStringLiteral("ЗАПИС") : QStringLiteral("зупинено")));
+    const auto milliseconds = [](std::optional<Time> value) { return value ? QString::number(*value) + QStringLiteral(" мс") : QStringLiteral("—"); };
+    const auto age = [&](Channel channel) { const auto& reading = channels[channelIndex(channel)]; return milliseconds(reading.lastValid ? std::optional<Time>(now() - *reading.lastValid) : std::nullopt); };
+    const auto achieved = [&](Channel channel) { const auto index = channelIndex(channel); return metrics.channels[index].accepted >= 2 ? QString::number(stats.channelHz[index], 'f', 2) : QStringLiteral("—"); };
+    const auto requested = dlc::bridgeRequestedIntervals();
+    const auto distribution = [](const QString& name, const dlc::BoundedDistribution& values) {
+        const auto summary = values.summary();
+        const auto value = [](std::optional<Time> n) { return n ? QString::number(*n) : QStringLiteral("—"); };
+        return QStringLiteral("%1 · n=%2 / усього %3\nmin / median / p95 / max:\n%4 / %5 / %6 / %7 мс")
+            .arg(name).arg(summary.n).arg(summary.observations).arg(value(summary.min), value(summary.median), value(summary.p95), value(summary.max));
+    };
+    bridgePolicy_->setText(QStringLiteral("План: %1\nСвіжість: %2\nФакт: вікно до 10 с; «—» — мало даних.")
+        .arg(QString::fromUtf8(dlc::BridgeSchedulerPolicy), QString::fromUtf8(dlc::BridgeFreshnessPolicy)));
+    bridgePolicy_->setToolTip(QStringLiteral("Політика HondaDash для віртуального мосту. Застосовується на межі нового експерименту. Давність — від початку host-запиту, не час вимірювання фізичного датчика. На рівності deadline значення ще видиме; Stale/приховування — після перевищення порога. Анімація приладу не є новими вимірюваннями."));
+    QStringList diagnosticRows;
+    QStringList channelDistributions;
+    for (const auto channel : {Channel::Rpm, Channel::Coolant, Channel::Throttle}) {
+        const auto index = channelIndex(channel);
+        const auto threshold = bridgeSession_->model().freshness().effective(channel);
+        const auto name = channel == Channel::Rpm ? QStringLiteral("RPM") : channel == Channel::Coolant ? QStringLiteral("ECT") : QStringLiteral("TPS");
+        const auto& metric = metrics.channels[index];
+        const auto state = QString::fromUtf8(hd::qualityName(channels[index].quality));
+        diagnosticRows.append(QStringLiteral("%1 · %2 · факт %3 / план %4 Гц\nДавність %5 · Stale >%6 мс\nΔоновл. %7 · прихов. >%8 мс")
+            .arg(name, state, achieved(channel), QString::number(1000.0 / static_cast<double>(requested[index]), 'f', 2), age(channel))
+            .arg(threshold.staleMs).arg(milliseconds(metric.lastUpdateIntervalMs)).arg(threshold.hideMs));
+        channelDistributions.append(distribution(name + QStringLiteral(" · інтервали оновлень"), metric.updateIntervals));
+    }
+    bridgeChannelDiagnostics_->setText(diagnosticRows.join(QStringLiteral("\n\n")));
+    bridgeChannelDiagnostics_->setToolTip(channelDistributions.join(QStringLiteral("\n\n")) + QStringLiteral("\nОстанні ≤256 інтервалів; nearest-rank для median і p95. «—» означає n=0."));
+    const auto& timing = bridgeClient_->diagnostics();
+    QString acceptedTiming = QStringLiteral("Прийняте читання: ще немає даних.");
+    if (bridgeLastUpdatedChannel_) {
+        const auto& latest = metrics.channels[channelIndex(*bridgeLastUpdatedChannel_)];
+        const auto name = *bridgeLastUpdatedChannel_ == Channel::Rpm ? QStringLiteral("RPM") : *bridgeLastUpdatedChannel_ == Channel::Coolant ? QStringLiteral("ECT") : QStringLiteral("TPS");
+        acceptedTiming = QStringLiteral("Прийняте %1 · час ПК\nЗапит → result: %2\nПриймання → модель: %3\n(за годинником сесії, не CPU час)")
+            .arg(name, milliseconds(latest.lastRequestToResultMs), milliseconds(latest.lastModelUpdateDelayMs));
+    }
+    const auto reportedTiming = timing.operation ? QStringLiteral("Firmware · останній result #%1\nОперація TX + завершення: %2 мс\nTX %3 мс · до рішення %4 мс\nНайбільша пауза RX %5 мс")
+        .arg(timing.operation).arg(static_cast<unsigned>(timing.txElapsedMs) + timing.rxElapsedMs)
+        .arg(timing.txElapsedMs).arg(timing.rxElapsedMs).arg(timing.maxGapMs) : QStringLiteral("Firmware: result ще не отримано.");
+    bridgeTiming_->setText(acceptedTiming + QStringLiteral("\n\n") + reportedTiming +
+        QStringLiteral("\nObservation window читання: 200 мс\nЧас до valid DLC payload: не вимірюється.\nЧас ПК і пристрою не синхронізовано.\n\n") +
+        distribution(QStringLiteral("ПК · прийняті читання"), metrics.requestToResult) + QStringLiteral("\n\n") +
+        distribution(QStringLiteral("Firmware · завершені читання"), metrics.firmwareOperation) +
+        QStringLiteral("\nОстанні ≤256; nearest-rank.\n«—» — ще немає вибірок."));
+    bridgeTiming_->setToolTip(QStringLiteral("Firmware передає відносний час до terminal decision, який містить observation window. Час першої повної коректної відповіді протокол не передає. 0 мс до моделі означає той самий tick керованого годинника, не виміряний CPU час декодування.") + QStringLiteral("\n") + QString::fromStdString(timing.summary));
+    for (auto* trace : {bridgeOuterHex_, bridgeInnerHex_, bridgeTiming_, bridgePolicy_, bridgeChannelDiagnostics_}) trace->setMinimumHeight(trace->heightForWidth(240));
+    statistics_->setText(QStringLiteral("Σ %1 транз./с · RPM %2/%3 · ECT %4/%5 · TPS %6/%7 · %8")
+        .arg(stats.accepted >= 2 ? QString::number(stats.responseHz, 'f', 2) : QStringLiteral("—")).arg(achieved(Channel::Rpm) + QStringLiteral("Гц"), age(Channel::Rpm).remove(QLatin1Char(' ')), achieved(Channel::Coolant) + QStringLiteral("Гц"), age(Channel::Coolant).remove(QLatin1Char(' ')), achieved(Channel::Throttle) + QStringLiteral("Гц"), age(Channel::Throttle).remove(QLatin1Char(' ')), recorder_.active() ? QStringLiteral("ЗАПИС") : QStringLiteral("запис вимкн.")));
+    statistics_->setToolTip(QStringLiteral("Сумарні завершені read-транзакції та частота окремих каналів; обмежене вікно до 10 с. Кожне читання оновлює тільки один канал. Це програмні вимірювання віртуального backend."));
 }
 RecordingMetadata MainWindow::recordingMetadata() const {
     if (bridgeSelected()) {
@@ -592,6 +659,14 @@ RecordingMetadata MainWindow::recordingMetadata() const {
         metadata.fixtureId = metadata.scenario; metadata.transport = bridgeSerialSelected() ? "serial" : "in-memory-embedded-bridge";
         metadata.outerProtocol = "hondadash-dlc-bridge-lab-v1"; metadata.backend = "virtual"; metadata.physicalDlcEnabled = false;
         metadata.hardwareVerified = false; metadata.liveEnabled = false; metadata.firmware.clear();
+        metadata.freshness = bridgeSession_->model().freshness();
+        metadata.schedulerPolicy = dlc::BridgeSchedulerPolicy;
+        metadata.schedulerPolicyVersion = dlc::BridgeSchedulerVersion;
+        metadata.requestedIntervals = dlc::bridgeRequestedIntervals();
+        metadata.freshnessPolicy = dlc::BridgeFreshnessPolicy;
+        metadata.freshnessPolicyVersion = dlc::BridgeFreshnessVersion;
+        metadata.timingEstimateSource = "host_request_start_lower_bound; firmware_relative_terminal_durations";
+        metadata.measurementScope = bridgeSerialSelected() ? "serial_virtual_bridge; physical_device_unverified" : "native_virtual_bridge";
         metadata.endpoint = "unrecognized";
         if (bridgeClient_->info()) {
             const auto& info = *bridgeClient_->info();
@@ -675,6 +750,7 @@ QJsonObject MainWindow::smokeTest(const QString& screenshotPath) {
     for (const QChar character : QStringLiteral("HondaDash0123456789ЕМУЛЯЦІЯЇЄҐобхв")) readableGlyphs = readableGlyphs && metrics.inFont(character);
     check(QStringLiteral("font_supports_dashboard_text"), readableGlyphs);
     check(QStringLiteral("builtin_warning_always_visible"), warning_->text().contains(QStringLiteral("ЕМУЛЯЦІЯ — не підключено до автомобіля")));
+    check(QStringLiteral("M0_M1_original_freshness_policy_preserved"), session_.model().freshness().effective(Channel::Rpm).staleMs == 1000 && session_.model().freshness().effective(Channel::Coolant).hideMs == 3000);
 #ifdef HONDADASH_WITH_SERIAL
     source_->setCurrentIndex(1);
     check(QStringLiteral("usb_selection_requires_explicit_port_and_handshake"), session_.state() == SessionState::Stopped && !session_.deviceInfo() && !start_->isEnabled() && !scenario_->isEnabled() && deviceInfo_->text().contains(QStringLiteral("не розпізнано")));
@@ -766,6 +842,7 @@ QJsonObject MainWindow::smokeTest(const QString& screenshotPath) {
     check(QStringLiteral("GUI_session_callbacks_record_decoded_csv_and_raw_bytes"), recorder_.error().empty() && csvBytes.contains(",Valid") && csvBytes.count('\n') >= 3 && rawBytes.contains("\"kind\":\"TX\"") && rawBytes.contains("\"kind\":\"RX\"") && rawBytes.contains("\"kind\":\"stop\""));
     check(QStringLiteral("recording_identifies_transport_endpoint_and_firmware"), rawBytes.contains("\"transport\":\"in-memory\"") && rawBytes.contains("\"endpoint\":") && rawBytes.contains("\"firmware\":"));
     show(); source_->setCurrentIndex(source_->findData(2));
+    check(QStringLiteral("direct_offline_freshness_keeps_original_policy"), dlcSession_.model().freshness().effective(Channel::Coolant).staleMs == 1000 && dlcSession_.model().freshness().effective(Channel::Coolant).hideMs == 3000);
     check(QStringLiteral("dlc_source_is_offline_with_permanent_warning"), dlcSelected() && !serialSelected() && session_.state() == SessionState::Stopped && port_->isHidden() && warning_->text().contains(QStringLiteral("ЛАБОРАТОРНА ЕМУЛЯЦІЯ HONDA DLC — ECU НЕ ПІДКЛЮЧЕНО")));
     check(QStringLiteral("dlc_v3_recording_started"), startRecording(filePath(recordingParent + QStringLiteral("/Honda DLC"))));
     start_->click(); advance(100);
@@ -853,6 +930,31 @@ QJsonObject MainWindow::smokeTest(const QString& screenshotPath) {
     check(QStringLiteral("bridge_init_wait_does_not_claim_ecu_recognition"), bridgeSession_->stats().accepted == 0 && !tachometer_->reading().value && deviceInfo_->text().contains(QStringLiteral("Ініціалізація не розпізнає ECU")));
     advance(2600);
     check(QStringLiteral("bridge_embedded_full_path_decodes_fixture_A"), bridgeSession_->state() == dlc::State::Polling && valueIs(Channel::Rpm, 750) && valueIs(Channel::Coolant, 61) && valueIs(Channel::Throttle, 32) && deviceInfo_->text().contains(QStringLiteral("Отримано коректне DLC-читання")));
+    const auto bridgeMetadata = recordingMetadata();
+    bool sameBridgePolicy = bridgeMetadata.schedulerPolicy == dlc::BridgeSchedulerPolicy && bridgeMetadata.freshnessPolicy == dlc::BridgeFreshnessPolicy && bridgeMetadata.requestedIntervals == dlc::bridgeRequestedIntervals();
+    for (const auto channel : {Channel::Rpm, Channel::Coolant, Channel::Throttle}) {
+        const auto displayed = bridgeSession_->model().freshness().effective(channel);
+        const auto recorded = bridgeMetadata.freshness.effective(channel);
+        sameBridgePolicy = sameBridgePolicy && displayed.staleMs == recorded.staleMs && displayed.hideMs == recorded.hideMs &&
+            bridgeChannelDiagnostics_->text().contains(QStringLiteral("Stale >%1 мс").arg(displayed.staleMs)) && bridgeChannelDiagnostics_->text().contains(QStringLiteral("прихов. >%1 мс").arg(displayed.hideMs));
+    }
+    check(QStringLiteral("bridge_GUI_and_recording_share_explicit_channel_policy"), sameBridgePolicy && bridgePolicy_->text().contains(QString::fromUtf8(dlc::BridgeFreshnessPolicy)) && bridgePolicy_->text().contains(QString::fromUtf8(dlc::BridgeSchedulerPolicy)));
+    advance(16000);
+    bool steadyBridge = bridgeSession_->state() == dlc::State::Polling;
+    for (const auto channel : {Channel::Rpm, Channel::Coolant, Channel::Throttle}) {
+        const auto index = channelIndex(channel); const auto& metric = bridgeSession_->metrics().channels[index];
+        const auto requestedHz = 1000.0 / static_cast<double>(bridgeMetadata.requestedIntervals[index]);
+        steadyBridge = steadyBridge && metric.accepted > 5 && metric.staleEvents == 0 && metric.hiddenEvents == 0 &&
+            activeModel().channels()[index].quality == Quality::Valid && activeModel().current(channel, now()).has_value() &&
+            std::abs(bridgeSession_->stats().channelHz[index] - requestedHz) < .15;
+    }
+    check(QStringLiteral("bridge_normal_cadence_has_no_recurring_stale_or_hidden_values"), steadyBridge);
+    check(QStringLiteral("bridge_diagnostics_distinguish_rates_ages_and_unmeasured_timing"), bridgeChannelDiagnostics_->text().contains(QStringLiteral("факт")) && bridgeChannelDiagnostics_->text().contains(QStringLiteral("план")) && bridgeChannelDiagnostics_->text().contains(QStringLiteral("Δоновл.")) && bridgePolicy_->text().contains(QStringLiteral("до 10 с")) && statistics_->text().contains(QStringLiteral("транз./с")) && bridgeTiming_->text().contains(QStringLiteral("Запит → result:")) && bridgeTiming_->text().contains(QStringLiteral("Приймання → модель:")) && bridgeTiming_->text().contains(QStringLiteral("Observation window читання: 200 мс")) && bridgeTiming_->text().contains(QStringLiteral("valid DLC payload: не вимірюється")));
+    check(QStringLiteral("bridge_bounded_latency_distributions_have_real_samples_and_percentile_labels"), bridgeSession_->metrics().requestToResult.summary().n > 5 && bridgeSession_->metrics().firmwareOperation.summary().n > 5 && bridgeTiming_->text().contains(QStringLiteral("min / median / p95 / max")) && bridgeTiming_->text().contains(QStringLiteral("nearest-rank")) && bridgeChannelDiagnostics_->toolTip().contains(QStringLiteral("інтервали оновлень")));
+    QApplication::sendEvent(this, &fullscreenEvent);
+    const bool bridgeFullscreen = isFullScreen();
+    QApplication::sendEvent(this, &escapeEvent); settleControlLayout();
+    check(QStringLiteral("bridge_F11_Escape_preserve_policy_and_permanent_warning"), bridgeFullscreen && !isFullScreen() && bridgeSelected() && bridgePolicy_->text().contains(QString::fromUtf8(dlc::BridgeFreshnessPolicy)) && warning_->text().contains(QStringLiteral("ТЕСТОВИЙ МІСТ — ВІРТУАЛЬНИЙ ECU — ФІЗИЧНИЙ DLC ВИМКНЕНО")));
     bool bridgeUnknownChannels = true;
     for (const auto channel : {Channel::Speed, Channel::Intake, Channel::Map, Channel::Voltage}) {
         const auto& reading = cards_[channelIndex(channel)]->reading();
@@ -880,6 +982,7 @@ QJsonObject MainWindow::smokeTest(const QString& screenshotPath) {
     const auto bridgeAcceptedAtFault = bridgeSession_->stats().accepted;
     advance(1500);
     check(QStringLiteral("bridge_fault_preserves_old_values_as_stale_without_new_samples"), tachometer_->reading().quality == Quality::Stale && bridgeSession_->stats().accepted == bridgeAcceptedAtFault);
+    check(QStringLiteral("bridge_channel_diagnostics_show_textual_stale_and_growing_age"), bridgeChannelDiagnostics_->text().contains(QStringLiteral("RPM · Stale")) && bridgeChannelDiagnostics_->text().contains(QStringLiteral("Давність")) && bridgeTiming_->text().contains(QStringLiteral("не вимірюється")));
     advance(2200);
     check(QStringLiteral("bridge_fault_eventually_hides_old_value"), !tachometer_->reading().value);
     bridgeNewExperiment_->click(); advance(2600);
@@ -893,17 +996,25 @@ QJsonObject MainWindow::smokeTest(const QString& screenshotPath) {
     bridgeScenario_->setCurrentIndex(0); advance(2400);
     for (const QSize size : {QSize(1024, 600), QSize(1280, 720)}) {
         resize(size); settleControlLayout();
-        check(QStringLiteral("bridge_layout_%1x%2").arg(size.width()).arg(size.height()), centralWidget()->width() <= size.width() && centralWidget()->height() <= size.height() && tachometer_->width() >= 240 && tachometer_->height() >= 245 && chart_->height() >= 118 && controlPanel_->width() <= controlScroll_->viewport()->width());
+        check(QStringLiteral("bridge_layout_%1x%2").arg(size.width()).arg(size.height()), centralWidget()->width() <= size.width() && centralWidget()->height() <= size.height() && tachometer_->width() >= 240 && tachometer_->height() >= 245 && chart_->height() >= 118 && controlPanel_->width() <= controlScroll_->viewport()->width() && QFontMetrics(statistics_->font()).horizontalAdvance(statistics_->text()) <= statistics_->contentsRect().width());
         if (!screenshotPath.isEmpty()) {
             const QFileInfo screenshotInfo(screenshotPath);
             const auto path = screenshotInfo.dir().filePath(screenshotInfo.completeBaseName() + QStringLiteral("-bridge-%1x%2.png").arg(size.width()).arg(size.height()));
             bridgeScreenshots.append(path); check(QStringLiteral("bridge_screenshot_%1_saved").arg(size.width()), grab().save(path));
             if (size.width() == 1280) {
-                controlScroll_->verticalScrollBar()->setValue(controlScroll_->verticalScrollBar()->maximum()); settleControlLayout();
+                controlScroll_->verticalScrollBar()->setValue(bridgePolicy_->mapTo(controlPanel_, QPoint{}).y()); settleControlLayout();
+                const auto diagnosticsPath = screenshotInfo.dir().filePath(screenshotInfo.completeBaseName() + QStringLiteral("-bridge-diagnostics.png"));
+                bridgeScreenshots.append(diagnosticsPath);
+                check(QStringLiteral("bridge_channel_diagnostics_fit_and_screenshot_saved"), bridgeChannelDiagnostics_->height() >= bridgeChannelDiagnostics_->heightForWidth(bridgeChannelDiagnostics_->width()) && grab().save(diagnosticsPath));
+                controlScroll_->verticalScrollBar()->setValue(bridgeOuterHex_->mapTo(controlPanel_, QPoint{}).y()); settleControlLayout();
                 const auto tracePath = screenshotInfo.dir().filePath(screenshotInfo.completeBaseName() + QStringLiteral("-bridge-trace.png"));
                 bridgeScreenshots.append(tracePath);
                 check(QStringLiteral("bridge_trace_labels_fit_their_contents"), bridgeOuterHex_->height() >= bridgeOuterHex_->heightForWidth(bridgeOuterHex_->width()) && bridgeInnerHex_->height() >= bridgeInnerHex_->heightForWidth(bridgeInnerHex_->width()) && bridgeTiming_->height() >= bridgeTiming_->heightForWidth(bridgeTiming_->width()));
                 check(QStringLiteral("bridge_two_level_trace_screenshot_saved"), grab().save(tracePath));
+                controlScroll_->verticalScrollBar()->setValue(bridgeTiming_->mapTo(controlPanel_, QPoint{}).y()); settleControlLayout();
+                const auto timingPath = screenshotInfo.dir().filePath(screenshotInfo.completeBaseName() + QStringLiteral("-bridge-timing.png"));
+                bridgeScreenshots.append(timingPath);
+                check(QStringLiteral("bridge_latency_distribution_screenshot_saved"), grab().save(timingPath));
                 controlScroll_->verticalScrollBar()->setValue(0);
             }
         }
@@ -915,6 +1026,16 @@ QJsonObject MainWindow::smokeTest(const QString& screenshotPath) {
     const auto bridgeBytes = bridgeOpened ? bridgeRawFile.readAll() : QByteArray{};
     check(QStringLiteral("bridge_journal_preserves_outer_inner_faults_boundaries_and_partial_updates"), recorder_.error().empty() && bridgeBytes.contains("\"format_version\":3") && bridgeBytes.contains("\"source\":\"simulation\"") && bridgeBytes.contains("\"outer_protocol\":\"hondadash-dlc-bridge-lab-v1\"") && bridgeBytes.contains("\"backend\":\"virtual\"") && bridgeBytes.contains("\"physical_dlc_enabled\":false") && bridgeBytes.contains("\"kind\":\"usb_tx\"") && bridgeBytes.contains("\"kind\":\"usb_rx\"") && bridgeBytes.contains("\"kind\":\"bridge_dlc_rx\"") && bridgeBytes.contains("bridge_boundary") && bridgeBytes.contains("transaction_fault") && bridgeBytes.contains("\"updated_mask\":"));
     bridgeRawFile.close();
+    const auto bridgeJournalMetadata = QJsonDocument::fromJson(bridgeBytes.split('\n').value(0)).object();
+    const auto recordedThresholds = bridgeJournalMetadata.value(QStringLiteral("freshness_by_channel")).toObject();
+    const auto recordedIntervals = bridgeJournalMetadata.value(QStringLiteral("requested_intervals_ms")).toObject();
+    bool policyRoundtrip = bridgeJournalMetadata.value(QStringLiteral("scheduler_policy")).toString() == QString::fromUtf8(dlc::BridgeSchedulerPolicy) && bridgeJournalMetadata.value(QStringLiteral("freshness_policy")).toString() == QString::fromUtf8(dlc::BridgeFreshnessPolicy) && bridgeJournalMetadata.value(QStringLiteral("freshness_boundary")).toString() == QStringLiteral("age_gt_threshold");
+    for (const auto& entry : {std::pair{Channel::Rpm, QStringLiteral("rpm")}, std::pair{Channel::Coolant, QStringLiteral("coolant")}, std::pair{Channel::Throttle, QStringLiteral("throttle")}}) {
+        const auto expected = bridgeMetadata.freshness.effective(entry.first);
+        const auto recorded = recordedThresholds.value(entry.second).toObject();
+        policyRoundtrip = policyRoundtrip && recorded.value(QStringLiteral("stale_after_ms")).toInteger() == static_cast<qint64>(expected.staleMs) && recorded.value(QStringLiteral("hide_after_ms")).toInteger() == static_cast<qint64>(expected.hideMs) && recordedIntervals.value(entry.second).toInteger() == static_cast<qint64>(bridgeMetadata.requestedIntervals[channelIndex(entry.first)]);
+    }
+    check(QStringLiteral("bridge_saved_journal_identifies_displayed_freshness_and_scheduler"), policyRoundtrip);
     show(); start_->click(); advance(300);
     check(QStringLiteral("bridge_reconnect_requires_new_explicit_experiment_without_old_values"), bridgeClient_->state() == bridge::State::Ready && bridgeSession_->stats().accepted == 0 && !tachometer_->reading().value);
     bridgeNewExperiment_->click(); advance(2600);

@@ -3,6 +3,7 @@
 #include "application/session.hpp"
 #include "core/model.hpp"
 #include <cstddef>
+#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -28,6 +29,9 @@ struct RecordingMetadata {
     std::string bridgeIdentity, backend, outerProtocol;
     std::uint32_t bridgeVersion{}, readPolicyVersion{};
     bool physicalDlcEnabled{};
+    std::string schedulerPolicy, freshnessPolicy, timingEstimateSource, measurementScope;
+    std::uint32_t schedulerPolicyVersion{}, freshnessPolicyVersion{};
+    std::array<Time, ChannelCount> requestedIntervals{};
 };
 
 // Disk work runs on one bounded worker. A failed enqueue stops recording and
@@ -46,6 +50,8 @@ public:
     // to observe directory/open errors without blocking its event loop.
     bool start(std::filesystem::path directory, RecordingMetadata metadata);
     void stop(); // drains accepted records, flushes both files, and joins
+    // Bounded test/console synchronization only; never call from a GUI tick.
+    bool waitUntilIdle(std::chrono::milliseconds timeout);
     bool enqueueRaw(const RawEvent& event);
     bool enqueueSample(const Sample& sample);
     std::string status() const;

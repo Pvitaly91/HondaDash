@@ -12,7 +12,7 @@
 int main(int argc, char* argv[]) {
     QApplication application(argc, argv);
     QApplication::setApplicationName(QStringLiteral("HondaDash"));
-    QApplication::setApplicationVersion(QStringLiteral("0.4.0"));
+    QApplication::setApplicationVersion(QStringLiteral("0.5.0"));
 #ifdef _WIN32
     // Windows' offscreen platform may have no system font discovery. Load the
     // user's already installed font for test rendering; no font is redistributed.
@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
     }
 #endif
     QCommandLineParser parser;
-    parser.setApplicationDescription(QStringLiteral("HondaDash M2b · synthetic M0/M1, Honda DLC offline та віртуальний міст"));
+    parser.setApplicationDescription(QStringLiteral("HondaDash M2c · synthetic M0/M1, Honda DLC offline та віртуальний міст"));
     parser.addHelpOption(); parser.addVersionOption();
     parser.addOption({QStringLiteral("smoke-test"), QStringLiteral("Перевірити справжні віджети з керованим часом та завершитися.")});
     parser.addOption({QStringLiteral("report"), QStringLiteral("Записати JSON-звіт smoke test."), QStringLiteral("path")});

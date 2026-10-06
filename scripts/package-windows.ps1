@@ -32,6 +32,9 @@ $clean = Join-Path $outputRoot "unpacked-$runId"
 $reports = Join-Path $outputRoot 'reports'
 New-Item -ItemType Directory -Path $stage, $clean, $reports -Force | Out-Null
 Copy-Item -LiteralPath $builtExecutable -Destination (Join-Path $stage 'HondaDash.exe')
+$builtCheck = Join-Path $buildRoot "$Configuration/HondaDashBridgeCheck.exe"
+if (-not (Test-Path -LiteralPath $builtCheck)) { throw "Build bridge acceptance console first: $builtCheck" }
+Copy-Item -LiteralPath $builtCheck -Destination (Join-Path $stage 'HondaDashBridgeCheck.exe')
 $vsRoot = $null
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
 if (Test-Path -LiteralPath $vswhere) {
@@ -96,7 +99,7 @@ $runtimeStatement = if ($missingRuntime.Count -eq 0) {
     'Перед запуском потрібен Microsoft Visual C++ Redistributable 2015–2022 x64 (версія не старіша за використаний MSVC 2022). Відсутні app-local DLL: ' + ($missingRuntime -join ', ') + '. Інсталятор vc_redist.x64.exe, якщо доданий windeployqt, треба встановити окремо.'
 }
 @"
-HondaDash M2b — запуск під Windows x64
+HondaDash M2c — запуск під Windows x64
 
 M1: вбудована емуляція або синтетична Nano через USB.
 M2a: окремий Honda DLC reference-профіль, тільки програмний відповідач.
@@ -137,6 +140,12 @@ nano_dlc_bridge_lab firmware та явно вибраного порту; Nano M
 .\HondaDash.exe --smoke-test --report smoke.json --screenshot dashboard.png
 Успіх підтверджує report із passed=true і код завершення 0.
 
+Явна acceptance-перевірка virtual bridge, приблизно 20 секунд:
+.\HondaDashBridgeCheck.exe --backend native --report acceptance-native
+USB запускається лише з конкретним портом за інструкцією BRIDGE_ACCEPTANCE_CHECK.md.
+Цикл bridge 320 мс: RPM/TPS по 1,25 Гц, ECT 0,625 Гц. Stale/hide:
+RPM/TPS 1400/4200 мс, ECT 2100/6300 мс. Деталі: POLLING_AND_FRESHNESS.md.
+
 Qt 6.8.3 використано як динамічні бібліотеки. Ліцензії та copyright:
 THIRD_PARTY_NOTICES.md і папка licenses. Ліцензію HondaDash власник
 репозиторію поки не обрав.
@@ -144,7 +153,7 @@ THIRD_PARTY_NOTICES.md і папка licenses. Ліцензію HondaDash вла
 Copy-Item -LiteralPath (Join-Path $repository 'docs/THIRD_PARTY_NOTICES.md') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $repository 'docs/NANO_USB_TESTING.md') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $repository 'docs/SYNTHETIC_DEVICE_EXTENSION.md') -Destination $stage
-foreach ($document in @('HONDA_DLC_EVIDENCE.md', 'HONDA_DLC_PROTOCOL.md', 'HONDA_DLC_REFERENCE_PROFILE.md', 'HONDA_DLC_OFFLINE_TESTING.md', 'NANO_DLC_BRIDGE_PROTOCOL.md', 'NANO_DLC_BRIDGE_ARCHITECTURE.md', 'NANO_DLC_BRIDGE_TESTING.md')) {
+foreach ($document in @('HONDA_DLC_EVIDENCE.md', 'HONDA_DLC_PROTOCOL.md', 'HONDA_DLC_REFERENCE_PROFILE.md', 'HONDA_DLC_OFFLINE_TESTING.md', 'NANO_DLC_BRIDGE_PROTOCOL.md', 'NANO_DLC_BRIDGE_ARCHITECTURE.md', 'NANO_DLC_BRIDGE_TESTING.md', 'POLLING_AND_FRESHNESS.md', 'BRIDGE_ACCEPTANCE_CHECK.md')) {
     Copy-Item -LiteralPath (Join-Path $repository "docs/$document") -Destination $stage
 }
 $licenses = Join-Path $repository 'docs/licenses'
@@ -184,6 +193,13 @@ try {
     $scaled = Get-Content -LiteralPath $scaleReport -Raw | ConvertFrom-Json
     if ($scaled.passed -ne $true -or $scaled.platform -ne 'windows' -or $scaled.offscreen -ne $false) { throw '150% package smoke failed.' }
     if (-not (Test-Path -LiteralPath $scaleScreenshot)) { throw '150% package screenshot missing.' }
+    $acceptanceDirectory = Join-Path $reports 'package-acceptance-native'
+    $checkArguments = @('--backend', 'native', '--report', "`"$acceptanceDirectory`"")
+    $checkProcess = Start-Process -FilePath (Join-Path $clean 'HondaDashBridgeCheck.exe') -ArgumentList $checkArguments -WorkingDirectory $clean -WindowStyle Hidden -PassThru
+    if (-not $checkProcess.WaitForExit(60000)) { $checkProcess.Kill(); throw 'Extracted package acceptance timed out.' }
+    if ($checkProcess.ExitCode -ne 0) { throw "Extracted package acceptance failed with exit code $($checkProcess.ExitCode)." }
+    $acceptance = Get-Content -LiteralPath (Join-Path $acceptanceDirectory 'report.json') -Raw | ConvertFrom-Json
+    if ($acceptance.result -ne 'PASS' -or $acceptance.exit_code -ne 0 -or $acceptance.port_closed -ne $true) { throw 'Extracted package acceptance report did not indicate PASS and closed port.' }
 } finally {
     foreach ($name in $environmentNames) { [Environment]::SetEnvironmentVariable($name, $savedEnvironment[$name], 'Process') }
 }

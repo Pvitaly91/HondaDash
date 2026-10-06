@@ -30,9 +30,17 @@ struct ChannelInfo {
 };
 const ChannelInfo& channelInfo(Channel channel);
 
+struct FreshnessThresholds {
+    Time staleMs{1000};
+    Time hideMs{3000};
+};
+
 struct FreshnessSettings {
     Time staleMs{1000};
     Time hideMs{3000};
+    std::array<std::optional<FreshnessThresholds>, ChannelCount> channels{};
+    FreshnessThresholds effective(Channel channel) const;
+    bool valid() const;
 };
 
 struct Measurement {
@@ -67,6 +75,7 @@ public:
     void refresh(Time now);
     void reset();
     const std::array<Measurement, ChannelCount>& channels() const { return channels_; }
+    const FreshnessSettings& freshness() const { return settings_; }
     std::optional<double> current(Channel channel, Time now) const;
 
 private:

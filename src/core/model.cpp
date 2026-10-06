@@ -31,8 +31,19 @@ const char* qualityName(Quality quality) {
     return "Invalid";
 }
 
+FreshnessThresholds FreshnessSettings::effective(Channel channel) const {
+    return channels.at(channelIndex(channel)).value_or(FreshnessThresholds{staleMs, hideMs});
+}
+
+bool FreshnessSettings::valid() const {
+    if (hideMs < staleMs) return false;
+    return std::all_of(channels.begin(), channels.end(), [](const auto& value) {
+        return !value || value->hideMs >= value->staleMs;
+    });
+}
+
 Model::Model(FreshnessSettings settings) : settings_(settings) {
-    if (settings_.hideMs < settings_.staleMs)
+    if (!settings_.valid())
         throw std::invalid_argument("hideMs must be >= staleMs");
 }
 
@@ -51,7 +62,7 @@ void Model::apply(const Sample& sample) {
             measurement.value = sample.values[i];
             measurement.quality = Quality::Valid;
             measurement.lastValid = std::min(sample.time, sample.freshnessSince.value_or(sample.time));
-            if (age(sample.time, *measurement.lastValid) > settings_.staleMs)
+            if (age(sample.time, *measurement.lastValid) > settings_.effective(static_cast<Channel>(i)).staleMs)
                 measurement.quality = Quality::Stale;
         } else {
             measurement.value.reset();
@@ -63,10 +74,11 @@ void Model::apply(const Sample& sample) {
 }
 
 void Model::refresh(Time now) {
-    for (auto& measurement : channels_) {
+    for (std::size_t i = 0; i < channels_.size(); ++i) {
+        auto& measurement = channels_[i];
         if ((measurement.quality == Quality::Valid || measurement.quality == Quality::Stale) &&
             measurement.lastValid)
-            measurement.quality = age(now, *measurement.lastValid) > settings_.staleMs
+            measurement.quality = age(now, *measurement.lastValid) > settings_.effective(static_cast<Channel>(i)).staleMs
                 ? Quality::Stale : Quality::Valid;
     }
 }
@@ -74,7 +86,7 @@ void Model::refresh(Time now) {
 std::optional<double> Model::current(Channel channel, Time now) const {
     const auto& measurement = channels_.at(channelIndex(channel));
     if ((measurement.quality != Quality::Valid && measurement.quality != Quality::Stale) ||
-        !measurement.lastValid || age(now, *measurement.lastValid) > settings_.hideMs)
+        !measurement.lastValid || age(now, *measurement.lastValid) > settings_.effective(channel).hideMs)
         return std::nullopt;
     return measurement.value;
 }

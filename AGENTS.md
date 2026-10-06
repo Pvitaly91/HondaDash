@@ -1,5 +1,14 @@
 # HondaDash — правила проєкту
 
+M2c bridge policy: cycle320ms RPM/TPS/ECT/RPM/TPS, desired800/800/1600ms;
+stale/hide RPM/TPS1400/4200ms, ECT2100/6300ms. Policy фіксована для сесії,
+GUI і Recorder використовують `Model::freshness()`. Stale/hide лише при
+age > threshold; Sample.time — host receipt, freshnessSince — host request
+start lower bound. Native і serial acceptance використовують один Runner;
+serial лише з явним портом та strict identity до лабораторних NEW/CONFIG.
+Не змінювати200ms observation window заради частоти. Документація:
+`docs/POLLING_AND_FRESHNESS.md`, `docs/BRIDGE_ACCEPTANCE_CHECK.md`.
+
 HondaDash — окремий C++20/Qt Widgets проєкт. M1 використовує тільки
 синтетичний профіль `synthetic-demo-v1`: вбудований endpoint або Nano USB.
 Фізичний USB не означає вимірювання автомобіля; hardware status окремий.

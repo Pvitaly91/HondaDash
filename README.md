@@ -1,4 +1,4 @@
-# HondaDash — M2b virtual bridge
+# HondaDash — M2c polling, freshness та bridge acceptance
 
 Незалежна настільна панель параметрів двигуна: C++20, Qt 6 Widgets,
 власні прилади й графік через QPainter. Вбудована емуляція працює без
@@ -58,8 +58,28 @@ virtual bridge через USB. Жоден Honda-шлях не надсилає D
 Постійне позначення: **ТЕСТОВИЙ МІСТ — ВІРТУАЛЬНИЙ ECU — ФІЗИЧНИЙ DLC ВИМКНЕНО**.
 Nano не має фізичного DLC backend, GPIO init або D12. DLC deadline контролює
 embedded engine, USB watchdog — ПК. Для виявлення trailing bytes engine
-спостерігає повне 200ms вікно: сумарно приблизно до5 читань/с, GUI показує
-фактичні частоти. Журнал v3 зберігає host receipt time й консервативну давність.
+спостерігає повне 200ms вікно. M2c задає цикл 320ms RPM→TPS→ECT→RPM→TPS:
+цільові RPM/TPS по1,25Hz, ECT0,625Hz, разом3,125Hz. GUI окремо показує
+досягнуті частоти, консервативний вік та статистику затримок. Журнал v3
+зберігає host receipt time, request-start lower bound і незмінну політику сесії.
+
+Stale/hide для bridge: RPM/TPS1400/4200ms, ECT2100/6300ms. Пороги виведено
+з максимального проміжку між запитами, бюджету відповіді та запасу scheduler;
+перевантаження не збільшує їх автоматично. M0/M1/M2a зберігають1000/3000ms.
+Обґрунтування й десятихвилинний baseline/after: [polling/freshness](docs/POLLING_AND_FRESHNESS.md).
+
+Явний acceptance runner використовує production Session/Client/Transport,
+Model/Recorder та той самий embedded core. GUI не запускає його автоматично:
+
+```powershell
+.\HondaDashBridgeCheck.exe --backend native --report acceptance-native
+.\HondaDashBridgeCheck.exe --backend serial --port COM7 --report acceptance-COM7
+```
+
+`COM7` — приклад: підставте свій конкретний порт лише для свідомої лабораторної
+перевірки. Runner перевіряє identity перед NEW/CONFIG, виконує A/B, fault,
+старіння та явне recovery. [Команди, exit codes і межі доказів](docs/BRIDGE_ACCEPTANCE_CHECK.md).
+Serial/PTY PASS не підтверджує фізичну Nano або DLC.
 
 [USB-протокол](docs/NANO_DLC_BRIDGE_PROTOCOL.md),
 [архітектура і clocks](docs/NANO_DLC_BRIDGE_ARCHITECTURE.md),

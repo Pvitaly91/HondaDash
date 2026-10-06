@@ -45,6 +45,21 @@ ID оболонки не вставляється в ECU response. M1 firmware �
 [Контракт і межі](NANO_DLC_BRIDGE_PROTOCOL.md),
 [ручний PC/Nano чекліст](NANO_DLC_BRIDGE_TESTING.md).
 
+## M2c — коректні polling/freshness і явна acceptance-перевірка
+
+Bridge отримав окремий обмежений цикл опитування, per-channel політику
+свіжості, довше вікно вимірювання частот і статистику latency. Причину
+регулярного Stale ECT у M2b відтворено на production шляху протягом десяти
+модельних хвилин; baseline/after зберігаються як машинні звіти.
+`HondaDashBridgeCheck` явно перевіряє native або конкретний serial endpoint,
+набори A/B, контрольований fault, старіння, drain та явний новий experiment.
+GUI не запускає acceptance автоматично. Firmware/protocol/200ms guard
+залишаються M2b. Деталі: [polling](POLLING_AND_FRESHNESS.md),
+[acceptance](BRIDGE_ACCEPTANCE_CHECK.md).
+
+Фізичний USB/Nano, reset/unplug і електричний DLC: **NOT VERIFIED**.
+M2c не є дозволом розпочинати M3 або надсилати фізичні DLC-команди.
+
 ## M3 — електричний інтерфейс
 
 Розробити й перевірити physical adapter: рівні напруг, захист, живлення,

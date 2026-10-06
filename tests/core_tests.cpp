@@ -420,11 +420,60 @@ void emulatorPath() {
 }
 }
 
+void channelFreshnessPolicy() {
+    hd::FreshnessSettings settings;
+    settings.channels[hd::channelIndex(hd::Channel::Rpm)] = hd::FreshnessThresholds{1400, 4200};
+    settings.channels[hd::channelIndex(hd::Channel::Coolant)] = hd::FreshnessThresholds{2100, 6300};
+    hd::Model model(settings);
+    CHECK(model.freshness().effective(hd::Channel::Speed).staleMs == 1000);
+    CHECK(model.freshness().effective(hd::Channel::Coolant).hideMs == 6300);
+    hd::Sample sample;
+    sample.time = 320;
+    sample.freshnessSince = 0;
+    sample.updatedMask = 5;
+    sample.values[0] = 0;
+    sample.values[2] = 61;
+    sample.qualities[0] = sample.qualities[2] = hd::Quality::Valid;
+    model.apply(sample);
+    model.refresh(1400);
+    CHECK(model.channels()[0].quality == hd::Quality::Valid);
+    model.refresh(1401);
+    CHECK(model.channels()[0].quality == hd::Quality::Stale);
+    CHECK(model.channels()[2].quality == hd::Quality::Valid);
+    model.refresh(2100);
+    CHECK(model.channels()[2].quality == hd::Quality::Valid);
+    model.refresh(2101);
+    CHECK(model.channels()[2].quality == hd::Quality::Stale);
+    CHECK(model.current(hd::Channel::Rpm, 4200) == 0.0);
+    CHECK(!model.current(hd::Channel::Rpm, 4201));
+    CHECK(model.current(hd::Channel::Coolant, 6300) == 61.0);
+    CHECK(!model.current(hd::Channel::Coolant, 6301));
+    sample.time = 3000;
+    sample.freshnessSince = 500;
+    sample.updatedMask = 1;
+    model.apply(sample);
+    CHECK(model.channels()[0].quality == hd::Quality::Stale);
+    CHECK(model.channels()[0].lastValid == 500);
+    CHECK(model.channels()[2].lastValid == 0);
+    sample.freshnessSince = 4000;
+    model.apply(sample);
+    CHECK(model.channels()[0].lastValid == 3000);
+    CHECK(model.channels()[0].quality == hd::Quality::Valid);
+    settings.channels[0] = hd::FreshnessThresholds{2, 1};
+    CHECK(!settings.valid());
+    bool rejected = false;
+    try { hd::Model invalid(settings); } catch (const std::invalid_argument&) { rejected = true; }
+    CHECK(rejected);
+    CHECK(hd::FreshnessSettings{}.valid());
+    hd::Model legacy({1000, 3000});
+    CHECK(legacy.freshness().effective(hd::Channel::Rpm).staleMs == 1000);
+}
+
 int main() {
     struct Test { const char* name; void (*run)(); };
     const std::array tests{Test{"golden/scales", goldenAndScaling}, Test{"stream/recovery/bounds", streamingAndRecovery},
         Test{"freshness", freshness}, Test{"bridge conservative freshness", bridgeFreshness},
-        Test{"partial updates/domains", partialUpdatesAndDomains},
+        Test{"partial updates/domains", partialUpdatesAndDomains}, Test{"channel freshness policy/boundaries", channelFreshnessPolicy},
         Test{"emulator/byte-path/determinism", emulatorPath}};
     for (const auto& test : tests) {
         try {

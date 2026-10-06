@@ -71,9 +71,23 @@ DIAGNOSTICS36 окремо повертає embedded counters; GUI не опит
 яка не вимагає clock sync. Model використовує min(receipt,lower bound) для
 lastValid/age; результат може одразу бути Stale. Після1200ms результат не
 оновлює модель взагалі. Затримка USB з'їдає свіжість, а не подовжує її.
-Default stale1000ms/hide3000ms збережено: ECT при scheduler1Hz і observation
-window може коротко бути Stale навіть без дефекту. Це видима давність,
-не помилка checksum; графік не дублює старий ECT під часовою міткою RPM.
+M2c вводить opt-in bridge scheduler320ms RPM→TPS→ECT→RPM→TPS. Максимальний
+плановий request gap960ms для RPM/TPS та1600ms для ECT разом із бюджетом
+result320ms і reserve100ms дає округлені stale1400/2100ms; hide4200/6300ms.
+Політика незмінна протягом сесії, перевантаження не підвищує TTL. M0/M1/M2a
+залишають1000/3000ms. GUI/Recorder отримують ту саму `Model::freshness()`;
+v3 metadata додає scheduler/freshness policy/version, requested intervals,
+`freshness_by_channel` і boundary `age_gt_threshold` без зміни CSV67 columns.
+На точній рівності stale/hide значення ще Valid/видиме; threshold+1 змінює стан.
+[Вимірювання і derivation](POLLING_AND_FRESHNESS.md) відтворюють початкові
+ECT Stale597 разів/10хв до виправлення. Графік не дублює старий ECT під часом RPM.
+
+`hondadash_acceptance` — стандартний C++20 Runner над production компонентами.
+Console `HondaDashBridgeCheck` використовує QtCore для Unicode CLI та event loop;
+SerialPort додається лише транспортом. GUI-off/Serial-off core build не потребує Qt,
+console можна явно ввімкнути `HONDADASH_BUILD_BRIDGE_CHECK=ON` із QtCore.
+Acceptance не запускається при звичайному відкритті GUI або порту.
+Деталі та exit codes: [BRIDGE_ACCEPTANCE_CHECK.md](BRIDGE_ACCEPTANCE_CHECK.md).
 
 ## Життєвий цикл і неоднозначність
 

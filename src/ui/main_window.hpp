@@ -93,9 +93,11 @@ private:
     QCheckBox* bridgeSilence_{};
     QSpinBox *bridgeDelay_{}, *bridgeGap_{};
     QLabel *bridgeOuterHex_{}, *bridgeInnerHex_{}, *bridgeTiming_{};
+    QLabel *bridgePolicy_{}, *bridgeChannelDiagnostics_{};
     dlc::Faults bridgeFaults_{};
     QString bridgeOuterTx_, bridgeOuterRx_, bridgeInnerTx_, bridgeInnerRx_;
     QString bridgeInnerRead_, bridgeInnerFormula_, bridgeInnerCheck_;
+    std::optional<Channel> bridgeLastUpdatedChannel_;
     std::uint32_t bridgeDisplayedRequest_{};
     QWidget* controlPanel_{};
     QScrollArea* controlScroll_{};
