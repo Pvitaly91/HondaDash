@@ -33,6 +33,7 @@
 #include <QSerialPortInfo>
 #endif
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <filesystem>
 #include <utility>
@@ -807,7 +808,19 @@ void MainWindow::advance(Time amount) {
     // normal interactive rendering still uses the 16 ms Qt timer.
     while (managedNow_ < end) {
         managedNow_ = std::min(end, managedNow_ + 10); tickSessions();
-        if (managedNow_ == end || managedNow_ - lastPaint_ >= 50) refreshDashboard();
+        if (managedNow_ == end || managedNow_ - lastPaint_ >= 50) {
+            // Model time can advance much faster than the disk worker. This
+            // smoke-only barrier keeps that scheduling difference out of the
+            // bounded-queue checks; the normal Qt timer never calls advance().
+            if (managedTime_ && recorder_.active() && managedRecorderFailure_.isEmpty() &&
+                !recorder_.waitUntilIdle(std::chrono::seconds(5))) {
+                const auto error = recorder_.error();
+                managedRecorderFailure_ = error.empty()
+                    ? QStringLiteral("Recorder did not drain within the smoke barrier's 5 s deadline")
+                    : QString::fromUtf8(error.c_str());
+            }
+            refreshDashboard();
+        }
     }
 }
 void MainWindow::markOffscreenScreenshot() {
@@ -830,6 +843,7 @@ void MainWindow::settleControlLayout() {
 }
 QJsonObject MainWindow::smokeTest(const QString& screenshotPath) {
     QJsonArray checks; bool passed = true;
+    QJsonArray recordingDiagnostics;
     QJsonArray layoutGeometry;
     QString screenshotUsb;
     QJsonArray dlcScreenshots;
@@ -993,7 +1007,30 @@ QJsonObject MainWindow::smokeTest(const QString& screenshotPath) {
     const bool dlcRawOpened = dlcRaw.open(QIODevice::ReadOnly), dlcCsvOpened = dlcCsv.open(QIODevice::ReadOnly);
     const auto dlcRawBytes = dlcRawOpened ? dlcRaw.readAll() : QByteArray{};
     const auto dlcCsvBytes = dlcCsvOpened ? dlcCsv.readAll() : QByteArray{};
-    check(QStringLiteral("dlc_journal_preserves_v3_partial_updates_raw_faults_and_evidence"), recorder_.error().empty() && dlcRawBytes.contains("\"format_version\":3") && dlcRawBytes.contains("\"wire_protocol\":\"honda-dlc\"") && dlcRawBytes.contains("\"updated_mask\":") && dlcRawBytes.contains("\"age_ms\":") && dlcRawBytes.contains("\"kind\":\"rx\"") && dlcRawBytes.contains("transaction_fault") && dlcRawBytes.contains("fixture_change") && dlcRawBytes.contains("\"hardware_verified\":false") && dlcCsvBytes.contains("host_transaction_id,updated_mask"));
+    const QJsonObject dlcJournalPredicates{
+        {QStringLiteral("recorder_error_empty"), recorder_.error().empty()},
+        {QStringLiteral("smoke_barrier_succeeded"), managedRecorderFailure_.isEmpty()},
+        {QStringLiteral("raw_opened"), dlcRawOpened}, {QStringLiteral("csv_opened"), dlcCsvOpened},
+        {QStringLiteral("format_version_3"), dlcRawBytes.contains("\"format_version\":3")},
+        {QStringLiteral("honda_dlc_protocol"), dlcRawBytes.contains("\"wire_protocol\":\"honda-dlc\"")},
+        {QStringLiteral("partial_updates"), dlcRawBytes.contains("\"updated_mask\":")},
+        {QStringLiteral("ages"), dlcRawBytes.contains("\"age_ms\":")},
+        {QStringLiteral("raw_rx"), dlcRawBytes.contains("\"kind\":\"rx\"")},
+        {QStringLiteral("transaction_fault"), dlcRawBytes.contains("transaction_fault")},
+        {QStringLiteral("fixture_change"), dlcRawBytes.contains("fixture_change")},
+        {QStringLiteral("hardware_unverified"), dlcRawBytes.contains("\"hardware_verified\":false")},
+        {QStringLiteral("csv_partial_header"), dlcCsvBytes.contains("host_transaction_id,updated_mask")}};
+    QJsonArray missingDlcJournalPredicates;
+    for (auto it = dlcJournalPredicates.begin(); it != dlcJournalPredicates.end(); ++it)
+        if (!it.value().toBool()) missingDlcJournalPredicates.append(it.key());
+    recordingDiagnostics.append(QJsonObject{
+        {QStringLiteral("journal"), QStringLiteral("offline_dlc")},
+        {QStringLiteral("recorder_error"), QString::fromUtf8(recorder_.error().c_str())},
+        {QStringLiteral("barrier_error"), managedRecorderFailure_},
+        {QStringLiteral("raw_open_error"), dlcRawOpened ? QString{} : dlcRaw.errorString()},
+        {QStringLiteral("csv_open_error"), dlcCsvOpened ? QString{} : dlcCsv.errorString()},
+        {QStringLiteral("missing_predicates"), missingDlcJournalPredicates}});
+    check(QStringLiteral("dlc_journal_preserves_v3_partial_updates_raw_faults_and_evidence"), missingDlcJournalPredicates.isEmpty());
     dlcRaw.close(); dlcCsv.close();
     show(); source_->setCurrentIndex(0); source_->setCurrentIndex(source_->findData(2));
     check(QStringLiteral("dlc_return_after_source_switch_has_no_old_readings"), !tachometer_->reading().value && dlcSession_.state() == dlc::State::Stopped && session_.state() == SessionState::Stopped);
@@ -1169,12 +1206,15 @@ QJsonObject MainWindow::smokeTest(const QString& screenshotPath) {
     for (int i = 0; i < 5; ++i) { start_->click(); advance(300); bridgeNewExperiment_->click(); advance(800); stop_->click(); }
     check(QStringLiteral("bridge_repeated_start_stop_cancels_context_and_clears_readings"), bridgeClient_->state() == bridge::State::Disconnected && bridgeSession_->state() == dlc::State::Stopped && !tachometer_->reading().value);
     close();
+    check(QStringLiteral("smoke_writer_synchronization"), managedRecorderFailure_.isEmpty());
     return {{QStringLiteral("format_version"), 1}, {QStringLiteral("application"), QStringLiteral("HondaDash")},
         {QStringLiteral("profile"), QStringLiteral("synthetic-demo-v1")}, {QStringLiteral("passed"), passed},
         {QStringLiteral("result"), passed ? QStringLiteral("pass") : QStringLiteral("fail")},
         {QStringLiteral("clock"), QStringLiteral("managed monotonic milliseconds")}, {QStringLiteral("platform"), QGuiApplication::platformName()},
         {QStringLiteral("offscreen"), QGuiApplication::platformName() == QStringLiteral("offscreen")},
         {QStringLiteral("physical_usb_verified"), false}, {QStringLiteral("checks"), checks}, {QStringLiteral("accepted_samples_before_stop"), static_cast<qint64>(samplesBeforeStop)},
+        {QStringLiteral("recording_diagnostics"), recordingDiagnostics},
+        {QStringLiteral("recording_barrier_error"), managedRecorderFailure_},
         {QStringLiteral("layout_geometry"), layoutGeometry},
         {QStringLiteral("accepted_samples_final_session"), static_cast<qint64>(accepted)}, {QStringLiteral("screenshot"), screenshotPath},
         {QStringLiteral("screenshot_1024x600"), screenshot1024}, {QStringLiteral("screenshot_usb_unconnected"), screenshotUsb},

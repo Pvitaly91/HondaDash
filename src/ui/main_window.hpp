@@ -81,6 +81,7 @@ private:
     std::unique_ptr<dlc::Session> bridgeSession_;
     Recorder recorder_;
     bool managedTime_{};
+    QString managedRecorderFailure_;
     Time managedNow_{}, lastPaint_{};
     QElapsedTimer clock_;
     QTimer* timer_{};

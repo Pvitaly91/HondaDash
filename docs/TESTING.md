@@ -14,11 +14,17 @@ CTest14/14 PASS до змін (`build/windows/m3a-baseline.xml`). Нові targe
 | WSL Ubuntu24.04.3, GCC13.3.0, Release | CTest20/20 PASS; M1/M2b/acceptance PTY збережені |
 | Linux Release без SerialPort | CTest16/16 PASS |
 | Linux core-only без Qt | CTest14/14 PASS |
-| Розпакований Windows ZIP, clean PATH | GUI110/110 при100% і150%; native windows/offscreen=false; native acceptance PASS |
+| Розпакований Windows ZIP, clean PATH | GUI smoke PASS при100% і150%; native windows/offscreen=false; native acceptance PASS |
 
 Qt/SerialPort6.8.3, CMake3.31.6; Linux Ninja1.11.1. GUI зберігає screenshots
 1024×600 та1280×720, зокрема порожній two-Nano режим із двома портами і
 постійним попередженням. Ці знімки не містять вигаданих hardware значень.
+
+Managed GUI smoke синхронізує Recorder через condition variable між
+50ms модельними кроками, щоб прискорений час не перевіряв випадкове
+співвідношення швидкості CPU/диска. Timeout/error провалює smoke, JSON містить
+точні journal predicates. Робочий Qt timer не чекає; черга256 і окремий
+детермінований overflow regression збережені.
 
 `one_wire`: 3489 динамічних CHECK executions: усі256 bytes, back-to-back,
 start/stop/sample time, echo, clock skew/jitter у межах і поза ними,
