@@ -338,9 +338,12 @@ packaged `analog.cm` through an isolated generated `spinit` before parsing the
 netlist; no application runtime dependency or manufacturer model is added.
 This built-in behavior is documented in the
 [ngspice42 manual, section12.2.33](https://ngspice.sourceforge.io/docs/ngspice-42-manual.pdf).
-On the targeted normal trace, halving maximum step from0.25us to0.125us kept
-44 D8 transitions and changed their times by at most0.202us; use a conservative
-0.4us numerical edge allowance. This comparison bounds the tested trace only.
+The earlier targeted normal trace kept44 D8 transitions with at most0.202us
+change when halving maximum step from0.25us to0.125us. The final135-part model
+(`32bbed185032fc70fb9ef41559da2829a75984f00072c26c69e01f2701e7a6b7`)
+retained44 transitions and observed0.199462us maximum difference locally.
+The CI artifact records its own current result in `convergence/summary.json`;
+use a conservative0.4us numerical allowance. This bounds the tested trace only.
 The former lossless-transmission-line approximation differed by0.342us and
 generated excess reflected breakpoint history; its old trace is not a result
 of a physical capture or of this revised numerical implementation.

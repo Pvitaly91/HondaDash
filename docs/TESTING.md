@@ -8,7 +8,7 @@
 незалежного cutoff. Це не результати B. Baseline/after мають окремі файли/SHA.
 
 Revision B має135 компонентів у pin/BOM/SVG/netlist contract,52 розрахункові
-перевірок, незалежні cutoff/latch/READY/button/power cases та чисельні bad controls.
+перевірки, незалежні cutoff/latch/READY/button/power cases та чисельні bad controls.
 Нормальні SPICE traces містять усі256 bytes, init та raw A/B/Boundary. D8 crossings
 і окреміD3→DATA/DATA→D8/echo калібрують C++ harness, який компілює справжній
 `firmware/shared/one_wire.cpp`; окремий closed-loop шлях реагує на зміну його D3
