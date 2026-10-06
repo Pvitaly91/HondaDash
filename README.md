@@ -1,9 +1,18 @@
-# HondaDash — M3b: проект захищеного інтерфейсу
+# HondaDash — M3b.1: fail-safe revision B
+
+Revision B додає [апаратний cutoff і re-arm](hardware/protected_dlc_interface/FAILSAFE.md)
+та [production-driver/frontend integration](docs/PROTECTED_INTERFACE_DRIVER_INTEGRATION.md).
+Після безперервного TX timer незалежно від Nano блокує власний sink;
+відновлення вимагає стабільних живлень, кваліфікованого LOW та нового локального
+натискання. Мінімально виправлено stop anchor production driver:17ticks запасу
+на release електроніки; lateness/echo/200ms guard збережено. Revision A та її
+історичні результати відтворюються окремо з b2cf4ea. Фізичні cutoff/обмін/фронти/
+ізоляція — NOT VERIFIED; negative DC/off-state — OPEN, не protection PASS.
 
 M3b додає [окремий hardware-пакет](hardware/protected_dlc_interface/README.md):
 ізольований кандидат на ISO7721F з незалежною батареєю, open-drain TX,
 захищеним RX, схемою/BOM, розрахунками, ngspice42 і планом вимірювань.
-**Застосунок і чотири firmware залишаються M3a; live ECU режим не додано.**
+**GUI/USB identities/режими залишаються M3a; спільний bench driver має виправлення stop.**
 Розрахунки/model checks не підтверджують апаратну безпечність. M3a physical,
 protected-interface measurements, vehicle qualification і real ECU —
 **NOT VERIFIED**. Подальші передумови: [M4 readiness](docs/M4_READINESS.md).

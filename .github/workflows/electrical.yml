@@ -1,4 +1,4 @@
-name: M3b electrical design and model checks
+name: M3b.1 failsafe and production driver integration
 
 on:
   push:
@@ -11,26 +11,51 @@ permissions:
 jobs:
   electrical:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12.10'
       - name: Install separate pinned simulation tool
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ngspice=42+ds-3build1
+          sudo apt-get install -y --no-install-recommends ngspice=42+ds-3build1 g++-13=13.3.0-6ubuntu2~24.04.1
           ngspice --version
           mkdir -p build/electrical/licenses
           cp /usr/share/doc/ngspice/copyright build/electrical/licenses/ngspice-copyright
           dpkg-query -W ngspice > build/electrical/package-version.txt
+          g++-13 --version > build/electrical/compiler-version.txt
       - name: Verify diagram, BOM, pins and arithmetic without SPICE
         run: |
           python hardware/protected_dlc_interface/design.py --check
           python hardware/protected_dlc_interface/simulation/run.py --calculations-only --out build/electrical-calculations
-      - name: Run electrical model scenarios and negative controls
-        run: python hardware/protected_dlc_interface/simulation/run.py --out build/electrical
+      - name: Run independent A baseline, B electrical and failsafe matrices
+        shell: bash
+        run: |
+          mkdir -p build/electrical-batch
+          python hardware/protected_dlc_interface/simulation/baseline.py --out build/electrical-baseline > build/electrical-batch/baseline.log 2>&1 &
+          baseline_pid=$!
+          python hardware/protected_dlc_interface/simulation/run.py --out build/electrical > build/electrical-batch/electrical.log 2>&1 &
+          electrical_pid=$!
+          python hardware/protected_dlc_interface/simulation/failsafe_checks.py --out build/electrical/failsafe > build/electrical-batch/failsafe.log 2>&1 &
+          failsafe_pid=$!
+          result=0
+          for task_pid in "$baseline_pid" "$electrical_pid" "$failsafe_pid"; do
+            if wait "$task_pid"; then :; else result=1; fi
+          done
+          cat build/electrical-batch/baseline.log build/electrical-batch/electrical.log build/electrical-batch/failsafe.log
+          exit "$result"
+      - name: Numerical edge convergence without relaxing hardware limits
+        run: python hardware/protected_dlc_interface/simulation/convergence.py --out build/electrical/convergence
+      - name: Reproduce pre-hold USB power-phase design counterexample
+        run: python hardware/protected_dlc_interface/simulation/preserve_usb_counterexample.py --out build/electrical/pre-hold-counterexample
+      - name: Compile pinned AVR bench source and prove GPIO instruction bounds
+        run: bash scripts/build-firmware.sh --bootstrap --firmware bridge-bench
+      - name: Production Driver replay and closed-loop frontend integration
+        run: python tests/protected_frontend/run.py --cxx g++-13 --trace-dir build/electrical/driver-traces --calibration build/electrical/driver-traces/corners.csv --gpio-timing build/firmware-bridge-bench/atmega328/gpio-timing.json --out build/electrical/driver
       - name: Prove deliberately bad circuits return failure to their caller
         shell: bash
         run: |
@@ -42,7 +67,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: HondaDash-protected-dlc-interface
+          name: HondaDash-protected-interface-revision-B
           if-no-files-found: error
           path: |
             hardware/protected_dlc_interface/
@@ -55,16 +80,56 @@ jobs:
             docs/HONDA_DLC_EVIDENCE.md
             hardware/two_nano_bench/
             firmware/shared/reference_fixtures.hpp
+            firmware/shared/one_wire.hpp
+            firmware/shared/one_wire.cpp
+            firmware/shared/one_wire_avr.cpp
+            firmware/shared/one_wire_avr.hpp
+            scripts/analyze-avr-isr.py
+            tests/protected_frontend/
+            !tests/protected_frontend/**/__pycache__/
+            docs/PROTECTED_INTERFACE_DRIVER_INTEGRATION.md
+            build/electrical-baseline/baseline-manifest.json
+            build/electrical-baseline/stuck-tx-baseline.json
+            build/electrical-baseline/model-A/summary.json
+            build/electrical-baseline/model-A/checks.csv
+            build/electrical-baseline/model-A/calculations.csv
+            build/electrical-baseline/model-A/SUMMARY.md
+            build/electrical-baseline/source/
+            build/electrical-batch/
             build/electrical/summary.json
             build/electrical/checks.csv
             build/electrical/calculations.csv
             build/electrical/SUMMARY.md
             build/electrical/engine.txt
             build/electrical/package-version.txt
+            build/electrical/compiler-version.txt
+            build/electrical/convergence/summary.json
+            build/electrical/pre-hold-counterexample/*.json
+            build/electrical/pre-hold-counterexample/*.cir
+            build/electrical/pre-hold-counterexample/engine.log
+            build/electrical/pre-hold-counterexample/reproduction/*.cir
+            build/electrical/pre-hold-counterexample/reproduction/engine.log
+            build/electrical/pre-hold-counterexample/reproduction/code-module.json
+            build/electrical/driver-traces/
+            build/electrical/driver/**/*.json
+            build/electrical/driver/**/*.csv
+            build/electrical/driver/**/compiler-version.txt
+            build/electrical/driver/**/production-source/
+            build/electrical/failsafe/summary.json
+            build/electrical/failsafe/checks.csv
+            build/electrical/failsafe/*/scenario.cir
+            build/electrical/failsafe/*/frontend.cir
+            build/electrical/failsafe/*/engine.log
+            build/electrical/failsafe/*/code-module.json
+            build/firmware-bridge-bench/**/gpio-timing.json
+            build/firmware-bridge-bench/**/isr-timing.json
+            build/firmware-bridge-bench/**/disassembly.txt
+            build/firmware-bridge-bench/**/compiler.txt
             build/electrical/licenses/
             build/electrical/*/scenario.cir
             build/electrical/*/frontend.cir
             build/electrical/*/engine.log
+            build/electrical/*/code-module.json
             build/electrical-negative/summary.json
             build/electrical-negative/checks.csv
             build/electrical-negative/SUMMARY.md

@@ -19,6 +19,10 @@ class Driver {
   public:
     static const uint8_t Capacity = 16;
     static const uint16_t BitTicks = 208, HalfTicks = 104, MaxLateTicks = 40;
+    // Project electrical acceptance allocation: D3-release to actual DATA HIGH
+    // is at most8us. 17 ticks give >=8.33us at the -2% clock corner.
+    // Extending our own stop does not change a bit/sample period.
+    static const uint16_t StopSettleTicks = 17;
     Driver();
     bool enqueue(uint8_t byte);
     // Main context starts queued TX. Call with interrupts excluded on AVR.
@@ -34,12 +38,22 @@ class Driver {
     bool faulted() const { return fault_; }
     bool txComplete() const { return !txActive_ && txSize_ == 0; }
     bool drivingLow() const { return low_; }
+    bool startNeedsAnchor() const { return txActive_ && phase_ == 1 && !startAnchored_; }
+    // HAL-only fast path after startNeedsAnchor() and the actual GPIO write.
+    void startOutputApplied(uint32_t now) {
+        next_ = now + HalfTicks;
+        startAnchored_ = true;
+    }
     bool stopNeedsAnchor() const { return txActive_ && phase_ == 19 && !stopAnchored_; }
-    // HAL invokes immediately after applying the output. Full stop duration starts
-    // after the actual release, not the nominal compare that preceded ISR work.
+    // HAL invokes after applying D3. Allow frontend release settling before the
+    // full own stop duration. A spec-compliant fast peer may start earlier than
+    // our conservative own completion; its captured edge has a separate deadline.
     void outputApplied(uint32_t now) {
-        if (stopNeedsAnchor()) {
-            next_ = now + HalfTicks;
+        if (startNeedsAnchor()) {
+            startOutputApplied(now);
+        } else if (stopNeedsAnchor()) {
+            stopEarliestPeer_ = now + BitTicks;
+            next_ = now + HalfTicks + StopSettleTicks;
             stopAnchored_ = true;
         }
     }
@@ -64,12 +78,12 @@ class Driver {
     void pushRx(uint32_t now);
     uint8_t tx_[Capacity];
     Received rx_[Capacity];
-    uint32_t next_, rxStart_;
+    uint32_t next_, rxStart_, stopEarliestPeer_;
     Counters counters_;
     uint16_t completedTxSequence_;
     uint8_t txHead_, txSize_, rxHead_, rxSize_, txByte_, rxByte_, phase_;
     Error pendingError_;
-    bool txActive_, rxActive_, resync_, low_, fault_, stopAnchored_;
+    bool txActive_, rxActive_, resync_, low_, fault_, stopAnchored_, startAnchored_;
 };
 // Map a captured MCU timestamp into the engine's modulo-2^32 milliseconds.
 // Caller snapshots both clocks together; queued age must be below 2^31 ticks.

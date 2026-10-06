@@ -10,8 +10,6 @@
 .param PG_DELAY=20m PG_THRESHOLD=.405 PG_HYST=.03 PG_FAIL_DELAY=50u
 .param DEBOUNCE_SCALE=1 LOGIC_DELAY=5n OPTO_DELAY=50u OPTO_CTR=.8
 .param LOW_POWER_TX=1 LOW_POWER_RX=1 QPG_RON=.5
-.param HOLD_CAP=9.4u HOLD_BLOCK_DELAY=15u HOLD_ON_DELAY=150u
-.param HOLD_EXTRA_LOAD=6.2m HOLD_BYPASS=0 HOLD_RON=.14 HOLD_LEAK=2.7u
 .param COUNTER_K=1.1507282898071236
 * Smooth normalized counter: dc/dt=(K/T)*(1-c/4). It crosses c=1
 * at exactly T because K=4*ln(4/3), and approaches4 without a hard clamp.
@@ -36,42 +34,6 @@ Riq1 v1 g1 2000
 Riq2 v2 g9 2000
 * Cross-barrier capacitance allocation, not guaranteed production capacitance.
 Cbar g1 g9 2p
-.ends
-
-.subckt LM66100_PROJECT vin g ce nc status out
-* CE is held downstream V5_L, VIN is DIRECT raw USB. The 22R feed is
-* downstream of OUT; putting it ahead of VIN can mask the 80mV off test.
-* Finite original model, not TI model. Full-temp ON/OFF CE limits used;
-* switching times and low-load Ron are explicit measured allocations.
-Cmemory memory g 1p IC=0
-Bkeeper g memory I=((V(memory,g)>.5) ? (1-V(memory,g)) : -V(memory,g))/1e6
-Bone one g V=1
-Bon set g V=((V(vin,g)>=1.5)&&(V(ce,g)<V(vin,g)-.25)) ? 5 : 0
-Boff clear g V=(V(ce,g)>V(vin,g)+.08) ? 5 : 0
-Sset one memory set g HOLD_STATE
-Sclear memory g clear g HOLD_STATE
-.model HOLD_STATE SW(Ron=100 Roff=1e12 Vt=2.5 Vh=0)
-Brequest request g V=(V(memory,g)>.5) ? 1 : 0
-Adel_on %vd(request g) %vd(delay_on g) null HOLD_ON
-.model HOLD_ON delay(delay={HOLD_ON_DELAY} buffer_size=8192)
-Adel_off %vd(request g) %vd(delay_off g) null HOLD_OFF
-.model HOLD_OFF delay(delay={HOLD_BLOCK_DELAY} buffer_size=8192)
-Bchannel control g V=({HOLD_BYPASS}>.5) ? 5 : 5*((V(request,g)>.5) ? (V(delay_on,g)>.5) : (V(delay_off,g)>.5))
-Schannel vin out control g HOLD_CHANNEL
-.model HOLD_CHANNEL SW(Ron={HOLD_RON} Roff=1e12 Vt=2.5 Vh=0)
-* Passive finite forward diode exists even when channel is OFF. This is a
-* nominal body diode equation, not a guaranteed max across all temperatures.
-Dbody vin out HOLD_BODY
-.model HOLD_BODY D(Is=1n N=1.2 Rs=.1 Bv=6)
-* Datasheet-backed worst off leakage for <=5.5V reverse and -40..85C.
-Bleak out vin I={HOLD_LEAK}*min(max(V(out,vin),0),1)
-Biq vin g I=(V(vin,g)>1.5) ? .3u : 0
-Bce ce g I=(V(ce,g)>V(vin,g)+.08) ? .61u : .3u
-* Aggregate additional-load allocation complements the 2k ISO Iq model.
-* The physical total-current gate is <=10mA including both10k pullups,
-* buffers, reset and parasitics. This allocation is not a physical resistor;
-* ideal behavioral voltage outputs do not model conversion efficiency.
-Bload ce g I=(V(ce,g)>0) ? {HOLD_EXTRA_LOAD} : 0
 .ends
 
 .subckt LVC17_PROJECT nc a g y vcc

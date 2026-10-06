@@ -1,5 +1,60 @@
 # M3a single-wire driver
 
+## Current M3b.1 production refinement
+
+The shared production source now has three narrowly scoped timing corrections,
+each reproduced against the original `b2cf4ea` driver. Actual DATA HIGH for an old
+queued `00 00` stop was shorter than104us when release was slower than assertion.
+The new stop anchor includes17ticks (8.5us nominal, >=8.33us at the fastclock) for
+the <=8us frontend release allocation. Queued TX starts from actual service time
+and its first sample is anchored after the actual PORTD start; this fixes silent
+second-byte corruption under mixed COMPA-entry/GPIO-output phases. Streaming TX
+LSB shifting removes the data-dependent mask loop while preserving all wire bytes.
+
+The bounded AVR `applyTxStart` path and low-first always-inline `gpioClockTicks`
+stamp the physical output within2CPUcycles=0.125us. The ordinary COMPA input
+timestamp remains unchanged. A qualified fast peer can begin after its full
+actual DATA stop, before our conservative own completion, through the separate
+earliest-peer deadline. Lateness remains40ticks, echo remains enabled, and
+transaction observation remains200ms. No software command clears the independent
+revision-B hardware latch or provides firmware with its state.
+
+One data bit remains208ticks=104us. The extended own stop is112.5us nominal;
+frame1048.5us, five queuedbytes5.2425ms, eleven initbytes11.5335ms, before extra
+ISR/queue-handoff latency. These are project/model timings, not Honda guarantees.
+The original M3a timing/evidence below is retained as historical baseline and must
+not be mistaken for the following current build results.
+
+Pinned AVR GCC7.3.0-atmel3.6.1-arduino7 / Boards1.8.6, both benchfirmware and both
+Nano targets, final local static instruction analysis:
+
+| Current path | cycles | us at16MHz |
+|---|---:|---:|
+| TIMER1_COMPA complete maximum |522|32.625|
+| TIMER1_CAPT complete maximum |411|25.6875|
+| Runtime main atomic service |232|14.500|
+| Startup-only begin, before traffic |337|21.0625|
+| COMPA entry through actual TCNT1 snapshot |66|4.125|
+| Normal TX data snapshot to PORTD, source-constrained |150|9.375|
+| Normal stop snapshot to PORTD, source-constrained |131|8.1875|
+| Actual PORTD to GPIO timestamp |2|0.125|
+
+Runtime compare lateness bound is `14.5+4.125+0.25=18.875us`, below the unchanged
+20us limit. Complete ISR length is distinct from sample lateness. The conservative
+valid-traffic USB recurrence is54.1875us lower-priority/main work plus
+`ceil(R/52)*32.625us`, converging at152.0625us; allowing eight4-cycle instructions
+gives154.0625us <170us for the documented two-level RX FIFO. It depends on the
+same valid-frame/interrupt assumptions; added clients/noise invalidate it.
+
+`tests/protected_frontend/avr_gpio_timing.py` runs after every benchdisassembly,
+records compiler/source branch constraints and disassembly SHA256, and rejects
+unknown instruction structure. This is static instruction-path evidence,
+**not an instruction-level CPU simulator or physical measurement**. Full ISR and
+non-LTO stack reports remain in the firmware artifacts. The production Driver is
+147AVRbytes; board stack high-water and actual IRQ/USB-overrun performance remain
+NOT VERIFIED. Integration and explicit supported phase/clock grids are in
+[PROTECTED_INTERFACE_DRIVER_INTEGRATION](PROTECTED_INTERFACE_DRIVER_INTEGRATION.md).
+
 `firmware/shared/one_wire.cpp` is the C++11 state machine used by both new firmware
 and host bit-level tests. `one_wire_avr.cpp` supplies the actual ATmega328P registers
 and ISR wrappers. The two older sketches do not activate this GPIO backend.

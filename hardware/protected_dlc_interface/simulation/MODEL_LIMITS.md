@@ -1,5 +1,88 @@
 # What the SPICE model does and does not establish
 
+## Revision B additions and evidence boundary
+
+Revision A is separately exported and reproduced by `simulation/baseline.py` from
+`b2cf4ea12a783d4eb81736383f51790b361d9b04`. Its model PASS and independent stuck-TX
+failure are historical results. They do not validate the following revision.
+
+Revision B adds the actual generated interconnect of three LTC6994 timers, two
+arm/readiness flip-flops, logic gates, field/USB TPS3808G01 supervisors, optical
+USB health, the direct PG-controlled series Q2 and the USB logic hold-up island.
+LM66100 VIN sees raw USB, CE sees held V5_L, and the22-ohm resistor is after OUT;
+placing it before VIN would mask reverse-blocking detection. Two4.7uF capacitors
+provide9.4uF nominal, with effective4.7uF as the physical acceptance floor. U23
+guards D3 into the held domain, and raw-powered U24 isolates the unpowered D8.
+R39/R40 explicitly bias the intermediate TX/RX nodes when their drivers are off;
+raw D3/D8 pulldowns alone do not constrain these new nodes. The voltage oracles
+probe actual U1.INB against held V5_L, and U24.A against its input stress limit.
+These original project models
+include finite output impedance, capacitance, leakage and stored state. Internal
+counter voltages are **normalized digital timer state**, not physical capacitor
+voltages or a substitute nominal RC timer circuit. Their smooth asymptote is4;
+the coefficient `4*ln(4/3)` makes the threshold1 occur exactly at the calculated
+timer interval. Removing the external SET resistor changes timing. Smooth bounds
+avoid numerical chatter at a hard counter clamp; this is a solver correction,
+not a relaxation of hardware or acceptance limits.
+
+Startup uses explicit capacitor initial conditions and transient `UIC` with Gear
+integration. Undefined low-supply logic outputs are adversarial HIGH, not silently
+correct LOW. Independent supervisor/Q2 inhibition is checked against those states.
+Flip-flop clocks use normalized rising logic transitions, not rail ripple as an
+invented extra clock. The readiness timer requires real button release, inactive
+TX and healthy power; its memory is cleared with the arm latch on timeout/power
+fault. A held button cannot be used to authorize TX on restoration.
+
+The comparator/supervisor/opto delays use ngspice42's bundled XSPICE analog code
+module and differential analog ports, with8192-entry bounded delay buffers.
+`run_spice` resolves the module shipped with the pinned package, records its hash,
+and loads a copied test-only module through a case-local `SPICE_SCRIPTS/spinit`.
+No model binary is committed or included in the hardware artifact. Legacy ideal
+transmission-line delay histories produced repeated tiny breakpoints; the bounded
+delay representation preserves the intended causal delay and finite surrounding
+impedances. A0.25us/0.125us numerical convergence check observed0.169997us maximum
+D8 edge difference on the stated reference corner. Use0.4us numerical timing
+allowance; this is not a physical scope measurement or a guarantee off-grid.
+
+PG release12–28ms and threshold corners derive from the specified supervisor;
+50us assertion, its finite100-ohm dynamic sink, optical CTR80% and storage50us
+are **project allocations**, not invented manufacturer guaranteed maxima. These
+have explicit sensitivity cases and physical gates. The2.42mA capacitor discharge
+peak is below a stress ceiling but does not prove the output-voltage/delay bounds
+specified at smaller currents. Normal performance requires measured4.75–5.25V
+rails; PG merely supervises logic safety at its distinct lower threshold range.
+
+The pre-hold candidate produced a32.726us unrequested gate pulse with D3 LOW
+during USB loss; checking only after restoration falsely missed it. Its matching
+historical source fixture is retained and rerun separately. The new whole-phase
+oracle checks the commanded channel current as well as both gate levels. The
+hold-up calculation uses10mA load, effective4.7uF,15us finite reverse blocking,
+and250us health propagation, leaving3.184V above the2.25V ISO supply boundary.
+LM66100's2us turn-off is typical only;15us and the load/capacitance envelope are
+conditional project allocations requiring physical measurement. Prescribed rail
+profiles do not prove regulator stability, charging/inrush or current-limiter
+behavior. Flip-flop setup/hold violations are outside the quiescent local re-arm
+contract and remain OPEN; the ideal state model cannot establish metastability.
+The field power grid includes100us,1ms and10ms falls. Effective field C≥2.2uF
+and healthy load≤20mA imply at least214.5us from4.2V to2.25V. A hard rail short,
+arbitrary faster collapse or excess load is outside that decay bound and remains
+OPEN; finite gate discharge is not an instantaneous power-loss disconnect.
+
+The default batch first qualifies released controls, presses the local button at
+65–90ms and begins bytes at100ms. That is fixture stimulus, not automatic arming
+in hardware or software. It preserves all raw request/fixture bytes. Timer cutoff
+releases **our channel**, not an external short or the MOSFET body-diode path.
+Shorted Q1, negative DC10s, off-state survival and hardware measurements remain
+OPEN/NOT VERIFIED independently of numerical model success.
+
+The integration exporter uses the same3.3V DATA threshold for rise and fall and
+0.3/0.6 times local USB supply for D8 transitions; intermediate D8 voltages retain
+the selected prior digital state. Input-power1.7–2.25V is invalid metadata, not a
+guaranteed logical level. The production-driver harness separately replays actual
+extracted edges and runs closed-loop feedback. A precomputed trace cannot change
+after a driver fault; that limitation is explicit. See
+[PROTECTED_INTERFACE_DRIVER_INTEGRATION](../../../docs/PROTECTED_INTERFACE_DRIVER_INTEGRATION.md).
+
 Pinned engine: **ngspice42**, Ubuntu24.04 package `42+ds-3build1`. Python3.12 standard
 library drives batch netlists and reads finite numeric waveform samples. Models
 in `models.cir` are original project behavioral approximations, not vendor models
@@ -25,8 +108,8 @@ unintended return path. Software-only “ground offset PASS” has precisely tha
 
 The normal matrix sweeps source1/2.2k, totalC200/500pF, source4.75/5.25V, field/USB
 rails and low/high parameter corners. Full streams cover00,FF,55,AA, back-to-back
-frames, the current11-byte initialization, all three whitelisted requests and both
-A/B fixture responses, with direction changes.102/106us peer bits,±2us jitter and
+frames, the current11-byte initialization, all three whitelisted requests and
+A/B/Boundary fixture responses, with direction changes.102/106us peer bits,±2us jitter and
 0/20us sample lateness are evaluated against simulated D8 levels. This is waveform
 sampling of the existing timing contract; it does not execute the AVR ISR or USB
 stack in SPICE. Those remain separate native/AVR/physical tests.
@@ -35,10 +118,12 @@ Additional15/35°C diode-model sweeps use opposite USB/field supply corners and
 slow up/down DATA ramps to measure threshold/hysteresis and source load. Those
 temperatures change the generic diode equations, not a vendor-qualified full-chip
 temperature model. Separate loss-of-field and loss-of-USB cases retain the logical
-TX command HIGH; D3's electrical voltage follows its USB rail, respecting U1's
-VCC1+0.5V absolute input limit. Field rail collapse includes output capacitors,
-and release is checked after that collapse. No independent hardware re-arm latch
-prevents a held HIGH command asserting again when field power returns.
+TX command HIGH. Main electrical cases let D3 follow raw USB; independent failsafe
+cases also retain an external5V D3 input through raw USB loss, behind U23's input
+guard. Field rail collapse includes output capacitors. Revision B's latch inhibits
+restored HIGH until qualified button release and a fresh press; retained button
+through power cycles is checked separately. RX invalid-supply states are sampled
+as both HIGH and LOW without claiming firmware can know validity from a wire.
 
 The checker requires finite samples through the requested stop time and rejects
 ngspice transient/convergence errors even when the process exits0. Limits cover
@@ -49,8 +134,10 @@ contain each case's parameters, extrema, criterion, numeric margin and status.
 are explicitly null, never reported as zero rise time. Primary receive criteria
 use the actual valid logic levels.
 
-Negative controls are100R pullup (LOW too high),47k/10nF line (slow/loaded HIGH),
-and direct48V asserted fault (excess current/power). These must fail numerical
+Negative controls include100R pullup (LOW too high),47k/10nF line (slow/loaded HIGH),
+direct48V asserted fault (excess current/power),60us comparator delay, missing
+negative clamp, short/disabled timer, unsafe arm, reversed gate, missing PG and
+bypassed hold-up island. These must fail numerical
 checks. Full mode labels their failures EXPECTED_REJECTION; `--bad-only` exits2.
 An unexpected negative PASS fails the suite. No physical bad-control test is
 authorized by the model. Simulation PASS leaves every hardware status NOT VERIFIED.

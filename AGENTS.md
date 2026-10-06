@@ -23,6 +23,18 @@ FAULT_MATRIX/VALIDATION на окремому інтерфейсі без Nano/r
 фізичний M3a, вимірювання protected interface, vehicle qualification і real ECU
 мають окремі статуси; hardware NOT VERIFIED до фактичних вимірювань.
 
+M3b.1 revision B додає незалежні timer/arm/fault latch, кваліфікований
+польовий manual re-arm, field/USB power-good без обходу ізоляції та
+production one_wire/frontend integration. Утриманий HIGH і поява живлення
+не переозброюють TX. Software recovery/NEW/ARM не очищують hardware latch;
+firmware не має окремого feedback latch і не визначає точну причину з USB timeout.
+Мінімальне виправлення production stop anchor має чисельний контрприклад;
+не послаблювати 40ticks lateness, echo або 200ms guard. За зміни драйвера
+повторити всі AVR builds/disassembly/ISR/stack checks. Ревізію A відтворювати
+з b2cf4ea та окремого baseline-report. Negative DC/off-state OPEN не включати
+у protection PASS; SPICE/driver/instruction-path/physical докази розрізняти.
+Layout/Gerbers, замовлення PCB, upload, автомобіль і реальний ECU поза M3b.1.
+
 M2c bridge policy: cycle320ms RPM/TPS/ECT/RPM/TPS, desired800/800/1600ms;
 stale/hide RPM/TPS1400/4200ms, ECT2100/6300ms. Policy фіксована для сесії,
 GUI і Recorder використовують `Model::freshness()`. Stale/hide лише при

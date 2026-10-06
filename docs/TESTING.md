@@ -1,5 +1,72 @@
 # Перевірки M0/M1, M2a/M2b/M2c, M3a та M3b
 
+## M3b.1 revision B — окремі докази
+
+Ревізія A за `b2cf4ea12a783d4eb81736383f51790b361d9b04` зберігається в Git і
+відтворюється `simulation/baseline.py` без checkout/reset. Її55 electrical cases
+та окремий20ms HIGH trace підтверджують історичні model results і відсутність
+незалежного cutoff. Це не результати B. Baseline/after мають окремі файли/SHA.
+
+Revision B має132 компоненти у pin/BOM/SVG/netlist contract,49 розрахункових
+перевірок, незалежні cutoff/latch/READY/button/power cases та чисельні bad controls.
+Нормальні SPICE traces містять усі256 bytes, init та raw A/B/Boundary. D8 crossings
+і окреміD3→DATA/DATA→D8/echo калібрують C++ harness, який компілює справжній
+`firmware/shared/one_wire.cpp`; окремий closed-loop шлях реагує на зміну його D3
+після fault. Формула центрів вибірки не замінює production state machine.
+
+DesktopGUI, identities, whitelist, recording, scheduler/freshness та200ms guard
+не змінені. Змінено спільний bench driver і AVR HAL:17ticks stop-settle,
+actual GPIO start anchor, streaming TX bit extraction. П’ятої firmware немає.
+Фінальні локальні WindowsDebug/Release CTest17/17 кожен PASS, включно GUI smoke
+та native acceptance. Linux/simulation-only/core-only/PTY перевіряє повний CI
+для конкретного SHA; його завершення перевіряється перед фінальним звітом.
+
+ArduinoCLI1.2.2, AVR Boards1.8.6, GCC7.3.0-atmel3.6.1-arduino7: всі4firmware×2FQBN
+локально складені й перевірені, без порту/upload:
+
+| Firmware, обидва FQBN | Flash /30720 | .data+.bss /1536 |
+|---|---:|---:|
+| synthetic |5736|819|
+| bridge-lab |9576|928|
+| bridge-bench |11606|987|
+| responder-bench |9686|968|
+
+Static COMPA522cycles=32.625us, CAPT411=25.6875us; runtime atomic232=14.5us;
+snapshot66=4.125us. Lateness bound18.875us<20us. GPIO data/stop paths150/131cycles,
+actualPORTD timestamp2cycles. Stack diagnostics, source assumptions, disassembly
+hashes та значення SRAM публікуються окремо; це не AVR instruction simulation
+і не фізичне вимірювання. Деталі в [ONE_WIRE_DRIVER](ONE_WIRE_DRIVER.md).
+
+Electrical-only CI: Ubuntu24.04, Python3.12.10, ngspice42+ds-3build1 з bundled
+analog.cm (bounded8192 delay history), hostg++13.3.0-6ubuntu2~24.04.1 та чинні
+pinnedAVR tools. Залежності не входять у runtime HondaDash.exe. Simulator errors,
+missingfiles/parseerrors/timeouts не є EXPECTED_REJECTION. Повний hardware artifact
+містить B, A baseline reports, numerical/driver results, firmware instruction
+proofs, джерела/нотиси та [bring-up](../hardware/protected_dlc_interface/VALIDATION.md).
+
+Попередній варіант B без hold-up мав32.726us небажаного sink при D3LOW під час
+USB brownout. Окремий frozen source fixture відтворює цей design failure; нова
+перевірка охоплює всю фазу втрати живлення. Фінальна схема утримує живлення
+ізолятора та supervisor, а sense/LED залишаються на rawUSB. У розрахунковому
+envelope V5_L≥3.184V до блокування; ефективна ємність≥4.7uF, навантаження≤10mA
+і reverse-blocking≤15us — фізичні acceptance gates, не гарантовані maxima.
+
+PhysicalTXcutoff, actualtwoNano exchange/edges, isolation, vehicle qualification
+і realECU — **NOT VERIFIED**. NegativeDC−16V/10s, off-state і деякі PG/opto
+parameter guarantees — **OPEN**; їх не включають у загальний protection PASS.
+
+Повторення з кореня репозиторію:
+
+```sh
+python3 hardware/protected_dlc_interface/simulation/baseline.py --out build/electrical-baseline
+python3 hardware/protected_dlc_interface/simulation/run.py --out build/electrical
+python3 hardware/protected_dlc_interface/simulation/failsafe_checks.py --out build/electrical/failsafe
+python3 hardware/protected_dlc_interface/simulation/convergence.py --out build/electrical/convergence
+python3 hardware/protected_dlc_interface/simulation/preserve_usb_counterexample.py --out build/electrical/pre-hold-counterexample
+bash scripts/build-firmware.sh --firmware all
+python3 tests/protected_frontend/run.py --trace-dir build/electrical/driver-traces --calibration build/electrical/driver-traces/corners.csv --gpio-timing build/firmware-bridge-bench/atmega328/gpio-timing.json --out build/electrical/driver
+```
+
 ## M3b — electrical design/model, 6 жовтня 2026
 
 Застосунок, протоколи, core/session/model, GUI та чотири firmware **не змінені**

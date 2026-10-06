@@ -63,6 +63,7 @@ for cpu in atmega328 atmega328old; do
     "$compiler_bin/avr-objdump" -d -C "$elf" > "$output/disassembly.txt"
     if [[ "$variant" == *-bench ]]; then
         python3 "$repository/scripts/analyze-avr-isr.py" "$output/disassembly.txt" --output "$output/isr-timing.json"
+        python3 "$repository/tests/protected_frontend/avr_gpio_timing.py" "$output/disassembly.txt" --out "$output/gpio-timing.json"
     fi
     if grep -Eq '[[:space:]](malloc|calloc|realloc|_Zn[^[:space:]]*)$' "$output/symbols.txt"; then
         echo 'Heap allocator linked into firmware.' >&2; exit 1

@@ -1,5 +1,5 @@
 {
-  "revision": "M3b-A",
+  "revision": "M3b.1-B",
   "components": [
     {
       "ref": "U1",
@@ -9,9 +9,9 @@
       "pins": {
         "1": "GND_L",
         "2": "NC_U1_2",
-        "3": "USB5V",
-        "4": "D8",
-        "5": "D3",
+        "3": "V5_L",
+        "4": "RX_L_ISO",
+        "5": "TX_L_ISO",
         "6": "NC_U1_6",
         "7": "GND_L",
         "8": "NC_U1_8",
@@ -35,7 +35,7 @@
       "source": "BUF",
       "pins": {
         "1": "NC_U2_1",
-        "2": "TX_F",
+        "2": "TX_ALLOWED",
         "3": "GND_F",
         "4": "GATE_DRIVE",
         "5": "V5_F"
@@ -86,12 +86,383 @@
       "source": "MOS",
       "pins": {
         "1": "GATE",
-        "2": "GND_F",
+        "2": "SINK_RET",
         "3": "DRAIN"
       },
       "domain": "field",
       "kind": "X",
       "model": "PMV88_PROJECT"
+    },
+    {
+      "ref": "Q2",
+      "mpn": "PMV88ENEA,215",
+      "value": "Series PG disconnect; G1/S2/D3; does not interrupt D1 negative path",
+      "source": "MOS",
+      "pins": {
+        "1": "PG_GATE",
+        "2": "GND_F",
+        "3": "SINK_RET"
+      },
+      "domain": "field",
+      "kind": "X",
+      "model": "PMV88_PG_PROJECT"
+    },
+    {
+      "ref": "U5",
+      "mpn": "LTC6994IS6-1#TRPBF",
+      "value": "TSOT23-6; rising delay; RSET200k; DIVCODE3/N512",
+      "source": "TIMER",
+      "pins": {
+        "1": "TX_F",
+        "2": "GND_F",
+        "3": "TIMER_SET",
+        "4": "TIMER_DIV",
+        "5": "V5_F",
+        "6": "TIMEOUT"
+      },
+      "domain": "field",
+      "kind": "X",
+      "model": "LTC6994_1_PROJECT"
+    },
+    {
+      "ref": "U6",
+      "mpn": "LTC6994IS6-2#TRPBF",
+      "value": "TSOT23-6; both-edge debounce; RSET249k; DIVCODE4/N4096",
+      "source": "TIMER",
+      "pins": {
+        "1": "ARM_RAW",
+        "2": "GND_F",
+        "3": "ARM_SET",
+        "4": "ARM_DIV",
+        "5": "V5_F",
+        "6": "ARM_CLK"
+      },
+      "domain": "field",
+      "kind": "X",
+      "model": "LTC6994_2_PROJECT"
+    },
+    {
+      "ref": "U7",
+      "mpn": "SN74LVC1G74DCUR",
+      "value": "VSSOP8; Q=ARMED; asynchronous clear has priority",
+      "source": "LATCH",
+      "pins": {
+        "1": "ARM_CLK",
+        "2": "ARM_DATA",
+        "3": "LOCKED",
+        "4": "GND_F",
+        "5": "ARMED",
+        "6": "CLR_N",
+        "7": "V5_F",
+        "8": "V5_F"
+      },
+      "domain": "field",
+      "kind": "X",
+      "model": "LVC74_PROJECT"
+    },
+    {
+      "ref": "U8",
+      "mpn": "SN74LVC2G02DCUR",
+      "value": "VSSOP8; NOR1=idle qualification; NOR2=clear",
+      "source": "NOR",
+      "pins": {
+        "1": "TX_F",
+        "2": "TIMEOUT",
+        "3": "CLR_N",
+        "4": "GND_F",
+        "5": "TIMEOUT",
+        "6": "POWER_BAD",
+        "7": "IDLE_OK",
+        "8": "V5_F"
+      },
+      "domain": "field",
+      "kind": "X",
+      "model": "LVC2NOR_PROJECT"
+    },
+    {
+      "ref": "U9",
+      "mpn": "SN74LVC2G08DCUR",
+      "value": "VSSOP8; AND1=TX gating; AND2=arm qualification",
+      "source": "AND",
+      "pins": {
+        "1": "TX_F",
+        "2": "ARMED",
+        "3": "ARM_SAFE",
+        "4": "GND_F",
+        "5": "IDLE_OK",
+        "6": "PG_CLEAN",
+        "7": "TX_ALLOWED",
+        "8": "V5_F"
+      },
+      "domain": "field",
+      "kind": "X",
+      "model": "LVC2AND_PROJECT"
+    },
+    {
+      "ref": "U10",
+      "mpn": "SN74LVC1G04DBVR",
+      "value": "DBV5; PG inversion",
+      "source": "INV",
+      "pins": {
+        "1": "NC_U10_1",
+        "2": "PG_CLEAN",
+        "3": "GND_F",
+        "4": "NOT_PG",
+        "5": "V5_F"
+      },
+      "domain": "field",
+      "kind": "X",
+      "model": "LVCINV_PROJECT"
+    },
+    {
+      "ref": "U11",
+      "mpn": "TPS3808G01DBVR",
+      "value": "DBV6; adjustable PG; 100k/10.2k; CT open 12-28ms",
+      "source": "PG",
+      "pins": {
+        "1": "PG_F",
+        "2": "GND_F",
+        "3": "V5_F",
+        "4": "NC_U11_CT",
+        "5": "PG_SENSE_F",
+        "6": "V5_F"
+      },
+      "domain": "field",
+      "kind": "X",
+      "model": "TPS3808_PROJECT"
+    },
+    {
+      "ref": "U12",
+      "mpn": "SN74LVC1G17DBVR",
+      "value": "DBV5; cleans slow PG edge for logic; Q2 driven directly by supervisor",
+      "source": "BUF",
+      "pins": {
+        "1": "NC_U12_1",
+        "2": "PG_F",
+        "3": "GND_F",
+        "4": "PG_CLEAN",
+        "5": "V5_F"
+      },
+      "domain": "field",
+      "kind": "X",
+      "model": "LVC17_PROJECT"
+    },
+    {
+      "ref": "U13",
+      "mpn": "TPS3808G01DBVR",
+      "value": "DBV6; USB supervisor; 100k/10.2k; drives opto LED switch Q3",
+      "source": "PG",
+      "pins": {
+        "1": "PG_L",
+        "2": "GND_L",
+        "3": "V5_L",
+        "4": "NC_U13_CT",
+        "5": "PG_SENSE_L",
+        "6": "V5_L"
+      },
+      "domain": "logic",
+      "kind": "X",
+      "model": "TPS3808_PROJECT"
+    },
+    {
+      "ref": "Q3",
+      "mpn": "PMV88ENEA,215",
+      "value": "USB-PG LED sink; no field-ground connection",
+      "source": "MOS",
+      "pins": {
+        "1": "PG_LED_GATE",
+        "2": "GND_L",
+        "3": "LED_K"
+      },
+      "domain": "logic",
+      "kind": "X",
+      "model": "PMV88_LED_PROJECT"
+    },
+    {
+      "ref": "U14",
+      "mpn": "VO617A-4X016",
+      "value": "Wide DIP4 option6; 1LED_A 2LED_K 3emitter 4collector; USB health only",
+      "source": "OPTO",
+      "pins": {
+        "1": "LED_A",
+        "2": "LED_K",
+        "3": "GND_F",
+        "4": "USB_BAD"
+      },
+      "domain": "barrier",
+      "kind": "X",
+      "model": "VO617_PROJECT"
+    },
+    {
+      "ref": "U15",
+      "mpn": "SN74LVC1G32DBVR",
+      "value": "DBV5; either power loss forces fault clear",
+      "source": "OR",
+      "pins": {
+        "1": "NOT_PG",
+        "2": "USB_BAD_CLEAN",
+        "3": "GND_F",
+        "4": "POWER_BAD",
+        "5": "V5_F"
+      },
+      "domain": "field",
+      "kind": "X",
+      "model": "LVCOR_PROJECT"
+    },
+    {
+      "ref": "U16",
+      "mpn": "SN74LVC1G17DBVR",
+      "value": "DBV5; Schmitt cleanup of phototransistor edge",
+      "source": "BUF",
+      "pins": {
+        "1": "NC_U16_1",
+        "2": "USB_BAD",
+        "3": "GND_F",
+        "4": "USB_BAD_CLEAN",
+        "5": "V5_F"
+      },
+      "domain": "field",
+      "kind": "X",
+      "model": "LVC17_PROJECT"
+    },
+    {
+      "ref": "U17",
+      "mpn": "LTC6994IS6-1#TRPBF",
+      "value": "TSOT23-6; post-PG released-button/inactive-TX qualification20.398ms",
+      "source": "TIMER",
+      "pins": {
+        "1": "READY_REQ",
+        "2": "GND_F",
+        "3": "READY_SET",
+        "4": "READY_DIV",
+        "5": "V5_F",
+        "6": "READY_QUAL"
+      },
+      "domain": "field",
+      "kind": "X",
+      "model": "LTC6994_READY_PROJECT"
+    },
+    {
+      "ref": "U18",
+      "mpn": "SN74LVC1G74DCUR",
+      "value": "VSSOP8; readiness memory; clears on power or TX-duration fault",
+      "source": "LATCH",
+      "pins": {
+        "1": "READY_QUAL",
+        "2": "V5_F",
+        "3": "NC_U18_3",
+        "4": "GND_F",
+        "5": "REARM_READY",
+        "6": "CLR_N",
+        "7": "V5_F",
+        "8": "V5_F"
+      },
+      "domain": "field",
+      "kind": "X",
+      "model": "LVC74_PROJECT"
+    },
+    {
+      "ref": "U19",
+      "mpn": "SN74LVC2G02DCUR",
+      "value": "VSSOP8; physical released-button + healthy power qualification; spare heldLOW",
+      "source": "NOR",
+      "pins": {
+        "1": "ARM_RAW_CLEAN",
+        "2": "POWER_BAD",
+        "3": "NC_U19_3",
+        "4": "GND_F",
+        "5": "V5_F",
+        "6": "V5_F",
+        "7": "RELEASE_OK",
+        "8": "V5_F"
+      },
+      "domain": "field",
+      "kind": "X",
+      "model": "LVC2NOR_PROJECT"
+    },
+    {
+      "ref": "U20",
+      "mpn": "SN74LVC2G08DCUR",
+      "value": "VSSOP8; release/inactive qualifier and readiness-qualified arm data",
+      "source": "AND",
+      "pins": {
+        "1": "RELEASE_OK",
+        "2": "IDLE_OK",
+        "3": "ARM_DATA",
+        "4": "GND_F",
+        "5": "ARM_SAFE",
+        "6": "REARM_READY",
+        "7": "READY_REQ",
+        "8": "V5_F"
+      },
+      "domain": "field",
+      "kind": "X",
+      "model": "LVC2AND_PROJECT"
+    },
+    {
+      "ref": "U21",
+      "mpn": "SN74LVC1G17DBVR",
+      "value": "DBV5; cleans physical switch level for readiness qualifier",
+      "source": "BUF",
+      "pins": {
+        "1": "NC_U21_1",
+        "2": "ARM_RAW",
+        "3": "GND_F",
+        "4": "ARM_RAW_CLEAN",
+        "5": "V5_F"
+      },
+      "domain": "field",
+      "kind": "X",
+      "model": "LVC17_PROJECT"
+    },
+    {
+      "ref": "U22",
+      "mpn": "LM66100DCKR",
+      "value": "DCK6; VIN raw USB; CE held V5_L; resistor is AFTER OUT, not before VIN",
+      "source": "HOLD",
+      "pins": {
+        "1": "USB5V",
+        "2": "GND_L",
+        "3": "V5_L",
+        "4": "NC_U22_4",
+        "5": "GND_L",
+        "6": "ISO_FEED"
+      },
+      "domain": "logic",
+      "kind": "X",
+      "model": "LM66100_PROJECT"
+    },
+    {
+      "ref": "U23",
+      "mpn": "SN74LVC1G17DBVR",
+      "value": "DBV5; D3 input buffer powered held rail; overvoltage-tolerant input",
+      "source": "BUF",
+      "pins": {
+        "1": "NC_U23_1",
+        "2": "D3",
+        "3": "GND_L",
+        "4": "TX_L_ISO",
+        "5": "V5_L"
+      },
+      "domain": "logic",
+      "kind": "X",
+      "model": "LVC17_PROJECT"
+    },
+    {
+      "ref": "U24",
+      "mpn": "SN74LVC1G17DBVR",
+      "value": "DBV5; RX output powered raw USB; Ioff protects unpowered Nano D8",
+      "source": "BUF",
+      "pins": {
+        "1": "NC_U24_1",
+        "2": "RX_L_ISO",
+        "3": "GND_L",
+        "4": "D8",
+        "5": "USB5V"
+      },
+      "domain": "logic",
+      "kind": "X",
+      "model": "LVC17_PROJECT"
     },
     {
       "ref": "D1",
@@ -213,8 +584,8 @@
     },
     {
       "ref": "R7",
-      "mpn": "MRS25000C1000FCT00",
-      "value": 100,
+      "mpn": "MRS25000C2200FCT00",
+      "value": 220,
       "source": "R",
       "pins": {
         "1": "GATE_DRIVE",
@@ -316,12 +687,350 @@
       "model": null
     },
     {
+      "ref": "R15",
+      "mpn": "MRS25000C2003FCT00",
+      "value": 200000,
+      "source": "R",
+      "pins": {
+        "1": "TIMER_SET",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R16",
+      "mpn": "MRS25000C3573FCT00",
+      "value": 357000,
+      "source": "R",
+      "pins": {
+        "1": "V5_F",
+        "2": "TIMER_DIV"
+      },
+      "domain": "field",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R17",
+      "mpn": "MRS25000C1003FCT00",
+      "value": 100000,
+      "source": "R",
+      "pins": {
+        "1": "TIMER_DIV",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R18",
+      "mpn": "MRS25000C2493FCT00",
+      "value": 249000,
+      "source": "R",
+      "pins": {
+        "1": "ARM_SET",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R19",
+      "mpn": "MRS25000C2553FCT00",
+      "value": 255000,
+      "source": "R",
+      "pins": {
+        "1": "V5_F",
+        "2": "ARM_DIV"
+      },
+      "domain": "field",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R20",
+      "mpn": "MRS25000C1003FCT00",
+      "value": 100000,
+      "source": "R",
+      "pins": {
+        "1": "ARM_DIV",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R21",
+      "mpn": "MRS25000C1503FCT00",
+      "value": 150000,
+      "source": "R",
+      "pins": {
+        "1": "V5_F",
+        "2": "PG_F"
+      },
+      "domain": "field",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R22",
+      "mpn": "MRS25000C1002FCT00",
+      "value": 10000,
+      "source": "R",
+      "pins": {
+        "1": "ARM_RAW",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R23",
+      "mpn": "MRS25000C1001FCT00",
+      "value": 1000,
+      "source": "R",
+      "pins": {
+        "1": "ARM_BUTTON",
+        "2": "ARM_RAW"
+      },
+      "domain": "field",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R24",
+      "mpn": "MRS25000C2201FCT00",
+      "value": 2200,
+      "source": "R",
+      "pins": {
+        "1": "PG_F",
+        "2": "PG_GATE"
+      },
+      "domain": "field",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R25",
+      "mpn": "MRS25000C1005FCT00",
+      "value": 10000000,
+      "source": "R",
+      "pins": {
+        "1": "PG_GATE",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R26",
+      "mpn": "MRS25000C1503FCT00",
+      "value": 150000,
+      "source": "R",
+      "pins": {
+        "1": "V5_L",
+        "2": "PG_L"
+      },
+      "domain": "logic",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R27",
+      "mpn": "MRS25000C3900FCT00",
+      "value": 390,
+      "source": "R",
+      "pins": {
+        "1": "USB5V",
+        "2": "LED_A"
+      },
+      "domain": "logic",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R28",
+      "mpn": "MRS25000C1002FCT00",
+      "value": 10000,
+      "source": "R",
+      "pins": {
+        "1": "V5_F",
+        "2": "USB_BAD"
+      },
+      "domain": "field",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R29",
+      "mpn": "MRS25000C1003FCT00",
+      "value": 100000,
+      "source": "R",
+      "pins": {
+        "1": "V5_F",
+        "2": "PG_SENSE_F"
+      },
+      "domain": "field",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R30",
+      "mpn": "MRS25000C1022FCT00",
+      "value": 10200,
+      "source": "R",
+      "pins": {
+        "1": "PG_SENSE_F",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R31",
+      "mpn": "MRS25000C1003FCT00",
+      "value": 100000,
+      "source": "R",
+      "pins": {
+        "1": "USB5V",
+        "2": "PG_SENSE_L"
+      },
+      "domain": "logic",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R32",
+      "mpn": "MRS25000C1022FCT00",
+      "value": 10200,
+      "source": "R",
+      "pins": {
+        "1": "PG_SENSE_L",
+        "2": "GND_L"
+      },
+      "domain": "logic",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R33",
+      "mpn": "MRS25000C2493FCT00",
+      "value": 249000,
+      "source": "R",
+      "pins": {
+        "1": "READY_SET",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R34",
+      "mpn": "MRS25000C2553FCT00",
+      "value": 255000,
+      "source": "R",
+      "pins": {
+        "1": "V5_F",
+        "2": "READY_DIV"
+      },
+      "domain": "field",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R35",
+      "mpn": "MRS25000C1003FCT00",
+      "value": 100000,
+      "source": "R",
+      "pins": {
+        "1": "READY_DIV",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R36",
+      "mpn": "MRS25000C2201FCT00",
+      "value": 2200,
+      "source": "R",
+      "pins": {
+        "1": "PG_L",
+        "2": "PG_LED_GATE"
+      },
+      "domain": "logic",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R37",
+      "mpn": "AC03000002209JAC00",
+      "value": 22,
+      "source": "POWER_R",
+      "pins": {
+        "1": "ISO_FEED",
+        "2": "V5_L"
+      },
+      "domain": "logic",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R38",
+      "mpn": "MRS25000C4701FCT00",
+      "value": 4700,
+      "source": "R",
+      "pins": {
+        "1": "USB5V",
+        "2": "GND_L"
+      },
+      "domain": "logic",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R39",
+      "mpn": "MRS25000C1002FCT00",
+      "value": 10000,
+      "source": "R",
+      "pins": {
+        "1": "TX_L_ISO",
+        "2": "GND_L"
+      },
+      "domain": "logic",
+      "kind": "R",
+      "model": null
+    },
+    {
+      "ref": "R40",
+      "mpn": "MRS25000C1002FCT00",
+      "value": 10000,
+      "source": "R",
+      "pins": {
+        "1": "RX_L_ISO",
+        "2": "GND_L"
+      },
+      "domain": "logic",
+      "kind": "R",
+      "model": null
+    },
+    {
       "ref": "C1",
       "mpn": "C315C104K5R5TA",
       "value": 1e-07,
       "source": "C100",
       "pins": {
-        "1": "USB5V",
+        "1": "V5_L",
         "2": "GND_L"
       },
       "domain": "logic",
@@ -443,6 +1152,294 @@
       },
       "domain": "field",
       "kind": "C",
+      "model": null
+    },
+    {
+      "ref": "C11",
+      "mpn": "C315C222J5G5TA",
+      "value": 2.2e-09,
+      "source": "CG",
+      "pins": {
+        "1": "PG_GATE",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "C",
+      "model": null
+    },
+    {
+      "ref": "C12",
+      "mpn": "C315C104K5R5TA",
+      "value": 1e-07,
+      "source": "C100",
+      "pins": {
+        "1": "V5_F",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "C",
+      "model": null
+    },
+    {
+      "ref": "C13",
+      "mpn": "C315C104K5R5TA",
+      "value": 1e-07,
+      "source": "C100",
+      "pins": {
+        "1": "V5_F",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "C",
+      "model": null
+    },
+    {
+      "ref": "C14",
+      "mpn": "C315C104K5R5TA",
+      "value": 1e-07,
+      "source": "C100",
+      "pins": {
+        "1": "V5_F",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "C",
+      "model": null
+    },
+    {
+      "ref": "C15",
+      "mpn": "C315C104K5R5TA",
+      "value": 1e-07,
+      "source": "C100",
+      "pins": {
+        "1": "V5_F",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "C",
+      "model": null
+    },
+    {
+      "ref": "C16",
+      "mpn": "C315C104K5R5TA",
+      "value": 1e-07,
+      "source": "C100",
+      "pins": {
+        "1": "V5_F",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "C",
+      "model": null
+    },
+    {
+      "ref": "C17",
+      "mpn": "C315C104K5R5TA",
+      "value": 1e-07,
+      "source": "C100",
+      "pins": {
+        "1": "V5_F",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "C",
+      "model": null
+    },
+    {
+      "ref": "C18",
+      "mpn": "C315C104K5R5TA",
+      "value": 1e-07,
+      "source": "C100",
+      "pins": {
+        "1": "V5_F",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "C",
+      "model": null
+    },
+    {
+      "ref": "C19",
+      "mpn": "C315C104K5R5TA",
+      "value": 1e-07,
+      "source": "C100",
+      "pins": {
+        "1": "V5_F",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "C",
+      "model": null
+    },
+    {
+      "ref": "C20",
+      "mpn": "C315C104K5R5TA",
+      "value": 1e-07,
+      "source": "C100",
+      "pins": {
+        "1": "V5_L",
+        "2": "GND_L"
+      },
+      "domain": "logic",
+      "kind": "C",
+      "model": null
+    },
+    {
+      "ref": "C21",
+      "mpn": "C315C104K5R5TA",
+      "value": 1e-07,
+      "source": "C100",
+      "pins": {
+        "1": "V5_F",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "C",
+      "model": null
+    },
+    {
+      "ref": "C22",
+      "mpn": "C315C104K5R5TA",
+      "value": 1e-07,
+      "source": "C100",
+      "pins": {
+        "1": "V5_F",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "C",
+      "model": null
+    },
+    {
+      "ref": "C23",
+      "mpn": "C315C104K5R5TA",
+      "value": 1e-07,
+      "source": "C100",
+      "pins": {
+        "1": "V5_F",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "C",
+      "model": null
+    },
+    {
+      "ref": "C24",
+      "mpn": "C315C104K5R5TA",
+      "value": 1e-07,
+      "source": "C100",
+      "pins": {
+        "1": "V5_F",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "C",
+      "model": null
+    },
+    {
+      "ref": "C25",
+      "mpn": "C315C104K5R5TA",
+      "value": 1e-07,
+      "source": "C100",
+      "pins": {
+        "1": "V5_F",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "C",
+      "model": null
+    },
+    {
+      "ref": "C26",
+      "mpn": "C315C104K5R5TA",
+      "value": 1e-07,
+      "source": "C100",
+      "pins": {
+        "1": "V5_F",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "C",
+      "model": null
+    },
+    {
+      "ref": "C27",
+      "mpn": "C315C104K5R5TA",
+      "value": 1e-07,
+      "source": "C100",
+      "pins": {
+        "1": "V5_F",
+        "2": "GND_F"
+      },
+      "domain": "field",
+      "kind": "C",
+      "model": null
+    },
+    {
+      "ref": "C28",
+      "mpn": "C340C475K5R5TA",
+      "value": 4.7e-06,
+      "source": "CHOLD",
+      "pins": {
+        "1": "V5_L",
+        "2": "GND_L"
+      },
+      "domain": "logic",
+      "kind": "C",
+      "model": null
+    },
+    {
+      "ref": "C29",
+      "mpn": "C340C475K5R5TA",
+      "value": 4.7e-06,
+      "source": "CHOLD",
+      "pins": {
+        "1": "V5_L",
+        "2": "GND_L"
+      },
+      "domain": "logic",
+      "kind": "C",
+      "model": null
+    },
+    {
+      "ref": "C30",
+      "mpn": "C315C104K5R5TA",
+      "value": 1e-07,
+      "source": "C100",
+      "pins": {
+        "1": "V5_L",
+        "2": "GND_L"
+      },
+      "domain": "logic",
+      "kind": "C",
+      "model": null
+    },
+    {
+      "ref": "C31",
+      "mpn": "C315C104K5R5TA",
+      "value": 1e-07,
+      "source": "C100",
+      "pins": {
+        "1": "USB5V",
+        "2": "GND_L"
+      },
+      "domain": "logic",
+      "kind": "C",
+      "model": null
+    },
+    {
+      "ref": "SW1",
+      "mpn": "B3F-1002-G",
+      "value": "Field-side SPST-NO; terminals1/2 and3/4 pairs; verify bottom-view numbering",
+      "source": "SW",
+      "pins": {
+        "1": "V5_F",
+        "2": "V5_F",
+        "3": "ARM_BUTTON",
+        "4": "ARM_BUTTON"
+      },
+      "domain": "field",
+      "kind": "BUTTON",
       "model": null
     },
     {
@@ -643,6 +1640,174 @@
       "domain": "field",
       "kind": "PAD",
       "model": null
+    },
+    {
+      "ref": "TP13",
+      "mpn": "project-test-pad",
+      "value": "TX_F",
+      "source": "PROJECT",
+      "pins": {
+        "1": "TX_F"
+      },
+      "domain": "field",
+      "kind": "PAD",
+      "model": null
+    },
+    {
+      "ref": "TP14",
+      "mpn": "project-test-pad",
+      "value": "TIMEOUT",
+      "source": "PROJECT",
+      "pins": {
+        "1": "TIMEOUT"
+      },
+      "domain": "field",
+      "kind": "PAD",
+      "model": null
+    },
+    {
+      "ref": "TP15",
+      "mpn": "project-test-pad",
+      "value": "ARMED",
+      "source": "PROJECT",
+      "pins": {
+        "1": "ARMED"
+      },
+      "domain": "field",
+      "kind": "PAD",
+      "model": null
+    },
+    {
+      "ref": "TP16",
+      "mpn": "project-test-pad",
+      "value": "PG_F",
+      "source": "PROJECT",
+      "pins": {
+        "1": "PG_F"
+      },
+      "domain": "field",
+      "kind": "PAD",
+      "model": null
+    },
+    {
+      "ref": "TP17",
+      "mpn": "project-test-pad",
+      "value": "ARM_RAW",
+      "source": "PROJECT",
+      "pins": {
+        "1": "ARM_RAW"
+      },
+      "domain": "field",
+      "kind": "PAD",
+      "model": null
+    },
+    {
+      "ref": "TP18",
+      "mpn": "project-test-pad",
+      "value": "PG_GATE",
+      "source": "PROJECT",
+      "pins": {
+        "1": "PG_GATE"
+      },
+      "domain": "field",
+      "kind": "PAD",
+      "model": null
+    },
+    {
+      "ref": "TP19",
+      "mpn": "project-test-pad",
+      "value": "LOCKED",
+      "source": "PROJECT",
+      "pins": {
+        "1": "LOCKED"
+      },
+      "domain": "field",
+      "kind": "PAD",
+      "model": null
+    },
+    {
+      "ref": "TP20",
+      "mpn": "project-test-pad",
+      "value": "REARM_READY",
+      "source": "PROJECT",
+      "pins": {
+        "1": "REARM_READY"
+      },
+      "domain": "field",
+      "kind": "PAD",
+      "model": null
+    },
+    {
+      "ref": "TP21",
+      "mpn": "project-test-pad",
+      "value": "READY_QUAL",
+      "source": "PROJECT",
+      "pins": {
+        "1": "READY_QUAL"
+      },
+      "domain": "field",
+      "kind": "PAD",
+      "model": null
+    },
+    {
+      "ref": "TP22",
+      "mpn": "project-test-pad",
+      "value": "READY_REQ",
+      "source": "PROJECT",
+      "pins": {
+        "1": "READY_REQ"
+      },
+      "domain": "field",
+      "kind": "PAD",
+      "model": null
+    },
+    {
+      "ref": "TP23",
+      "mpn": "project-test-pad",
+      "value": "USB_BAD",
+      "source": "PROJECT",
+      "pins": {
+        "1": "USB_BAD"
+      },
+      "domain": "field",
+      "kind": "PAD",
+      "model": null
+    },
+    {
+      "ref": "TP24",
+      "mpn": "project-test-pad",
+      "value": "PG_L",
+      "source": "PROJECT",
+      "pins": {
+        "1": "PG_L"
+      },
+      "domain": "logic",
+      "kind": "PAD",
+      "model": null
+    },
+    {
+      "ref": "TP25",
+      "mpn": "project-test-pad",
+      "value": "V5_L",
+      "source": "PROJECT",
+      "pins": {
+        "1": "V5_L"
+      },
+      "domain": "logic",
+      "kind": "PAD",
+      "model": null
+    },
+    {
+      "ref": "TP26",
+      "mpn": "project-test-pad",
+      "value": "ISO_FEED",
+      "source": "PROJECT",
+      "pins": {
+        "1": "ISO_FEED"
+      },
+      "domain": "logic",
+      "kind": "PAD",
+      "model": null
     }
   ],
   "sources": {
@@ -716,10 +1881,65 @@
       "https://data.energizer.com/pdfs/522_ap.pdf",
       "Form EBC-1108L; undated; nominal voltage and temperature table"
     ],
+    "TIMER": [
+      "Analog Devices",
+      "https://www.analog.com/media/en/technical-documentation/data-sheets/LTC6994-1-6994-2.pdf",
+      "Rev C; 2019-11; pp2-5,13-16"
+    ],
+    "LATCH": [
+      "Texas Instruments",
+      "https://www.ti.com/lit/ds/symlink/sn74lvc1g74.pdf",
+      "SCES794G; 2021-09; sections5,6.3,6.5-6.8,8.4"
+    ],
+    "NOR": [
+      "Texas Instruments",
+      "https://www.ti.com/lit/ds/symlink/sn74lvc2g02.pdf",
+      "SCES194N; 2019-05; sections5,6.3,6.5,6.6"
+    ],
+    "AND": [
+      "Texas Instruments",
+      "https://www.ti.com/lit/ds/symlink/sn74lvc2g08.pdf",
+      "SCES198N; 2015-12; sections5,6.3,6.5,6.6"
+    ],
+    "INV": [
+      "Texas Instruments",
+      "https://www.ti.com/lit/ds/symlink/sn74lvc1g04.pdf",
+      "SCES214AF; 2025-10; sections4,5.3,5.5-5.7"
+    ],
+    "PG": [
+      "Texas Instruments",
+      "https://www.ti.com/lit/ds/symlink/tps3808.pdf",
+      "SBVS050N; 2026-08; table5-1,sections6.5-6.6,7.3-7.4"
+    ],
+    "HOLD": [
+      "Texas Instruments",
+      "https://www.ti.com/lit/ds/symlink/lm66100.pdf",
+      "SLVSEZ8A;2019-06;sections5,6.3,6.5-6.6,8.3.2; CE compares held rail with direct raw VIN"
+    ],
+    "CHOLD": [
+      "KEMET",
+      "https://content.kemet.com/datasheets/KEM_C1050_GOLDMAX_X7R.pdf",
+      "C1050_GOLDMAX_X7R;2025-08-05;ordering p1,Table1E p11:C340/50V/475; effective combined capacitance measured>=4.7uF"
+    ],
+    "OR": [
+      "Texas Instruments",
+      "https://www.ti.com/lit/ds/symlink/sn74lvc1g32.pdf",
+      "SCES219W;2026-08; sections4,5.3,5.5-5.7"
+    ],
+    "OPTO": [
+      "Vishay",
+      "https://www.vishay.com/docs/83430/vo617a.pdf",
+      "83430; Rev2.8;2025-01-22;pp1-4,wideDIPoption6mechanicaldrawing"
+    ],
+    "SW": [
+      "OMRON",
+      "https://omronfs.omron.com/en_US/ecb/products/pdf/en-b3f.pdf",
+      "B3F catalog; CatNoA070-E1-08; ratings p3,pin numbering p4; retrieved2026-10-06"
+    ],
     "PROJECT": [
       "HondaDash",
       "SCHEMATIC.md",
-      "M3b rev A; functional pads and test points; no vehicle connector pinout"
+      "M3b.1 rev B; functional pads and test points; no vehicle connector pinout"
     ]
   }
 }

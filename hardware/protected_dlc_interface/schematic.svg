@@ -1,114 +1,288 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="2488" viewBox="0 0 2400 2488">
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="5328" viewBox="0 0 2400 5328">
 <rect width="100%" height="100%" fill="#f8fafc"/>
 <style>text{font:15px monospace;fill:#152238}.title{font:bold 23px sans-serif}.ref{font:bold 16px monospace} .pin{stroke:#344d65;stroke-width:2}</style>
-<text x="24" y="35" class="title">HondaDash M3b rev A — isolated protected-interface candidate — NOT VERIFIED</text>
+<text x="24" y="35" class="title">HondaDash M3b.1 revision B — independent TX cutoff/latch — NOT VERIFIED</text>
 <text x="24" y="65">NET-LABEL SCHEMATIC: identical labels connect. All IC pin numbers are top-view. NC_* pads stay open.</text>
 <text x="24" y="90">No vehicle connector assignment. B1 is an independent battery. No USB5V pullup on ECU_DATA. See SCHEMATIC.md.</text>
 
-<rect x="25" y="118" width="670" height="515" rx="8" fill="#e9edfa"/>
-<rect x="715" y="118" width="1660" height="515" rx="8" fill="#e6f3ef"/>
-<path d="M705 120V630" stroke="#bc7b18" stroke-width="4" stroke-dasharray="10 8"/>
-<text x="50" y="151" class="title">USB / Nano / GND_L</text>
-<text x="760" y="151" class="title">Independent battery / field circuit / GND_F</text>
-<rect x="580" y="185" width="250" height="320" fill="#fff1d7" stroke="#a66c14" stroke-width="2"/>
-<text x="596" y="213" class="ref">U1 ISO7721FDWR</text>
-<text x="600" y="240">INB5 → OUTB12</text>
-<text x="600" y="470">OUTA4 ← INA13</text>
-<text x="606" y="358">signal barrier</text>
-<text x="600" y="381">F default LOW</text>
-<path d="M110 265H580 M830 265H960 M1160 265H1280 M1380 265H1460" fill="none" stroke="#20578b" stroke-width="3"/>
-<text x="110" y="250">TP1 D3 / sink enable HIGH</text>
-<text x="850" y="250">TX_F</text>
-<rect x="960" y="235" width="200" height="60" fill="white" stroke="#20578b"/>
-<text x="975" y="260" class="ref">U2 LVC1G17</text><text x="975" y="282">2 A → 4 Y</text>
-<rect x="1280" y="253" width="100" height="24" fill="white" stroke="#20578b"/>
-<text x="1280" y="240">R7 100R</text>
-<path d="M1460 235V295 M1475 235V295 M1475 240H1520V210H1650 M1475 290H1520V328" fill="none" stroke="#20578b" stroke-width="3"/>
-<path d="M1500 328H1540 M1507 335H1533 M1514 342H1526" stroke="#20578b" stroke-width="2"/>
-<text x="1420" y="370">Q1 PMV88ENEA</text><text x="1440" y="392">S2=GND_F</text>
-<text x="1430" y="224">G1</text><text x="1530" y="201">pin3 / DRAIN</text>
-<rect x="1650" y="198" width="130" height="24" fill="white" stroke="#20578b"/>
-<rect x="1860" y="198" width="130" height="24" fill="white" stroke="#20578b"/>
-<path d="M1780 210H1860 M1990 210H2220V420H2070" fill="none" stroke="#20578b" stroke-width="3"/>
-<text x="1650" y="184">R13 22R/10W</text><text x="1860" y="184">R12 22R/10W</text>
-<text x="2050" y="192" class="ref">TP3 ECU_DATA</text>
-<text x="1660" y="262">D1: A=GND_F, K=DRAIN</text>
-<text x="1660" y="287">R8/C10: GATE to GND_F</text>
-<rect x="1920" y="408" width="150" height="24" fill="white" stroke="#20578b"/>
-<text x="1930" y="395">R1 220k</text>
-<path d="M1920 420H1770V405H1640" fill="none" stroke="#20578b" stroke-width="3"/>
-<circle cx="1770" cy="420" r="5" fill="#20578b"/>
-<text x="1730" y="455">SENSE</text>
-<path d="M1640 370L1515 430L1640 490Z" fill="white" stroke="#20578b" stroke-width="2"/>
-<text x="1605" y="413">+</text><text x="1605" y="464">−</text>
-<path d="M1640 458H1690" stroke="#20578b" stroke-width="3"/>
-<text x="1670" y="486">VREF</text>
-<text x="1538" y="432">U3A</text><text x="1415" y="516">LM393B + hysteresis</text>
-<path d="M1515 430H830 M580 430H110" fill="none" stroke="#20578b" stroke-width="3"/>
-<text x="1120" y="418">RX_F / TP6</text><text x="110" y="416">TP2 D8 / noninverted RX</text>
-<text x="910" y="476">R2: SENSE→GND_F; R3: RX_F→SENSE</text>
-<text x="910" y="501">R4/R5: VREF divider; R6: RX_F pullup only</text>
-<text x="1830" y="515">D2: A=GND_F, K=SENSE</text>
-<text x="50" y="558">J1: USB5V, GND_L, D3, D8</text>
-<text x="50" y="584">No VIN; R9/R10 hold D3/D8 LOW</text>
-<text x="760" y="558">B1(+) → R14 47R/3W → D3P(A→K) → U4.IN1 → U4.OUT5 → V5_F</text>
-<text x="760" y="584">B1(−)=GND_F; U4.EN3 open; R11 bleeds field rail; C1–C10 see pin map below</text>
-<text x="760" y="610">J2.3 VEHICLE_POWER_NC: no trace. Keep ≥8mm domain clearance/creepage; unqualified PCB.</text>
-<text x="24" y="669" class="title">Complete pin map and passives — equal labels connect; NC labels remain open</text>
+<rect x="25" y="118" width="670" height="510" fill="#e9edfa"/>
+<rect x="715" y="118" width="1660" height="510" fill="#e6f3ef"/>
+<path d="M705 120V625" stroke="#bc7b18" stroke-width="4" stroke-dasharray="10 8"/>
+<text x="45" y="155" class="title">USB / Nano / GND_L</text>
+<text x="735" y="155" class="title">Independent battery / field / GND_F</text>
+<text x="50" y="208">D3 → U23(held) → U1.INB5 ║ OUTB12 → TX_F</text>
+<text x="740" y="208">TX_F → U5 LTC6994-1 (2.048ms) → TIMEOUT → U8.CLR_N</text>
+<text x="740" y="250">SW1 → R23/R22 → U6 debounce → ARM_CLK → U7 DFF</text>
+<text x="740" y="290">U17/U18 READY latch: released button + idle + healthy power for20ms first</text>
+<text x="740" y="332">TX_F AND U7.ARMED → U9 → U2 → R7/C10 → Q1.G</text>
+<text x="740" y="374">ECU_DATA → R12 22R → R13 22R → Q1.D / Q1.S → Q2.D / Q2.S → GND_F</text>
+<text x="740" y="416">U11 PG_F → R24/C11 → Q2.G; U12 cleans PG for logic; D1 negative path remains</text>
+<text x="50" y="270">USB5V → U22 → R37 → V5_L; U22.CE=V5_L</text>
+<text x="50" y="310">U13: sense rawUSB / powered heldV5_L → Q3</text>
+<text x="740" y="455">U14 collector USB_BAD + NOT_PG → U15.POWER_BAD</text>
+<text x="50" y="350">USB5V → R27 → U14 LED → Q3; optical barrier</text>
+<text x="50" y="420">D8 ← U24(raw) ← U1.OUTA4 ║ INA13 ← RX_F</text>
+<text x="740" y="495">ARM_DATA=IDLE_OK AND PG_CLEAN AND REARM_READY; RX: R1/R2/R3/D2/U3→RX_F</text>
+<text x="50" y="548">No field-ground button or test pad</text>
+<text x="50" y="580">may connect to logic ground.</text>
+<text x="740" y="548">B1 → R14/D3P → U4 → V5_F. No line pullup in adapter.</text>
+<text x="740" y="580">Field button and all failsafe test points remain in GND_F domain.</text>
+<text x="740" y="610">No vehicle connector pinout. Domain PCB spacing ≥8mm; NOT VERIFIED.</text>
+<text x="24" y="669" class="title">Complete pin map — equal net labels connect; NC labels stay open</text>
 
-<g id="R9" data-mpn="MRS25000C4702FCT00"><rect x="24" y="710" width="445" height="110" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
-<text x="34" y="732" class="ref">R9 MRS25000C4702FCT00</text>
-<text x="34" y="753">47000</text>
+<g id="U13" data-mpn="TPS3808G01DBVR"><rect x="24" y="710" width="445" height="202" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="732" class="ref">U13 TPS3808G01DBVR</text>
+<text x="34" y="753">DBV6; USB supervisor; 100k/10.2k; drives opto …</text>
 <line class="pin" x1="34" x2="64" y1="770" y2="770"/>
-<text x="71" y="775" data-pin="1" data-net="D3"> 1 — D3</text>
+<text x="71" y="775" data-pin="1" data-net="PG_L"> 1 — PG_L</text>
 <line class="pin" x1="34" x2="64" y1="793" y2="793"/>
 <text x="71" y="798" data-pin="2" data-net="GND_L"> 2 — GND_L</text>
+<line class="pin" x1="34" x2="64" y1="816" y2="816"/>
+<text x="71" y="821" data-pin="3" data-net="V5_L"> 3 — V5_L</text>
+<line class="pin" x1="34" x2="64" y1="839" y2="839"/>
+<text x="71" y="844" data-pin="4" data-net="NC_U13_CT"> 4 — NC_U13_CT</text>
+<line class="pin" x1="34" x2="64" y1="862" y2="862"/>
+<text x="71" y="867" data-pin="5" data-net="PG_SENSE_L"> 5 — PG_SENSE_L</text>
+<line class="pin" x1="34" x2="64" y1="885" y2="885"/>
+<text x="71" y="890" data-pin="6" data-net="V5_L"> 6 — V5_L</text>
 </g>
-<g id="R10" data-mpn="MRS25000C1002FCT00"><rect x="24" y="832" width="445" height="110" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
-<text x="34" y="854" class="ref">R10 MRS25000C1002FCT00</text>
-<text x="34" y="875">10000</text>
-<line class="pin" x1="34" x2="64" y1="892" y2="892"/>
-<text x="71" y="897" data-pin="1" data-net="D8"> 1 — D8</text>
-<line class="pin" x1="34" x2="64" y1="915" y2="915"/>
-<text x="71" y="920" data-pin="2" data-net="GND_L"> 2 — GND_L</text>
+<g id="Q3" data-mpn="PMV88ENEA,215"><rect x="24" y="924" width="445" height="133" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="946" class="ref">Q3 PMV88ENEA,215</text>
+<text x="34" y="967">USB-PG LED sink; no field-ground connection</text>
+<line class="pin" x1="34" x2="64" y1="984" y2="984"/>
+<text x="71" y="989" data-pin="1" data-net="PG_LED_GATE"> 1 — PG_LED_GATE</text>
+<line class="pin" x1="34" x2="64" y1="1007" y2="1007"/>
+<text x="71" y="1012" data-pin="2" data-net="GND_L"> 2 — GND_L</text>
+<line class="pin" x1="34" x2="64" y1="1030" y2="1030"/>
+<text x="71" y="1035" data-pin="3" data-net="LED_K"> 3 — LED_K</text>
 </g>
-<g id="C1" data-mpn="C315C104K5R5TA"><rect x="24" y="954" width="445" height="110" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
-<text x="34" y="976" class="ref">C1 C315C104K5R5TA</text>
-<text x="34" y="997">1e-07</text>
-<line class="pin" x1="34" x2="64" y1="1014" y2="1014"/>
-<text x="71" y="1019" data-pin="1" data-net="USB5V"> 1 — USB5V</text>
-<line class="pin" x1="34" x2="64" y1="1037" y2="1037"/>
-<text x="71" y="1042" data-pin="2" data-net="GND_L"> 2 — GND_L</text>
+<g id="U22" data-mpn="LM66100DCKR"><rect x="24" y="1069" width="445" height="202" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="1091" class="ref">U22 LM66100DCKR</text>
+<text x="34" y="1112">DCK6; VIN raw USB; CE held V5_L; resistor is A…</text>
+<line class="pin" x1="34" x2="64" y1="1129" y2="1129"/>
+<text x="71" y="1134" data-pin="1" data-net="USB5V"> 1 — USB5V</text>
+<line class="pin" x1="34" x2="64" y1="1152" y2="1152"/>
+<text x="71" y="1157" data-pin="2" data-net="GND_L"> 2 — GND_L</text>
+<line class="pin" x1="34" x2="64" y1="1175" y2="1175"/>
+<text x="71" y="1180" data-pin="3" data-net="V5_L"> 3 — V5_L</text>
+<line class="pin" x1="34" x2="64" y1="1198" y2="1198"/>
+<text x="71" y="1203" data-pin="4" data-net="NC_U22_4"> 4 — NC_U22_4</text>
+<line class="pin" x1="34" x2="64" y1="1221" y2="1221"/>
+<text x="71" y="1226" data-pin="5" data-net="GND_L"> 5 — GND_L</text>
+<line class="pin" x1="34" x2="64" y1="1244" y2="1244"/>
+<text x="71" y="1249" data-pin="6" data-net="ISO_FEED"> 6 — ISO_FEED</text>
 </g>
-<g id="J1" data-mpn="project-logic-pads"><rect x="24" y="1076" width="445" height="156" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
-<text x="34" y="1098" class="ref">J1 project-logic-pads</text>
-<text x="34" y="1119">Nano: USB5V/GND/D3/D8; no VIN</text>
-<line class="pin" x1="34" x2="64" y1="1136" y2="1136"/>
-<text x="71" y="1141" data-pin="1" data-net="USB5V"> 1 — USB5V</text>
-<line class="pin" x1="34" x2="64" y1="1159" y2="1159"/>
-<text x="71" y="1164" data-pin="2" data-net="GND_L"> 2 — GND_L</text>
-<line class="pin" x1="34" x2="64" y1="1182" y2="1182"/>
-<text x="71" y="1187" data-pin="3" data-net="D3"> 3 — D3</text>
-<line class="pin" x1="34" x2="64" y1="1205" y2="1205"/>
-<text x="71" y="1210" data-pin="4" data-net="D8"> 4 — D8</text>
+<g id="U23" data-mpn="SN74LVC1G17DBVR"><rect x="24" y="1283" width="445" height="179" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="1305" class="ref">U23 SN74LVC1G17DBVR</text>
+<text x="34" y="1326">DBV5; D3 input buffer powered held rail; overv…</text>
+<line class="pin" x1="34" x2="64" y1="1343" y2="1343"/>
+<text x="71" y="1348" data-pin="1" data-net="NC_U23_1"> 1 — NC_U23_1</text>
+<line class="pin" x1="34" x2="64" y1="1366" y2="1366"/>
+<text x="71" y="1371" data-pin="2" data-net="D3"> 2 — D3</text>
+<line class="pin" x1="34" x2="64" y1="1389" y2="1389"/>
+<text x="71" y="1394" data-pin="3" data-net="GND_L"> 3 — GND_L</text>
+<line class="pin" x1="34" x2="64" y1="1412" y2="1412"/>
+<text x="71" y="1417" data-pin="4" data-net="TX_L_ISO"> 4 — TX_L_ISO</text>
+<line class="pin" x1="34" x2="64" y1="1435" y2="1435"/>
+<text x="71" y="1440" data-pin="5" data-net="V5_L"> 5 — V5_L</text>
 </g>
-<g id="TP1" data-mpn="project-test-pad"><rect x="24" y="1244" width="445" height="87" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
-<text x="34" y="1266" class="ref">TP1 project-test-pad</text>
-<text x="34" y="1287">D3</text>
-<line class="pin" x1="34" x2="64" y1="1304" y2="1304"/>
-<text x="71" y="1309" data-pin="1" data-net="D3"> 1 — D3</text>
+<g id="U24" data-mpn="SN74LVC1G17DBVR"><rect x="24" y="1474" width="445" height="179" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="1496" class="ref">U24 SN74LVC1G17DBVR</text>
+<text x="34" y="1517">DBV5; RX output powered raw USB; Ioff protects…</text>
+<line class="pin" x1="34" x2="64" y1="1534" y2="1534"/>
+<text x="71" y="1539" data-pin="1" data-net="NC_U24_1"> 1 — NC_U24_1</text>
+<line class="pin" x1="34" x2="64" y1="1557" y2="1557"/>
+<text x="71" y="1562" data-pin="2" data-net="RX_L_ISO"> 2 — RX_L_ISO</text>
+<line class="pin" x1="34" x2="64" y1="1580" y2="1580"/>
+<text x="71" y="1585" data-pin="3" data-net="GND_L"> 3 — GND_L</text>
+<line class="pin" x1="34" x2="64" y1="1603" y2="1603"/>
+<text x="71" y="1608" data-pin="4" data-net="D8"> 4 — D8</text>
+<line class="pin" x1="34" x2="64" y1="1626" y2="1626"/>
+<text x="71" y="1631" data-pin="5" data-net="USB5V"> 5 — USB5V</text>
 </g>
-<g id="TP2" data-mpn="project-test-pad"><rect x="24" y="1343" width="445" height="87" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
-<text x="34" y="1365" class="ref">TP2 project-test-pad</text>
-<text x="34" y="1386">D8</text>
-<line class="pin" x1="34" x2="64" y1="1403" y2="1403"/>
-<text x="71" y="1408" data-pin="1" data-net="D8"> 1 — D8</text>
+<g id="R9" data-mpn="MRS25000C4702FCT00"><rect x="24" y="1665" width="445" height="110" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="1687" class="ref">R9 MRS25000C4702FCT00</text>
+<text x="34" y="1708">47000</text>
+<line class="pin" x1="34" x2="64" y1="1725" y2="1725"/>
+<text x="71" y="1730" data-pin="1" data-net="D3"> 1 — D3</text>
+<line class="pin" x1="34" x2="64" y1="1748" y2="1748"/>
+<text x="71" y="1753" data-pin="2" data-net="GND_L"> 2 — GND_L</text>
 </g>
-<g id="TP11" data-mpn="project-test-pad"><rect x="24" y="1442" width="445" height="87" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
-<text x="34" y="1464" class="ref">TP11 project-test-pad</text>
-<text x="34" y="1485">GND_L</text>
-<line class="pin" x1="34" x2="64" y1="1502" y2="1502"/>
-<text x="71" y="1507" data-pin="1" data-net="GND_L"> 1 — GND_L</text>
+<g id="R10" data-mpn="MRS25000C1002FCT00"><rect x="24" y="1787" width="445" height="110" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="1809" class="ref">R10 MRS25000C1002FCT00</text>
+<text x="34" y="1830">10000</text>
+<line class="pin" x1="34" x2="64" y1="1847" y2="1847"/>
+<text x="71" y="1852" data-pin="1" data-net="D8"> 1 — D8</text>
+<line class="pin" x1="34" x2="64" y1="1870" y2="1870"/>
+<text x="71" y="1875" data-pin="2" data-net="GND_L"> 2 — GND_L</text>
+</g>
+<g id="R26" data-mpn="MRS25000C1503FCT00"><rect x="24" y="1909" width="445" height="110" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="1931" class="ref">R26 MRS25000C1503FCT00</text>
+<text x="34" y="1952">150000</text>
+<line class="pin" x1="34" x2="64" y1="1969" y2="1969"/>
+<text x="71" y="1974" data-pin="1" data-net="V5_L"> 1 — V5_L</text>
+<line class="pin" x1="34" x2="64" y1="1992" y2="1992"/>
+<text x="71" y="1997" data-pin="2" data-net="PG_L"> 2 — PG_L</text>
+</g>
+<g id="R27" data-mpn="MRS25000C3900FCT00"><rect x="24" y="2031" width="445" height="110" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="2053" class="ref">R27 MRS25000C3900FCT00</text>
+<text x="34" y="2074">390</text>
+<line class="pin" x1="34" x2="64" y1="2091" y2="2091"/>
+<text x="71" y="2096" data-pin="1" data-net="USB5V"> 1 — USB5V</text>
+<line class="pin" x1="34" x2="64" y1="2114" y2="2114"/>
+<text x="71" y="2119" data-pin="2" data-net="LED_A"> 2 — LED_A</text>
+</g>
+<g id="R31" data-mpn="MRS25000C1003FCT00"><rect x="24" y="2153" width="445" height="110" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="2175" class="ref">R31 MRS25000C1003FCT00</text>
+<text x="34" y="2196">100000</text>
+<line class="pin" x1="34" x2="64" y1="2213" y2="2213"/>
+<text x="71" y="2218" data-pin="1" data-net="USB5V"> 1 — USB5V</text>
+<line class="pin" x1="34" x2="64" y1="2236" y2="2236"/>
+<text x="71" y="2241" data-pin="2" data-net="PG_SENSE_L"> 2 — PG_SENSE_L</text>
+</g>
+<g id="R32" data-mpn="MRS25000C1022FCT00"><rect x="24" y="2275" width="445" height="110" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="2297" class="ref">R32 MRS25000C1022FCT00</text>
+<text x="34" y="2318">10200</text>
+<line class="pin" x1="34" x2="64" y1="2335" y2="2335"/>
+<text x="71" y="2340" data-pin="1" data-net="PG_SENSE_L"> 1 — PG_SENSE_L</text>
+<line class="pin" x1="34" x2="64" y1="2358" y2="2358"/>
+<text x="71" y="2363" data-pin="2" data-net="GND_L"> 2 — GND_L</text>
+</g>
+<g id="R36" data-mpn="MRS25000C2201FCT00"><rect x="24" y="2397" width="445" height="110" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="2419" class="ref">R36 MRS25000C2201FCT00</text>
+<text x="34" y="2440">2200</text>
+<line class="pin" x1="34" x2="64" y1="2457" y2="2457"/>
+<text x="71" y="2462" data-pin="1" data-net="PG_L"> 1 — PG_L</text>
+<line class="pin" x1="34" x2="64" y1="2480" y2="2480"/>
+<text x="71" y="2485" data-pin="2" data-net="PG_LED_GATE"> 2 — PG_LED_GATE</text>
+</g>
+<g id="R37" data-mpn="AC03000002209JAC00"><rect x="24" y="2519" width="445" height="110" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="2541" class="ref">R37 AC03000002209JAC00</text>
+<text x="34" y="2562">22</text>
+<line class="pin" x1="34" x2="64" y1="2579" y2="2579"/>
+<text x="71" y="2584" data-pin="1" data-net="ISO_FEED"> 1 — ISO_FEED</text>
+<line class="pin" x1="34" x2="64" y1="2602" y2="2602"/>
+<text x="71" y="2607" data-pin="2" data-net="V5_L"> 2 — V5_L</text>
+</g>
+<g id="R38" data-mpn="MRS25000C4701FCT00"><rect x="24" y="2641" width="445" height="110" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="2663" class="ref">R38 MRS25000C4701FCT00</text>
+<text x="34" y="2684">4700</text>
+<line class="pin" x1="34" x2="64" y1="2701" y2="2701"/>
+<text x="71" y="2706" data-pin="1" data-net="USB5V"> 1 — USB5V</text>
+<line class="pin" x1="34" x2="64" y1="2724" y2="2724"/>
+<text x="71" y="2729" data-pin="2" data-net="GND_L"> 2 — GND_L</text>
+</g>
+<g id="R39" data-mpn="MRS25000C1002FCT00"><rect x="24" y="2763" width="445" height="110" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="2785" class="ref">R39 MRS25000C1002FCT00</text>
+<text x="34" y="2806">10000</text>
+<line class="pin" x1="34" x2="64" y1="2823" y2="2823"/>
+<text x="71" y="2828" data-pin="1" data-net="TX_L_ISO"> 1 — TX_L_ISO</text>
+<line class="pin" x1="34" x2="64" y1="2846" y2="2846"/>
+<text x="71" y="2851" data-pin="2" data-net="GND_L"> 2 — GND_L</text>
+</g>
+<g id="R40" data-mpn="MRS25000C1002FCT00"><rect x="24" y="2885" width="445" height="110" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="2907" class="ref">R40 MRS25000C1002FCT00</text>
+<text x="34" y="2928">10000</text>
+<line class="pin" x1="34" x2="64" y1="2945" y2="2945"/>
+<text x="71" y="2950" data-pin="1" data-net="RX_L_ISO"> 1 — RX_L_ISO</text>
+<line class="pin" x1="34" x2="64" y1="2968" y2="2968"/>
+<text x="71" y="2973" data-pin="2" data-net="GND_L"> 2 — GND_L</text>
+</g>
+<g id="C1" data-mpn="C315C104K5R5TA"><rect x="24" y="3007" width="445" height="110" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="3029" class="ref">C1 C315C104K5R5TA</text>
+<text x="34" y="3050">1e-07</text>
+<line class="pin" x1="34" x2="64" y1="3067" y2="3067"/>
+<text x="71" y="3072" data-pin="1" data-net="V5_L"> 1 — V5_L</text>
+<line class="pin" x1="34" x2="64" y1="3090" y2="3090"/>
+<text x="71" y="3095" data-pin="2" data-net="GND_L"> 2 — GND_L</text>
+</g>
+<g id="C20" data-mpn="C315C104K5R5TA"><rect x="24" y="3129" width="445" height="110" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="3151" class="ref">C20 C315C104K5R5TA</text>
+<text x="34" y="3172">1e-07</text>
+<line class="pin" x1="34" x2="64" y1="3189" y2="3189"/>
+<text x="71" y="3194" data-pin="1" data-net="V5_L"> 1 — V5_L</text>
+<line class="pin" x1="34" x2="64" y1="3212" y2="3212"/>
+<text x="71" y="3217" data-pin="2" data-net="GND_L"> 2 — GND_L</text>
+</g>
+<g id="C28" data-mpn="C340C475K5R5TA"><rect x="24" y="3251" width="445" height="110" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="3273" class="ref">C28 C340C475K5R5TA</text>
+<text x="34" y="3294">4.7e-06</text>
+<line class="pin" x1="34" x2="64" y1="3311" y2="3311"/>
+<text x="71" y="3316" data-pin="1" data-net="V5_L"> 1 — V5_L</text>
+<line class="pin" x1="34" x2="64" y1="3334" y2="3334"/>
+<text x="71" y="3339" data-pin="2" data-net="GND_L"> 2 — GND_L</text>
+</g>
+<g id="C29" data-mpn="C340C475K5R5TA"><rect x="24" y="3373" width="445" height="110" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="3395" class="ref">C29 C340C475K5R5TA</text>
+<text x="34" y="3416">4.7e-06</text>
+<line class="pin" x1="34" x2="64" y1="3433" y2="3433"/>
+<text x="71" y="3438" data-pin="1" data-net="V5_L"> 1 — V5_L</text>
+<line class="pin" x1="34" x2="64" y1="3456" y2="3456"/>
+<text x="71" y="3461" data-pin="2" data-net="GND_L"> 2 — GND_L</text>
+</g>
+<g id="C30" data-mpn="C315C104K5R5TA"><rect x="24" y="3495" width="445" height="110" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="3517" class="ref">C30 C315C104K5R5TA</text>
+<text x="34" y="3538">1e-07</text>
+<line class="pin" x1="34" x2="64" y1="3555" y2="3555"/>
+<text x="71" y="3560" data-pin="1" data-net="V5_L"> 1 — V5_L</text>
+<line class="pin" x1="34" x2="64" y1="3578" y2="3578"/>
+<text x="71" y="3583" data-pin="2" data-net="GND_L"> 2 — GND_L</text>
+</g>
+<g id="C31" data-mpn="C315C104K5R5TA"><rect x="24" y="3617" width="445" height="110" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="3639" class="ref">C31 C315C104K5R5TA</text>
+<text x="34" y="3660">1e-07</text>
+<line class="pin" x1="34" x2="64" y1="3677" y2="3677"/>
+<text x="71" y="3682" data-pin="1" data-net="USB5V"> 1 — USB5V</text>
+<line class="pin" x1="34" x2="64" y1="3700" y2="3700"/>
+<text x="71" y="3705" data-pin="2" data-net="GND_L"> 2 — GND_L</text>
+</g>
+<g id="J1" data-mpn="project-logic-pads"><rect x="24" y="3739" width="445" height="156" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="3761" class="ref">J1 project-logic-pads</text>
+<text x="34" y="3782">Nano: USB5V/GND/D3/D8; no VIN</text>
+<line class="pin" x1="34" x2="64" y1="3799" y2="3799"/>
+<text x="71" y="3804" data-pin="1" data-net="USB5V"> 1 — USB5V</text>
+<line class="pin" x1="34" x2="64" y1="3822" y2="3822"/>
+<text x="71" y="3827" data-pin="2" data-net="GND_L"> 2 — GND_L</text>
+<line class="pin" x1="34" x2="64" y1="3845" y2="3845"/>
+<text x="71" y="3850" data-pin="3" data-net="D3"> 3 — D3</text>
+<line class="pin" x1="34" x2="64" y1="3868" y2="3868"/>
+<text x="71" y="3873" data-pin="4" data-net="D8"> 4 — D8</text>
+</g>
+<g id="TP1" data-mpn="project-test-pad"><rect x="24" y="3907" width="445" height="87" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="3929" class="ref">TP1 project-test-pad</text>
+<text x="34" y="3950">D3</text>
+<line class="pin" x1="34" x2="64" y1="3967" y2="3967"/>
+<text x="71" y="3972" data-pin="1" data-net="D3"> 1 — D3</text>
+</g>
+<g id="TP2" data-mpn="project-test-pad"><rect x="24" y="4006" width="445" height="87" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="4028" class="ref">TP2 project-test-pad</text>
+<text x="34" y="4049">D8</text>
+<line class="pin" x1="34" x2="64" y1="4066" y2="4066"/>
+<text x="71" y="4071" data-pin="1" data-net="D8"> 1 — D8</text>
+</g>
+<g id="TP11" data-mpn="project-test-pad"><rect x="24" y="4105" width="445" height="87" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="4127" class="ref">TP11 project-test-pad</text>
+<text x="34" y="4148">GND_L</text>
+<line class="pin" x1="34" x2="64" y1="4165" y2="4165"/>
+<text x="71" y="4170" data-pin="1" data-net="GND_L"> 1 — GND_L</text>
+</g>
+<g id="TP24" data-mpn="project-test-pad"><rect x="24" y="4204" width="445" height="87" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="4226" class="ref">TP24 project-test-pad</text>
+<text x="34" y="4247">PG_L</text>
+<line class="pin" x1="34" x2="64" y1="4264" y2="4264"/>
+<text x="71" y="4269" data-pin="1" data-net="PG_L"> 1 — PG_L</text>
+</g>
+<g id="TP25" data-mpn="project-test-pad"><rect x="24" y="4303" width="445" height="87" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="4325" class="ref">TP25 project-test-pad</text>
+<text x="34" y="4346">V5_L</text>
+<line class="pin" x1="34" x2="64" y1="4363" y2="4363"/>
+<text x="71" y="4368" data-pin="1" data-net="V5_L"> 1 — V5_L</text>
+</g>
+<g id="TP26" data-mpn="project-test-pad"><rect x="24" y="4402" width="445" height="87" rx="5" fill="#e9edfa" stroke="#8a9bad"/>
+<text x="34" y="4424" class="ref">TP26 project-test-pad</text>
+<text x="34" y="4445">ISO_FEED</text>
+<line class="pin" x1="34" x2="64" y1="4462" y2="4462"/>
+<text x="71" y="4467" data-pin="1" data-net="ISO_FEED"> 1 — ISO_FEED</text>
 </g>
 <g id="U1" data-mpn="ISO7721FDWR"><rect x="500" y="710" width="445" height="432" rx="5" fill="#fff1d7" stroke="#8a9bad"/>
 <text x="510" y="732" class="ref">U1 ISO7721FDWR</text>
@@ -118,11 +292,11 @@
 <line class="pin" x1="510" x2="540" y1="793" y2="793"/>
 <text x="547" y="798" data-pin="2" data-net="NC_U1_2"> 2 — NC_U1_2</text>
 <line class="pin" x1="510" x2="540" y1="816" y2="816"/>
-<text x="547" y="821" data-pin="3" data-net="USB5V"> 3 — USB5V</text>
+<text x="547" y="821" data-pin="3" data-net="V5_L"> 3 — V5_L</text>
 <line class="pin" x1="510" x2="540" y1="839" y2="839"/>
-<text x="547" y="844" data-pin="4" data-net="D8"> 4 — D8</text>
+<text x="547" y="844" data-pin="4" data-net="RX_L_ISO"> 4 — RX_L_ISO</text>
 <line class="pin" x1="510" x2="540" y1="862" y2="862"/>
-<text x="547" y="867" data-pin="5" data-net="D3"> 5 — D3</text>
+<text x="547" y="867" data-pin="5" data-net="TX_L_ISO"> 5 — TX_L_ISO</text>
 <line class="pin" x1="510" x2="540" y1="885" y2="885"/>
 <text x="547" y="890" data-pin="6" data-net="NC_U1_6"> 6 — NC_U1_6</text>
 <line class="pin" x1="510" x2="540" y1="908" y2="908"/>
@@ -146,13 +320,25 @@
 <line class="pin" x1="510" x2="540" y1="1115" y2="1115"/>
 <text x="547" y="1120" data-pin="16" data-net="GND_F">16 — GND_F</text>
 </g>
+<g id="U14" data-mpn="VO617A-4X016"><rect x="500" y="1154" width="445" height="156" rx="5" fill="#fff1d7" stroke="#8a9bad"/>
+<text x="510" y="1176" class="ref">U14 VO617A-4X016</text>
+<text x="510" y="1197">Wide DIP4 option6; 1LED_A 2LED_K 3emitter 4col…</text>
+<line class="pin" x1="510" x2="540" y1="1214" y2="1214"/>
+<text x="547" y="1219" data-pin="1" data-net="LED_A"> 1 — LED_A</text>
+<line class="pin" x1="510" x2="540" y1="1237" y2="1237"/>
+<text x="547" y="1242" data-pin="2" data-net="LED_K"> 2 — LED_K</text>
+<line class="pin" x1="510" x2="540" y1="1260" y2="1260"/>
+<text x="547" y="1265" data-pin="3" data-net="GND_F"> 3 — GND_F</text>
+<line class="pin" x1="510" x2="540" y1="1283" y2="1283"/>
+<text x="547" y="1288" data-pin="4" data-net="USB_BAD"> 4 — USB_BAD</text>
+</g>
 <g id="U2" data-mpn="SN74LVC1G17DBVR"><rect x="976" y="710" width="445" height="179" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
 <text x="986" y="732" class="ref">U2 SN74LVC1G17DBVR</text>
 <text x="986" y="753">DBV-5; noninverting TX gate buffer</text>
 <line class="pin" x1="986" x2="1016" y1="770" y2="770"/>
 <text x="1023" y="775" data-pin="1" data-net="NC_U2_1"> 1 — NC_U2_1</text>
 <line class="pin" x1="986" x2="1016" y1="793" y2="793"/>
-<text x="1023" y="798" data-pin="2" data-net="TX_F"> 2 — TX_F</text>
+<text x="1023" y="798" data-pin="2" data-net="TX_ALLOWED"> 2 — TX_ALLOWED</text>
 <line class="pin" x1="986" x2="1016" y1="816" y2="816"/>
 <text x="1023" y="821" data-pin="3" data-net="GND_F"> 3 — GND_F</text>
 <line class="pin" x1="986" x2="1016" y1="839" y2="839"/>
@@ -160,322 +346,928 @@
 <line class="pin" x1="986" x2="1016" y1="862" y2="862"/>
 <text x="1023" y="867" data-pin="5" data-net="V5_F"> 5 — V5_F</text>
 </g>
-<g id="U3" data-mpn="LM393BIDR"><rect x="976" y="901" width="445" height="248" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="923" class="ref">U3 LM393BIDR</text>
-<text x="986" y="944">SOIC-8; RX Schmitt comparator; spare held LOW</text>
+<g id="Q1" data-mpn="PMV88ENEA,215"><rect x="976" y="901" width="445" height="133" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="923" class="ref">Q1 PMV88ENEA,215</text>
+<text x="986" y="944">60V NMOS SOT23: 1 gate / 2 source / 3 drain</text>
 <line class="pin" x1="986" x2="1016" y1="961" y2="961"/>
-<text x="1023" y="966" data-pin="1" data-net="RX_F"> 1 — RX_F</text>
+<text x="1023" y="966" data-pin="1" data-net="GATE"> 1 — GATE</text>
 <line class="pin" x1="986" x2="1016" y1="984" y2="984"/>
-<text x="1023" y="989" data-pin="2" data-net="VREF"> 2 — VREF</text>
+<text x="1023" y="989" data-pin="2" data-net="SINK_RET"> 2 — SINK_RET</text>
 <line class="pin" x1="986" x2="1016" y1="1007" y2="1007"/>
-<text x="1023" y="1012" data-pin="3" data-net="SENSE"> 3 — SENSE</text>
-<line class="pin" x1="986" x2="1016" y1="1030" y2="1030"/>
-<text x="1023" y="1035" data-pin="4" data-net="GND_F"> 4 — GND_F</text>
-<line class="pin" x1="986" x2="1016" y1="1053" y2="1053"/>
-<text x="1023" y="1058" data-pin="5" data-net="GND_F"> 5 — GND_F</text>
-<line class="pin" x1="986" x2="1016" y1="1076" y2="1076"/>
-<text x="1023" y="1081" data-pin="6" data-net="VREF"> 6 — VREF</text>
-<line class="pin" x1="986" x2="1016" y1="1099" y2="1099"/>
-<text x="1023" y="1104" data-pin="7" data-net="NC_U3_7"> 7 — NC_U3_7</text>
-<line class="pin" x1="986" x2="1016" y1="1122" y2="1122"/>
-<text x="1023" y="1127" data-pin="8" data-net="V5_F"> 8 — V5_F</text>
+<text x="1023" y="1012" data-pin="3" data-net="DRAIN"> 3 — DRAIN</text>
 </g>
-<g id="U4" data-mpn="TPS70950DBVR"><rect x="976" y="1161" width="445" height="179" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="1183" class="ref">U4 TPS70950DBVR</text>
-<text x="986" y="1204">DBV-5; 5V LDO; EN left open (internal enable)</text>
+<g id="U6" data-mpn="LTC6994IS6-2#TRPBF"><rect x="976" y="1046" width="445" height="202" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="1068" class="ref">U6 LTC6994IS6-2#TRPBF</text>
+<text x="986" y="1089">TSOT23-6; both-edge debounce; RSET249k; DIVCOD…</text>
+<line class="pin" x1="986" x2="1016" y1="1106" y2="1106"/>
+<text x="1023" y="1111" data-pin="1" data-net="ARM_RAW"> 1 — ARM_RAW</text>
+<line class="pin" x1="986" x2="1016" y1="1129" y2="1129"/>
+<text x="1023" y="1134" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<line class="pin" x1="986" x2="1016" y1="1152" y2="1152"/>
+<text x="1023" y="1157" data-pin="3" data-net="ARM_SET"> 3 — ARM_SET</text>
+<line class="pin" x1="986" x2="1016" y1="1175" y2="1175"/>
+<text x="1023" y="1180" data-pin="4" data-net="ARM_DIV"> 4 — ARM_DIV</text>
+<line class="pin" x1="986" x2="1016" y1="1198" y2="1198"/>
+<text x="1023" y="1203" data-pin="5" data-net="V5_F"> 5 — V5_F</text>
 <line class="pin" x1="986" x2="1016" y1="1221" y2="1221"/>
-<text x="1023" y="1226" data-pin="1" data-net="LDO_IN"> 1 — LDO_IN</text>
-<line class="pin" x1="986" x2="1016" y1="1244" y2="1244"/>
-<text x="1023" y="1249" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
-<line class="pin" x1="986" x2="1016" y1="1267" y2="1267"/>
-<text x="1023" y="1272" data-pin="3" data-net="NC_U4_EN"> 3 — NC_U4_EN</text>
-<line class="pin" x1="986" x2="1016" y1="1290" y2="1290"/>
-<text x="1023" y="1295" data-pin="4" data-net="NC_U4_4"> 4 — NC_U4_4</text>
-<line class="pin" x1="986" x2="1016" y1="1313" y2="1313"/>
-<text x="1023" y="1318" data-pin="5" data-net="V5_F"> 5 — V5_F</text>
+<text x="1023" y="1226" data-pin="6" data-net="ARM_CLK"> 6 — ARM_CLK</text>
 </g>
-<g id="Q1" data-mpn="PMV88ENEA,215"><rect x="976" y="1352" width="445" height="133" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="1374" class="ref">Q1 PMV88ENEA,215</text>
-<text x="986" y="1395">60V NMOS SOT23: 1 gate / 2 source / 3 drain</text>
+<g id="U9" data-mpn="SN74LVC2G08DCUR"><rect x="976" y="1260" width="445" height="248" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="1282" class="ref">U9 SN74LVC2G08DCUR</text>
+<text x="986" y="1303">VSSOP8; AND1=TX gating; AND2=arm qualification</text>
+<line class="pin" x1="986" x2="1016" y1="1320" y2="1320"/>
+<text x="1023" y="1325" data-pin="1" data-net="TX_F"> 1 — TX_F</text>
+<line class="pin" x1="986" x2="1016" y1="1343" y2="1343"/>
+<text x="1023" y="1348" data-pin="2" data-net="ARMED"> 2 — ARMED</text>
+<line class="pin" x1="986" x2="1016" y1="1366" y2="1366"/>
+<text x="1023" y="1371" data-pin="3" data-net="ARM_SAFE"> 3 — ARM_SAFE</text>
+<line class="pin" x1="986" x2="1016" y1="1389" y2="1389"/>
+<text x="1023" y="1394" data-pin="4" data-net="GND_F"> 4 — GND_F</text>
 <line class="pin" x1="986" x2="1016" y1="1412" y2="1412"/>
-<text x="1023" y="1417" data-pin="1" data-net="GATE"> 1 — GATE</text>
+<text x="1023" y="1417" data-pin="5" data-net="IDLE_OK"> 5 — IDLE_OK</text>
 <line class="pin" x1="986" x2="1016" y1="1435" y2="1435"/>
-<text x="1023" y="1440" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1023" y="1440" data-pin="6" data-net="PG_CLEAN"> 6 — PG_CLEAN</text>
 <line class="pin" x1="986" x2="1016" y1="1458" y2="1458"/>
-<text x="1023" y="1463" data-pin="3" data-net="DRAIN"> 3 — DRAIN</text>
+<text x="1023" y="1463" data-pin="7" data-net="TX_ALLOWED"> 7 — TX_ALLOWED</text>
+<line class="pin" x1="986" x2="1016" y1="1481" y2="1481"/>
+<text x="1023" y="1486" data-pin="8" data-net="V5_F"> 8 — V5_F</text>
 </g>
-<g id="D1" data-mpn="SS16-M3/IA"><rect x="976" y="1497" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="1519" class="ref">D1 SS16-M3/IA</text>
-<text x="986" y="1540">60V 1A SMA; band=K; drain negative clamp</text>
-<line class="pin" x1="986" x2="1016" y1="1557" y2="1557"/>
-<text x="1023" y="1562" data-pin="A" data-net="GND_F"> A — GND_F</text>
+<g id="U15" data-mpn="SN74LVC1G32DBVR"><rect x="976" y="1520" width="445" height="179" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="1542" class="ref">U15 SN74LVC1G32DBVR</text>
+<text x="986" y="1563">DBV5; either power loss forces fault clear</text>
 <line class="pin" x1="986" x2="1016" y1="1580" y2="1580"/>
-<text x="1023" y="1585" data-pin="K" data-net="DRAIN"> K — DRAIN</text>
+<text x="1023" y="1585" data-pin="1" data-net="NOT_PG"> 1 — NOT_PG</text>
+<line class="pin" x1="986" x2="1016" y1="1603" y2="1603"/>
+<text x="1023" y="1608" data-pin="2" data-net="USB_BAD_CLEAN"> 2 — USB_BAD_CLEAN</text>
+<line class="pin" x1="986" x2="1016" y1="1626" y2="1626"/>
+<text x="1023" y="1631" data-pin="3" data-net="GND_F"> 3 — GND_F</text>
+<line class="pin" x1="986" x2="1016" y1="1649" y2="1649"/>
+<text x="1023" y="1654" data-pin="4" data-net="POWER_BAD"> 4 — POWER_BAD</text>
+<line class="pin" x1="986" x2="1016" y1="1672" y2="1672"/>
+<text x="1023" y="1677" data-pin="5" data-net="V5_F"> 5 — V5_F</text>
 </g>
-<g id="D2" data-mpn="BAT54,215"><rect x="976" y="1619" width="445" height="133" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="1641" class="ref">D2 BAT54,215</text>
-<text x="986" y="1662">SOT23: 1=A / 2=NC / 3=K; negative RX clamp</text>
-<line class="pin" x1="986" x2="1016" y1="1679" y2="1679"/>
-<text x="1023" y="1684" data-pin="1" data-net="GND_F"> 1 — GND_F</text>
-<line class="pin" x1="986" x2="1016" y1="1702" y2="1702"/>
-<text x="1023" y="1707" data-pin="2" data-net="NC_D2_2"> 2 — NC_D2_2</text>
-<line class="pin" x1="986" x2="1016" y1="1725" y2="1725"/>
-<text x="1023" y="1730" data-pin="3" data-net="SENSE"> 3 — SENSE</text>
+<g id="U18" data-mpn="SN74LVC1G74DCUR"><rect x="976" y="1711" width="445" height="248" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="1733" class="ref">U18 SN74LVC1G74DCUR</text>
+<text x="986" y="1754">VSSOP8; readiness memory; clears on power or T…</text>
+<line class="pin" x1="986" x2="1016" y1="1771" y2="1771"/>
+<text x="1023" y="1776" data-pin="1" data-net="READY_QUAL"> 1 — READY_QUAL</text>
+<line class="pin" x1="986" x2="1016" y1="1794" y2="1794"/>
+<text x="1023" y="1799" data-pin="2" data-net="V5_F"> 2 — V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="1817" y2="1817"/>
+<text x="1023" y="1822" data-pin="3" data-net="NC_U18_3"> 3 — NC_U18_3</text>
+<line class="pin" x1="986" x2="1016" y1="1840" y2="1840"/>
+<text x="1023" y="1845" data-pin="4" data-net="GND_F"> 4 — GND_F</text>
+<line class="pin" x1="986" x2="1016" y1="1863" y2="1863"/>
+<text x="1023" y="1868" data-pin="5" data-net="REARM_READY"> 5 — REARM_READY</text>
+<line class="pin" x1="986" x2="1016" y1="1886" y2="1886"/>
+<text x="1023" y="1891" data-pin="6" data-net="CLR_N"> 6 — CLR_N</text>
+<line class="pin" x1="986" x2="1016" y1="1909" y2="1909"/>
+<text x="1023" y="1914" data-pin="7" data-net="V5_F"> 7 — V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="1932" y2="1932"/>
+<text x="1023" y="1937" data-pin="8" data-net="V5_F"> 8 — V5_F</text>
 </g>
-<g id="D3P" data-mpn="SS16-M3/IA"><rect x="976" y="1764" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="1786" class="ref">D3P SS16-M3/IA</text>
-<text x="986" y="1807">Battery reverse protection; band=K</text>
-<line class="pin" x1="986" x2="1016" y1="1824" y2="1824"/>
-<text x="1023" y="1829" data-pin="A" data-net="BAT_LIMITED"> A — BAT_LIMITED</text>
-<line class="pin" x1="986" x2="1016" y1="1847" y2="1847"/>
-<text x="1023" y="1852" data-pin="K" data-net="LDO_IN"> K — LDO_IN</text>
+<g id="U21" data-mpn="SN74LVC1G17DBVR"><rect x="976" y="1971" width="445" height="179" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="1993" class="ref">U21 SN74LVC1G17DBVR</text>
+<text x="986" y="2014">DBV5; cleans physical switch level for readine…</text>
+<line class="pin" x1="986" x2="1016" y1="2031" y2="2031"/>
+<text x="1023" y="2036" data-pin="1" data-net="NC_U21_1"> 1 — NC_U21_1</text>
+<line class="pin" x1="986" x2="1016" y1="2054" y2="2054"/>
+<text x="1023" y="2059" data-pin="2" data-net="ARM_RAW"> 2 — ARM_RAW</text>
+<line class="pin" x1="986" x2="1016" y1="2077" y2="2077"/>
+<text x="1023" y="2082" data-pin="3" data-net="GND_F"> 3 — GND_F</text>
+<line class="pin" x1="986" x2="1016" y1="2100" y2="2100"/>
+<text x="1023" y="2105" data-pin="4" data-net="ARM_RAW_CLEAN"> 4 — ARM_RAW_CLEAN</text>
+<line class="pin" x1="986" x2="1016" y1="2123" y2="2123"/>
+<text x="1023" y="2128" data-pin="5" data-net="V5_F"> 5 — V5_F</text>
 </g>
-<g id="R1" data-mpn="MRS25000C2203FCT00"><rect x="976" y="1886" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="1908" class="ref">R1 MRS25000C2203FCT00</text>
-<text x="986" y="1929">220000</text>
-<line class="pin" x1="986" x2="1016" y1="1946" y2="1946"/>
-<text x="1023" y="1951" data-pin="1" data-net="ECU_DATA"> 1 — ECU_DATA</text>
-<line class="pin" x1="986" x2="1016" y1="1969" y2="1969"/>
-<text x="1023" y="1974" data-pin="2" data-net="SENSE"> 2 — SENSE</text>
+<g id="D2" data-mpn="BAT54,215"><rect x="976" y="2162" width="445" height="133" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="2184" class="ref">D2 BAT54,215</text>
+<text x="986" y="2205">SOT23: 1=A / 2=NC / 3=K; negative RX clamp</text>
+<line class="pin" x1="986" x2="1016" y1="2222" y2="2222"/>
+<text x="1023" y="2227" data-pin="1" data-net="GND_F"> 1 — GND_F</text>
+<line class="pin" x1="986" x2="1016" y1="2245" y2="2245"/>
+<text x="1023" y="2250" data-pin="2" data-net="NC_D2_2"> 2 — NC_D2_2</text>
+<line class="pin" x1="986" x2="1016" y1="2268" y2="2268"/>
+<text x="1023" y="2273" data-pin="3" data-net="SENSE"> 3 — SENSE</text>
 </g>
-<g id="R2" data-mpn="MRS25000C6802FCT00"><rect x="976" y="2008" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="2030" class="ref">R2 MRS25000C6802FCT00</text>
-<text x="986" y="2051">68000</text>
-<line class="pin" x1="986" x2="1016" y1="2068" y2="2068"/>
-<text x="1023" y="2073" data-pin="1" data-net="SENSE"> 1 — SENSE</text>
-<line class="pin" x1="986" x2="1016" y1="2091" y2="2091"/>
-<text x="1023" y="2096" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<g id="R3" data-mpn="MRS25000C1004FCT00"><rect x="976" y="2307" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="2329" class="ref">R3 MRS25000C1004FCT00</text>
+<text x="986" y="2350">1000000</text>
+<line class="pin" x1="986" x2="1016" y1="2367" y2="2367"/>
+<text x="1023" y="2372" data-pin="1" data-net="RX_F"> 1 — RX_F</text>
+<line class="pin" x1="986" x2="1016" y1="2390" y2="2390"/>
+<text x="1023" y="2395" data-pin="2" data-net="SENSE"> 2 — SENSE</text>
 </g>
-<g id="R3" data-mpn="MRS25000C1004FCT00"><rect x="976" y="2130" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="2152" class="ref">R3 MRS25000C1004FCT00</text>
-<text x="986" y="2173">1000000</text>
-<line class="pin" x1="986" x2="1016" y1="2190" y2="2190"/>
-<text x="1023" y="2195" data-pin="1" data-net="RX_F"> 1 — RX_F</text>
-<line class="pin" x1="986" x2="1016" y1="2213" y2="2213"/>
-<text x="1023" y="2218" data-pin="2" data-net="SENSE"> 2 — SENSE</text>
+<g id="R6" data-mpn="MRS25000C2201FCT00"><rect x="976" y="2429" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="2451" class="ref">R6 MRS25000C2201FCT00</text>
+<text x="986" y="2472">2200</text>
+<line class="pin" x1="986" x2="1016" y1="2489" y2="2489"/>
+<text x="1023" y="2494" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="2512" y2="2512"/>
+<text x="1023" y="2517" data-pin="2" data-net="RX_F"> 2 — RX_F</text>
 </g>
-<g id="R4" data-mpn="MRS25000C7872FCT00"><rect x="976" y="2252" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="986" y="2274" class="ref">R4 MRS25000C7872FCT00</text>
-<text x="986" y="2295">78700</text>
-<line class="pin" x1="986" x2="1016" y1="2312" y2="2312"/>
-<text x="1023" y="2317" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
-<line class="pin" x1="986" x2="1016" y1="2335" y2="2335"/>
-<text x="1023" y="2340" data-pin="2" data-net="VREF"> 2 — VREF</text>
+<g id="R11" data-mpn="MRS25000C1001FCT00"><rect x="976" y="2551" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="2573" class="ref">R11 MRS25000C1001FCT00</text>
+<text x="986" y="2594">1000</text>
+<line class="pin" x1="986" x2="1016" y1="2611" y2="2611"/>
+<text x="1023" y="2616" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="2634" y2="2634"/>
+<text x="1023" y="2639" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="R5" data-mpn="MRS25000C1002FCT00"><rect x="1452" y="710" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="732" class="ref">R5 MRS25000C1002FCT00</text>
-<text x="1462" y="753">10000</text>
+<g id="R14" data-mpn="AC03000004709JAC00"><rect x="976" y="2673" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="2695" class="ref">R14 AC03000004709JAC00</text>
+<text x="986" y="2716">47</text>
+<line class="pin" x1="986" x2="1016" y1="2733" y2="2733"/>
+<text x="1023" y="2738" data-pin="1" data-net="BAT_PLUS"> 1 — BAT_PLUS</text>
+<line class="pin" x1="986" x2="1016" y1="2756" y2="2756"/>
+<text x="1023" y="2761" data-pin="2" data-net="BAT_LIMITED"> 2 — BAT_LIMITED</text>
+</g>
+<g id="R17" data-mpn="MRS25000C1003FCT00"><rect x="976" y="2795" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="2817" class="ref">R17 MRS25000C1003FCT00</text>
+<text x="986" y="2838">100000</text>
+<line class="pin" x1="986" x2="1016" y1="2855" y2="2855"/>
+<text x="1023" y="2860" data-pin="1" data-net="TIMER_DIV"> 1 — TIMER_DIV</text>
+<line class="pin" x1="986" x2="1016" y1="2878" y2="2878"/>
+<text x="1023" y="2883" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="R20" data-mpn="MRS25000C1003FCT00"><rect x="976" y="2917" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="2939" class="ref">R20 MRS25000C1003FCT00</text>
+<text x="986" y="2960">100000</text>
+<line class="pin" x1="986" x2="1016" y1="2977" y2="2977"/>
+<text x="1023" y="2982" data-pin="1" data-net="ARM_DIV"> 1 — ARM_DIV</text>
+<line class="pin" x1="986" x2="1016" y1="3000" y2="3000"/>
+<text x="1023" y="3005" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="R23" data-mpn="MRS25000C1001FCT00"><rect x="976" y="3039" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="3061" class="ref">R23 MRS25000C1001FCT00</text>
+<text x="986" y="3082">1000</text>
+<line class="pin" x1="986" x2="1016" y1="3099" y2="3099"/>
+<text x="1023" y="3104" data-pin="1" data-net="ARM_BUTTON"> 1 — ARM_BUTTON</text>
+<line class="pin" x1="986" x2="1016" y1="3122" y2="3122"/>
+<text x="1023" y="3127" data-pin="2" data-net="ARM_RAW"> 2 — ARM_RAW</text>
+</g>
+<g id="R28" data-mpn="MRS25000C1002FCT00"><rect x="976" y="3161" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="3183" class="ref">R28 MRS25000C1002FCT00</text>
+<text x="986" y="3204">10000</text>
+<line class="pin" x1="986" x2="1016" y1="3221" y2="3221"/>
+<text x="1023" y="3226" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="3244" y2="3244"/>
+<text x="1023" y="3249" data-pin="2" data-net="USB_BAD"> 2 — USB_BAD</text>
+</g>
+<g id="R33" data-mpn="MRS25000C2493FCT00"><rect x="976" y="3283" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="3305" class="ref">R33 MRS25000C2493FCT00</text>
+<text x="986" y="3326">249000</text>
+<line class="pin" x1="986" x2="1016" y1="3343" y2="3343"/>
+<text x="1023" y="3348" data-pin="1" data-net="READY_SET"> 1 — READY_SET</text>
+<line class="pin" x1="986" x2="1016" y1="3366" y2="3366"/>
+<text x="1023" y="3371" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C2" data-mpn="C315C104K5R5TA"><rect x="976" y="3405" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="3427" class="ref">C2 C315C104K5R5TA</text>
+<text x="986" y="3448">1e-07</text>
+<line class="pin" x1="986" x2="1016" y1="3465" y2="3465"/>
+<text x="1023" y="3470" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="3488" y2="3488"/>
+<text x="1023" y="3493" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C5" data-mpn="C315C103K5R5TA"><rect x="976" y="3527" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="3549" class="ref">C5 C315C103K5R5TA</text>
+<text x="986" y="3570">1e-08</text>
+<line class="pin" x1="986" x2="1016" y1="3587" y2="3587"/>
+<text x="1023" y="3592" data-pin="1" data-net="VREF"> 1 — VREF</text>
+<line class="pin" x1="986" x2="1016" y1="3610" y2="3610"/>
+<text x="1023" y="3615" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C8" data-mpn="C340C225K5R5TA"><rect x="976" y="3649" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="3671" class="ref">C8 C340C225K5R5TA</text>
+<text x="986" y="3692">2.2e-06</text>
+<line class="pin" x1="986" x2="1016" y1="3709" y2="3709"/>
+<text x="1023" y="3714" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="3732" y2="3732"/>
+<text x="1023" y="3737" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C11" data-mpn="C315C222J5G5TA"><rect x="976" y="3771" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="3793" class="ref">C11 C315C222J5G5TA</text>
+<text x="986" y="3814">2.2e-09</text>
+<line class="pin" x1="986" x2="1016" y1="3831" y2="3831"/>
+<text x="1023" y="3836" data-pin="1" data-net="PG_GATE"> 1 — PG_GATE</text>
+<line class="pin" x1="986" x2="1016" y1="3854" y2="3854"/>
+<text x="1023" y="3859" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C14" data-mpn="C315C104K5R5TA"><rect x="976" y="3893" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="3915" class="ref">C14 C315C104K5R5TA</text>
+<text x="986" y="3936">1e-07</text>
+<line class="pin" x1="986" x2="1016" y1="3953" y2="3953"/>
+<text x="1023" y="3958" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="3976" y2="3976"/>
+<text x="1023" y="3981" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C17" data-mpn="C315C104K5R5TA"><rect x="976" y="4015" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="4037" class="ref">C17 C315C104K5R5TA</text>
+<text x="986" y="4058">1e-07</text>
+<line class="pin" x1="986" x2="1016" y1="4075" y2="4075"/>
+<text x="1023" y="4080" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="4098" y2="4098"/>
+<text x="1023" y="4103" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C21" data-mpn="C315C104K5R5TA"><rect x="976" y="4137" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="4159" class="ref">C21 C315C104K5R5TA</text>
+<text x="986" y="4180">1e-07</text>
+<line class="pin" x1="986" x2="1016" y1="4197" y2="4197"/>
+<text x="1023" y="4202" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="4220" y2="4220"/>
+<text x="1023" y="4225" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C24" data-mpn="C315C104K5R5TA"><rect x="976" y="4259" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="4281" class="ref">C24 C315C104K5R5TA</text>
+<text x="986" y="4302">1e-07</text>
+<line class="pin" x1="986" x2="1016" y1="4319" y2="4319"/>
+<text x="1023" y="4324" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="4342" y2="4342"/>
+<text x="1023" y="4347" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C27" data-mpn="C315C104K5R5TA"><rect x="976" y="4381" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="4403" class="ref">C27 C315C104K5R5TA</text>
+<text x="986" y="4424">1e-07</text>
+<line class="pin" x1="986" x2="1016" y1="4441" y2="4441"/>
+<text x="1023" y="4446" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="4464" y2="4464"/>
+<text x="1023" y="4469" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="J3" data-mpn="project-battery-pads"><rect x="976" y="4503" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="4525" class="ref">J3 project-battery-pads</text>
+<text x="986" y="4546">Battery disconnected to switch OFF</text>
+<line class="pin" x1="986" x2="1016" y1="4563" y2="4563"/>
+<text x="1023" y="4568" data-pin="1" data-net="BAT_PLUS"> 1 — BAT_PLUS</text>
+<line class="pin" x1="986" x2="1016" y1="4586" y2="4586"/>
+<text x="1023" y="4591" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="TP3" data-mpn="project-test-pad"><rect x="976" y="4625" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="4647" class="ref">TP3 project-test-pad</text>
+<text x="986" y="4668">ECU_DATA</text>
+<line class="pin" x1="986" x2="1016" y1="4685" y2="4685"/>
+<text x="1023" y="4690" data-pin="1" data-net="ECU_DATA"> 1 — ECU_DATA</text>
+</g>
+<g id="TP6" data-mpn="project-test-pad"><rect x="976" y="4724" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="4746" class="ref">TP6 project-test-pad</text>
+<text x="986" y="4767">RX_F</text>
+<line class="pin" x1="986" x2="1016" y1="4784" y2="4784"/>
+<text x="1023" y="4789" data-pin="1" data-net="RX_F"> 1 — RX_F</text>
+</g>
+<g id="TP9" data-mpn="project-test-pad"><rect x="976" y="4823" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="4845" class="ref">TP9 project-test-pad</text>
+<text x="986" y="4866">V5_F</text>
+<line class="pin" x1="986" x2="1016" y1="4883" y2="4883"/>
+<text x="1023" y="4888" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+</g>
+<g id="TP13" data-mpn="project-test-pad"><rect x="976" y="4922" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="4944" class="ref">TP13 project-test-pad</text>
+<text x="986" y="4965">TX_F</text>
+<line class="pin" x1="986" x2="1016" y1="4982" y2="4982"/>
+<text x="1023" y="4987" data-pin="1" data-net="TX_F"> 1 — TX_F</text>
+</g>
+<g id="TP16" data-mpn="project-test-pad"><rect x="976" y="5021" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="5043" class="ref">TP16 project-test-pad</text>
+<text x="986" y="5064">PG_F</text>
+<line class="pin" x1="986" x2="1016" y1="5081" y2="5081"/>
+<text x="1023" y="5086" data-pin="1" data-net="PG_F"> 1 — PG_F</text>
+</g>
+<g id="TP19" data-mpn="project-test-pad"><rect x="976" y="5120" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="5142" class="ref">TP19 project-test-pad</text>
+<text x="986" y="5163">LOCKED</text>
+<line class="pin" x1="986" x2="1016" y1="5180" y2="5180"/>
+<text x="1023" y="5185" data-pin="1" data-net="LOCKED"> 1 — LOCKED</text>
+</g>
+<g id="TP22" data-mpn="project-test-pad"><rect x="976" y="5219" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="986" y="5241" class="ref">TP22 project-test-pad</text>
+<text x="986" y="5262">READY_REQ</text>
+<line class="pin" x1="986" x2="1016" y1="5279" y2="5279"/>
+<text x="1023" y="5284" data-pin="1" data-net="READY_REQ"> 1 — READY_REQ</text>
+</g>
+<g id="U3" data-mpn="LM393BIDR"><rect x="1452" y="710" width="445" height="248" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="732" class="ref">U3 LM393BIDR</text>
+<text x="1462" y="753">SOIC-8; RX Schmitt comparator; spare held LOW</text>
 <line class="pin" x1="1462" x2="1492" y1="770" y2="770"/>
-<text x="1499" y="775" data-pin="1" data-net="VREF"> 1 — VREF</text>
+<text x="1499" y="775" data-pin="1" data-net="RX_F"> 1 — RX_F</text>
 <line class="pin" x1="1462" x2="1492" y1="793" y2="793"/>
-<text x="1499" y="798" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<text x="1499" y="798" data-pin="2" data-net="VREF"> 2 — VREF</text>
+<line class="pin" x1="1462" x2="1492" y1="816" y2="816"/>
+<text x="1499" y="821" data-pin="3" data-net="SENSE"> 3 — SENSE</text>
+<line class="pin" x1="1462" x2="1492" y1="839" y2="839"/>
+<text x="1499" y="844" data-pin="4" data-net="GND_F"> 4 — GND_F</text>
+<line class="pin" x1="1462" x2="1492" y1="862" y2="862"/>
+<text x="1499" y="867" data-pin="5" data-net="GND_F"> 5 — GND_F</text>
+<line class="pin" x1="1462" x2="1492" y1="885" y2="885"/>
+<text x="1499" y="890" data-pin="6" data-net="VREF"> 6 — VREF</text>
+<line class="pin" x1="1462" x2="1492" y1="908" y2="908"/>
+<text x="1499" y="913" data-pin="7" data-net="NC_U3_7"> 7 — NC_U3_7</text>
+<line class="pin" x1="1462" x2="1492" y1="931" y2="931"/>
+<text x="1499" y="936" data-pin="8" data-net="V5_F"> 8 — V5_F</text>
 </g>
-<g id="R6" data-mpn="MRS25000C2201FCT00"><rect x="1452" y="832" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="854" class="ref">R6 MRS25000C2201FCT00</text>
-<text x="1462" y="875">2200</text>
-<line class="pin" x1="1462" x2="1492" y1="892" y2="892"/>
-<text x="1499" y="897" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
-<line class="pin" x1="1462" x2="1492" y1="915" y2="915"/>
-<text x="1499" y="920" data-pin="2" data-net="RX_F"> 2 — RX_F</text>
+<g id="U5" data-mpn="LTC6994IS6-1#TRPBF"><rect x="1452" y="970" width="445" height="202" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="992" class="ref">U5 LTC6994IS6-1#TRPBF</text>
+<text x="1462" y="1013">TSOT23-6; rising delay; RSET200k; DIVCODE3/N512</text>
+<line class="pin" x1="1462" x2="1492" y1="1030" y2="1030"/>
+<text x="1499" y="1035" data-pin="1" data-net="TX_F"> 1 — TX_F</text>
+<line class="pin" x1="1462" x2="1492" y1="1053" y2="1053"/>
+<text x="1499" y="1058" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<line class="pin" x1="1462" x2="1492" y1="1076" y2="1076"/>
+<text x="1499" y="1081" data-pin="3" data-net="TIMER_SET"> 3 — TIMER_SET</text>
+<line class="pin" x1="1462" x2="1492" y1="1099" y2="1099"/>
+<text x="1499" y="1104" data-pin="4" data-net="TIMER_DIV"> 4 — TIMER_DIV</text>
+<line class="pin" x1="1462" x2="1492" y1="1122" y2="1122"/>
+<text x="1499" y="1127" data-pin="5" data-net="V5_F"> 5 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="1145" y2="1145"/>
+<text x="1499" y="1150" data-pin="6" data-net="TIMEOUT"> 6 — TIMEOUT</text>
 </g>
-<g id="R7" data-mpn="MRS25000C1000FCT00"><rect x="1452" y="954" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="976" class="ref">R7 MRS25000C1000FCT00</text>
-<text x="1462" y="997">100</text>
-<line class="pin" x1="1462" x2="1492" y1="1014" y2="1014"/>
-<text x="1499" y="1019" data-pin="1" data-net="GATE_DRIVE"> 1 — GATE_DRIVE</text>
-<line class="pin" x1="1462" x2="1492" y1="1037" y2="1037"/>
-<text x="1499" y="1042" data-pin="2" data-net="GATE"> 2 — GATE</text>
+<g id="U8" data-mpn="SN74LVC2G02DCUR"><rect x="1452" y="1184" width="445" height="248" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="1206" class="ref">U8 SN74LVC2G02DCUR</text>
+<text x="1462" y="1227">VSSOP8; NOR1=idle qualification; NOR2=clear</text>
+<line class="pin" x1="1462" x2="1492" y1="1244" y2="1244"/>
+<text x="1499" y="1249" data-pin="1" data-net="TX_F"> 1 — TX_F</text>
+<line class="pin" x1="1462" x2="1492" y1="1267" y2="1267"/>
+<text x="1499" y="1272" data-pin="2" data-net="TIMEOUT"> 2 — TIMEOUT</text>
+<line class="pin" x1="1462" x2="1492" y1="1290" y2="1290"/>
+<text x="1499" y="1295" data-pin="3" data-net="CLR_N"> 3 — CLR_N</text>
+<line class="pin" x1="1462" x2="1492" y1="1313" y2="1313"/>
+<text x="1499" y="1318" data-pin="4" data-net="GND_F"> 4 — GND_F</text>
+<line class="pin" x1="1462" x2="1492" y1="1336" y2="1336"/>
+<text x="1499" y="1341" data-pin="5" data-net="TIMEOUT"> 5 — TIMEOUT</text>
+<line class="pin" x1="1462" x2="1492" y1="1359" y2="1359"/>
+<text x="1499" y="1364" data-pin="6" data-net="POWER_BAD"> 6 — POWER_BAD</text>
+<line class="pin" x1="1462" x2="1492" y1="1382" y2="1382"/>
+<text x="1499" y="1387" data-pin="7" data-net="IDLE_OK"> 7 — IDLE_OK</text>
+<line class="pin" x1="1462" x2="1492" y1="1405" y2="1405"/>
+<text x="1499" y="1410" data-pin="8" data-net="V5_F"> 8 — V5_F</text>
 </g>
-<g id="R8" data-mpn="MRS25000C6802FCT00"><rect x="1452" y="1076" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="1098" class="ref">R8 MRS25000C6802FCT00</text>
-<text x="1462" y="1119">68000</text>
-<line class="pin" x1="1462" x2="1492" y1="1136" y2="1136"/>
-<text x="1499" y="1141" data-pin="1" data-net="GATE"> 1 — GATE</text>
-<line class="pin" x1="1462" x2="1492" y1="1159" y2="1159"/>
-<text x="1499" y="1164" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<g id="U11" data-mpn="TPS3808G01DBVR"><rect x="1452" y="1444" width="445" height="202" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="1466" class="ref">U11 TPS3808G01DBVR</text>
+<text x="1462" y="1487">DBV6; adjustable PG; 100k/10.2k; CT open 12-28…</text>
+<line class="pin" x1="1462" x2="1492" y1="1504" y2="1504"/>
+<text x="1499" y="1509" data-pin="1" data-net="PG_F"> 1 — PG_F</text>
+<line class="pin" x1="1462" x2="1492" y1="1527" y2="1527"/>
+<text x="1499" y="1532" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<line class="pin" x1="1462" x2="1492" y1="1550" y2="1550"/>
+<text x="1499" y="1555" data-pin="3" data-net="V5_F"> 3 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="1573" y2="1573"/>
+<text x="1499" y="1578" data-pin="4" data-net="NC_U11_CT"> 4 — NC_U11_CT</text>
+<line class="pin" x1="1462" x2="1492" y1="1596" y2="1596"/>
+<text x="1499" y="1601" data-pin="5" data-net="PG_SENSE_F"> 5 — PG_SENSE_F</text>
+<line class="pin" x1="1462" x2="1492" y1="1619" y2="1619"/>
+<text x="1499" y="1624" data-pin="6" data-net="V5_F"> 6 — V5_F</text>
 </g>
-<g id="R11" data-mpn="MRS25000C1001FCT00"><rect x="1452" y="1198" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="1220" class="ref">R11 MRS25000C1001FCT00</text>
-<text x="1462" y="1241">1000</text>
-<line class="pin" x1="1462" x2="1492" y1="1258" y2="1258"/>
-<text x="1499" y="1263" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
-<line class="pin" x1="1462" x2="1492" y1="1281" y2="1281"/>
-<text x="1499" y="1286" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<g id="U16" data-mpn="SN74LVC1G17DBVR"><rect x="1452" y="1658" width="445" height="179" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="1680" class="ref">U16 SN74LVC1G17DBVR</text>
+<text x="1462" y="1701">DBV5; Schmitt cleanup of phototransistor edge</text>
+<line class="pin" x1="1462" x2="1492" y1="1718" y2="1718"/>
+<text x="1499" y="1723" data-pin="1" data-net="NC_U16_1"> 1 — NC_U16_1</text>
+<line class="pin" x1="1462" x2="1492" y1="1741" y2="1741"/>
+<text x="1499" y="1746" data-pin="2" data-net="USB_BAD"> 2 — USB_BAD</text>
+<line class="pin" x1="1462" x2="1492" y1="1764" y2="1764"/>
+<text x="1499" y="1769" data-pin="3" data-net="GND_F"> 3 — GND_F</text>
+<line class="pin" x1="1462" x2="1492" y1="1787" y2="1787"/>
+<text x="1499" y="1792" data-pin="4" data-net="USB_BAD_CLEAN"> 4 — USB_BAD_CLEAN</text>
+<line class="pin" x1="1462" x2="1492" y1="1810" y2="1810"/>
+<text x="1499" y="1815" data-pin="5" data-net="V5_F"> 5 — V5_F</text>
 </g>
-<g id="R12" data-mpn="AC10000002209JAB00"><rect x="1452" y="1320" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="1342" class="ref">R12 AC10000002209JAB00</text>
-<text x="1462" y="1363">22</text>
-<line class="pin" x1="1462" x2="1492" y1="1380" y2="1380"/>
-<text x="1499" y="1385" data-pin="1" data-net="ECU_DATA"> 1 — ECU_DATA</text>
-<line class="pin" x1="1462" x2="1492" y1="1403" y2="1403"/>
-<text x="1499" y="1408" data-pin="2" data-net="TX_MID"> 2 — TX_MID</text>
+<g id="U19" data-mpn="SN74LVC2G02DCUR"><rect x="1452" y="1849" width="445" height="248" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="1871" class="ref">U19 SN74LVC2G02DCUR</text>
+<text x="1462" y="1892">VSSOP8; physical released-button + healthy pow…</text>
+<line class="pin" x1="1462" x2="1492" y1="1909" y2="1909"/>
+<text x="1499" y="1914" data-pin="1" data-net="ARM_RAW_CLEAN"> 1 — ARM_RAW_CLEAN</text>
+<line class="pin" x1="1462" x2="1492" y1="1932" y2="1932"/>
+<text x="1499" y="1937" data-pin="2" data-net="POWER_BAD"> 2 — POWER_BAD</text>
+<line class="pin" x1="1462" x2="1492" y1="1955" y2="1955"/>
+<text x="1499" y="1960" data-pin="3" data-net="NC_U19_3"> 3 — NC_U19_3</text>
+<line class="pin" x1="1462" x2="1492" y1="1978" y2="1978"/>
+<text x="1499" y="1983" data-pin="4" data-net="GND_F"> 4 — GND_F</text>
+<line class="pin" x1="1462" x2="1492" y1="2001" y2="2001"/>
+<text x="1499" y="2006" data-pin="5" data-net="V5_F"> 5 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="2024" y2="2024"/>
+<text x="1499" y="2029" data-pin="6" data-net="V5_F"> 6 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="2047" y2="2047"/>
+<text x="1499" y="2052" data-pin="7" data-net="RELEASE_OK"> 7 — RELEASE_OK</text>
+<line class="pin" x1="1462" x2="1492" y1="2070" y2="2070"/>
+<text x="1499" y="2075" data-pin="8" data-net="V5_F"> 8 — V5_F</text>
 </g>
-<g id="R13" data-mpn="AC10000002209JAB00"><rect x="1452" y="1442" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="1464" class="ref">R13 AC10000002209JAB00</text>
-<text x="1462" y="1485">22</text>
-<line class="pin" x1="1462" x2="1492" y1="1502" y2="1502"/>
-<text x="1499" y="1507" data-pin="1" data-net="TX_MID"> 1 — TX_MID</text>
-<line class="pin" x1="1462" x2="1492" y1="1525" y2="1525"/>
-<text x="1499" y="1530" data-pin="2" data-net="DRAIN"> 2 — DRAIN</text>
+<g id="D1" data-mpn="SS16-M3/IA"><rect x="1452" y="2109" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="2131" class="ref">D1 SS16-M3/IA</text>
+<text x="1462" y="2152">60V 1A SMA; band=K; drain negative clamp</text>
+<line class="pin" x1="1462" x2="1492" y1="2169" y2="2169"/>
+<text x="1499" y="2174" data-pin="A" data-net="GND_F"> A — GND_F</text>
+<line class="pin" x1="1462" x2="1492" y1="2192" y2="2192"/>
+<text x="1499" y="2197" data-pin="K" data-net="DRAIN"> K — DRAIN</text>
 </g>
-<g id="R14" data-mpn="AC03000004709JAC00"><rect x="1452" y="1564" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="1586" class="ref">R14 AC03000004709JAC00</text>
-<text x="1462" y="1607">47</text>
-<line class="pin" x1="1462" x2="1492" y1="1624" y2="1624"/>
-<text x="1499" y="1629" data-pin="1" data-net="BAT_PLUS"> 1 — BAT_PLUS</text>
-<line class="pin" x1="1462" x2="1492" y1="1647" y2="1647"/>
-<text x="1499" y="1652" data-pin="2" data-net="BAT_LIMITED"> 2 — BAT_LIMITED</text>
+<g id="R1" data-mpn="MRS25000C2203FCT00"><rect x="1452" y="2231" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="2253" class="ref">R1 MRS25000C2203FCT00</text>
+<text x="1462" y="2274">220000</text>
+<line class="pin" x1="1462" x2="1492" y1="2291" y2="2291"/>
+<text x="1499" y="2296" data-pin="1" data-net="ECU_DATA"> 1 — ECU_DATA</text>
+<line class="pin" x1="1462" x2="1492" y1="2314" y2="2314"/>
+<text x="1499" y="2319" data-pin="2" data-net="SENSE"> 2 — SENSE</text>
 </g>
-<g id="C2" data-mpn="C315C104K5R5TA"><rect x="1452" y="1686" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="1708" class="ref">C2 C315C104K5R5TA</text>
-<text x="1462" y="1729">1e-07</text>
-<line class="pin" x1="1462" x2="1492" y1="1746" y2="1746"/>
-<text x="1499" y="1751" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
-<line class="pin" x1="1462" x2="1492" y1="1769" y2="1769"/>
-<text x="1499" y="1774" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<g id="R4" data-mpn="MRS25000C7872FCT00"><rect x="1452" y="2353" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="2375" class="ref">R4 MRS25000C7872FCT00</text>
+<text x="1462" y="2396">78700</text>
+<line class="pin" x1="1462" x2="1492" y1="2413" y2="2413"/>
+<text x="1499" y="2418" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="2436" y2="2436"/>
+<text x="1499" y="2441" data-pin="2" data-net="VREF"> 2 — VREF</text>
 </g>
-<g id="C3" data-mpn="C315C104K5R5TA"><rect x="1452" y="1808" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="1830" class="ref">C3 C315C104K5R5TA</text>
-<text x="1462" y="1851">1e-07</text>
-<line class="pin" x1="1462" x2="1492" y1="1868" y2="1868"/>
-<text x="1499" y="1873" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
-<line class="pin" x1="1462" x2="1492" y1="1891" y2="1891"/>
-<text x="1499" y="1896" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<g id="R7" data-mpn="MRS25000C2200FCT00"><rect x="1452" y="2475" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="2497" class="ref">R7 MRS25000C2200FCT00</text>
+<text x="1462" y="2518">220</text>
+<line class="pin" x1="1462" x2="1492" y1="2535" y2="2535"/>
+<text x="1499" y="2540" data-pin="1" data-net="GATE_DRIVE"> 1 — GATE_DRIVE</text>
+<line class="pin" x1="1462" x2="1492" y1="2558" y2="2558"/>
+<text x="1499" y="2563" data-pin="2" data-net="GATE"> 2 — GATE</text>
 </g>
-<g id="C4" data-mpn="C315C104K5R5TA"><rect x="1452" y="1930" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="1952" class="ref">C4 C315C104K5R5TA</text>
-<text x="1462" y="1973">1e-07</text>
-<line class="pin" x1="1462" x2="1492" y1="1990" y2="1990"/>
-<text x="1499" y="1995" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
-<line class="pin" x1="1462" x2="1492" y1="2013" y2="2013"/>
-<text x="1499" y="2018" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<g id="R12" data-mpn="AC10000002209JAB00"><rect x="1452" y="2597" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="2619" class="ref">R12 AC10000002209JAB00</text>
+<text x="1462" y="2640">22</text>
+<line class="pin" x1="1462" x2="1492" y1="2657" y2="2657"/>
+<text x="1499" y="2662" data-pin="1" data-net="ECU_DATA"> 1 — ECU_DATA</text>
+<line class="pin" x1="1462" x2="1492" y1="2680" y2="2680"/>
+<text x="1499" y="2685" data-pin="2" data-net="TX_MID"> 2 — TX_MID</text>
 </g>
-<g id="C5" data-mpn="C315C103K5R5TA"><rect x="1452" y="2052" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="2074" class="ref">C5 C315C103K5R5TA</text>
-<text x="1462" y="2095">1e-08</text>
-<line class="pin" x1="1462" x2="1492" y1="2112" y2="2112"/>
-<text x="1499" y="2117" data-pin="1" data-net="VREF"> 1 — VREF</text>
-<line class="pin" x1="1462" x2="1492" y1="2135" y2="2135"/>
-<text x="1499" y="2140" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<g id="R15" data-mpn="MRS25000C2003FCT00"><rect x="1452" y="2719" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="2741" class="ref">R15 MRS25000C2003FCT00</text>
+<text x="1462" y="2762">200000</text>
+<line class="pin" x1="1462" x2="1492" y1="2779" y2="2779"/>
+<text x="1499" y="2784" data-pin="1" data-net="TIMER_SET"> 1 — TIMER_SET</text>
+<line class="pin" x1="1462" x2="1492" y1="2802" y2="2802"/>
+<text x="1499" y="2807" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C6" data-mpn="C340C225K5R5TA"><rect x="1452" y="2174" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1462" y="2196" class="ref">C6 C340C225K5R5TA</text>
-<text x="1462" y="2217">2.2e-06</text>
-<line class="pin" x1="1462" x2="1492" y1="2234" y2="2234"/>
-<text x="1499" y="2239" data-pin="1" data-net="LDO_IN"> 1 — LDO_IN</text>
-<line class="pin" x1="1462" x2="1492" y1="2257" y2="2257"/>
-<text x="1499" y="2262" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<g id="R18" data-mpn="MRS25000C2493FCT00"><rect x="1452" y="2841" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="2863" class="ref">R18 MRS25000C2493FCT00</text>
+<text x="1462" y="2884">249000</text>
+<line class="pin" x1="1462" x2="1492" y1="2901" y2="2901"/>
+<text x="1499" y="2906" data-pin="1" data-net="ARM_SET"> 1 — ARM_SET</text>
+<line class="pin" x1="1462" x2="1492" y1="2924" y2="2924"/>
+<text x="1499" y="2929" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="C7" data-mpn="C340C225K5R5TA"><rect x="1928" y="710" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="732" class="ref">C7 C340C225K5R5TA</text>
-<text x="1938" y="753">2.2e-06</text>
+<g id="R21" data-mpn="MRS25000C1503FCT00"><rect x="1452" y="2963" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="2985" class="ref">R21 MRS25000C1503FCT00</text>
+<text x="1462" y="3006">150000</text>
+<line class="pin" x1="1462" x2="1492" y1="3023" y2="3023"/>
+<text x="1499" y="3028" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="3046" y2="3046"/>
+<text x="1499" y="3051" data-pin="2" data-net="PG_F"> 2 — PG_F</text>
+</g>
+<g id="R24" data-mpn="MRS25000C2201FCT00"><rect x="1452" y="3085" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="3107" class="ref">R24 MRS25000C2201FCT00</text>
+<text x="1462" y="3128">2200</text>
+<line class="pin" x1="1462" x2="1492" y1="3145" y2="3145"/>
+<text x="1499" y="3150" data-pin="1" data-net="PG_F"> 1 — PG_F</text>
+<line class="pin" x1="1462" x2="1492" y1="3168" y2="3168"/>
+<text x="1499" y="3173" data-pin="2" data-net="PG_GATE"> 2 — PG_GATE</text>
+</g>
+<g id="R29" data-mpn="MRS25000C1003FCT00"><rect x="1452" y="3207" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="3229" class="ref">R29 MRS25000C1003FCT00</text>
+<text x="1462" y="3250">100000</text>
+<line class="pin" x1="1462" x2="1492" y1="3267" y2="3267"/>
+<text x="1499" y="3272" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="3290" y2="3290"/>
+<text x="1499" y="3295" data-pin="2" data-net="PG_SENSE_F"> 2 — PG_SENSE_F</text>
+</g>
+<g id="R34" data-mpn="MRS25000C2553FCT00"><rect x="1452" y="3329" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="3351" class="ref">R34 MRS25000C2553FCT00</text>
+<text x="1462" y="3372">255000</text>
+<line class="pin" x1="1462" x2="1492" y1="3389" y2="3389"/>
+<text x="1499" y="3394" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="3412" y2="3412"/>
+<text x="1499" y="3417" data-pin="2" data-net="READY_DIV"> 2 — READY_DIV</text>
+</g>
+<g id="C3" data-mpn="C315C104K5R5TA"><rect x="1452" y="3451" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="3473" class="ref">C3 C315C104K5R5TA</text>
+<text x="1462" y="3494">1e-07</text>
+<line class="pin" x1="1462" x2="1492" y1="3511" y2="3511"/>
+<text x="1499" y="3516" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="3534" y2="3534"/>
+<text x="1499" y="3539" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C6" data-mpn="C340C225K5R5TA"><rect x="1452" y="3573" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="3595" class="ref">C6 C340C225K5R5TA</text>
+<text x="1462" y="3616">2.2e-06</text>
+<line class="pin" x1="1462" x2="1492" y1="3633" y2="3633"/>
+<text x="1499" y="3638" data-pin="1" data-net="LDO_IN"> 1 — LDO_IN</text>
+<line class="pin" x1="1462" x2="1492" y1="3656" y2="3656"/>
+<text x="1499" y="3661" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C9" data-mpn="C340C225K5R5TA"><rect x="1452" y="3695" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="3717" class="ref">C9 C340C225K5R5TA</text>
+<text x="1462" y="3738">2.2e-06</text>
+<line class="pin" x1="1462" x2="1492" y1="3755" y2="3755"/>
+<text x="1499" y="3760" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="3778" y2="3778"/>
+<text x="1499" y="3783" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C12" data-mpn="C315C104K5R5TA"><rect x="1452" y="3817" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="3839" class="ref">C12 C315C104K5R5TA</text>
+<text x="1462" y="3860">1e-07</text>
+<line class="pin" x1="1462" x2="1492" y1="3877" y2="3877"/>
+<text x="1499" y="3882" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="3900" y2="3900"/>
+<text x="1499" y="3905" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C15" data-mpn="C315C104K5R5TA"><rect x="1452" y="3939" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="3961" class="ref">C15 C315C104K5R5TA</text>
+<text x="1462" y="3982">1e-07</text>
+<line class="pin" x1="1462" x2="1492" y1="3999" y2="3999"/>
+<text x="1499" y="4004" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="4022" y2="4022"/>
+<text x="1499" y="4027" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C18" data-mpn="C315C104K5R5TA"><rect x="1452" y="4061" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="4083" class="ref">C18 C315C104K5R5TA</text>
+<text x="1462" y="4104">1e-07</text>
+<line class="pin" x1="1462" x2="1492" y1="4121" y2="4121"/>
+<text x="1499" y="4126" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="4144" y2="4144"/>
+<text x="1499" y="4149" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C22" data-mpn="C315C104K5R5TA"><rect x="1452" y="4183" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="4205" class="ref">C22 C315C104K5R5TA</text>
+<text x="1462" y="4226">1e-07</text>
+<line class="pin" x1="1462" x2="1492" y1="4243" y2="4243"/>
+<text x="1499" y="4248" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="4266" y2="4266"/>
+<text x="1499" y="4271" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C25" data-mpn="C315C104K5R5TA"><rect x="1452" y="4305" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="4327" class="ref">C25 C315C104K5R5TA</text>
+<text x="1462" y="4348">1e-07</text>
+<line class="pin" x1="1462" x2="1492" y1="4365" y2="4365"/>
+<text x="1499" y="4370" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="4388" y2="4388"/>
+<text x="1499" y="4393" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="SW1" data-mpn="B3F-1002-G"><rect x="1452" y="4427" width="445" height="156" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="4449" class="ref">SW1 B3F-1002-G</text>
+<text x="1462" y="4470">Field-side SPST-NO; terminals1/2 and3/4 pairs;…</text>
+<line class="pin" x1="1462" x2="1492" y1="4487" y2="4487"/>
+<text x="1499" y="4492" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="4510" y2="4510"/>
+<text x="1499" y="4515" data-pin="2" data-net="V5_F"> 2 — V5_F</text>
+<line class="pin" x1="1462" x2="1492" y1="4533" y2="4533"/>
+<text x="1499" y="4538" data-pin="3" data-net="ARM_BUTTON"> 3 — ARM_BUTTON</text>
+<line class="pin" x1="1462" x2="1492" y1="4556" y2="4556"/>
+<text x="1499" y="4561" data-pin="4" data-net="ARM_BUTTON"> 4 — ARM_BUTTON</text>
+</g>
+<g id="B1" data-mpn="522"><rect x="1452" y="4595" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="4617" class="ref">B1 522</text>
+<text x="1462" y="4638">External removable 9V alkaline; accept measure…</text>
+<line class="pin" x1="1462" x2="1492" y1="4655" y2="4655"/>
+<text x="1499" y="4660" data-pin="+" data-net="BAT_PLUS"> + — BAT_PLUS</text>
+<line class="pin" x1="1462" x2="1492" y1="4678" y2="4678"/>
+<text x="1499" y="4683" data-pin="-" data-net="GND_F"> - — GND_F</text>
+</g>
+<g id="TP5" data-mpn="project-test-pad"><rect x="1452" y="4717" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="4739" class="ref">TP5 project-test-pad</text>
+<text x="1462" y="4760">VREF</text>
+<line class="pin" x1="1462" x2="1492" y1="4777" y2="4777"/>
+<text x="1499" y="4782" data-pin="1" data-net="VREF"> 1 — VREF</text>
+</g>
+<g id="TP8" data-mpn="project-test-pad"><rect x="1452" y="4816" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="4838" class="ref">TP8 project-test-pad</text>
+<text x="1462" y="4859">DRAIN</text>
+<line class="pin" x1="1462" x2="1492" y1="4876" y2="4876"/>
+<text x="1499" y="4881" data-pin="1" data-net="DRAIN"> 1 — DRAIN</text>
+</g>
+<g id="TP12" data-mpn="project-test-pad"><rect x="1452" y="4915" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="4937" class="ref">TP12 project-test-pad</text>
+<text x="1462" y="4958">GND_F</text>
+<line class="pin" x1="1462" x2="1492" y1="4975" y2="4975"/>
+<text x="1499" y="4980" data-pin="1" data-net="GND_F"> 1 — GND_F</text>
+</g>
+<g id="TP15" data-mpn="project-test-pad"><rect x="1452" y="5014" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="5036" class="ref">TP15 project-test-pad</text>
+<text x="1462" y="5057">ARMED</text>
+<line class="pin" x1="1462" x2="1492" y1="5074" y2="5074"/>
+<text x="1499" y="5079" data-pin="1" data-net="ARMED"> 1 — ARMED</text>
+</g>
+<g id="TP18" data-mpn="project-test-pad"><rect x="1452" y="5113" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="5135" class="ref">TP18 project-test-pad</text>
+<text x="1462" y="5156">PG_GATE</text>
+<line class="pin" x1="1462" x2="1492" y1="5173" y2="5173"/>
+<text x="1499" y="5178" data-pin="1" data-net="PG_GATE"> 1 — PG_GATE</text>
+</g>
+<g id="TP21" data-mpn="project-test-pad"><rect x="1452" y="5212" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1462" y="5234" class="ref">TP21 project-test-pad</text>
+<text x="1462" y="5255">READY_QUAL</text>
+<line class="pin" x1="1462" x2="1492" y1="5272" y2="5272"/>
+<text x="1499" y="5277" data-pin="1" data-net="READY_QUAL"> 1 — READY_QUAL</text>
+</g>
+<g id="U4" data-mpn="TPS70950DBVR"><rect x="1928" y="710" width="445" height="179" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="732" class="ref">U4 TPS70950DBVR</text>
+<text x="1938" y="753">DBV-5; 5V LDO; EN left open (internal enable)</text>
 <line class="pin" x1="1938" x2="1968" y1="770" y2="770"/>
-<text x="1975" y="775" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<text x="1975" y="775" data-pin="1" data-net="LDO_IN"> 1 — LDO_IN</text>
 <line class="pin" x1="1938" x2="1968" y1="793" y2="793"/>
 <text x="1975" y="798" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<line class="pin" x1="1938" x2="1968" y1="816" y2="816"/>
+<text x="1975" y="821" data-pin="3" data-net="NC_U4_EN"> 3 — NC_U4_EN</text>
+<line class="pin" x1="1938" x2="1968" y1="839" y2="839"/>
+<text x="1975" y="844" data-pin="4" data-net="NC_U4_4"> 4 — NC_U4_4</text>
+<line class="pin" x1="1938" x2="1968" y1="862" y2="862"/>
+<text x="1975" y="867" data-pin="5" data-net="V5_F"> 5 — V5_F</text>
 </g>
-<g id="C8" data-mpn="C340C225K5R5TA"><rect x="1928" y="832" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="854" class="ref">C8 C340C225K5R5TA</text>
-<text x="1938" y="875">2.2e-06</text>
-<line class="pin" x1="1938" x2="1968" y1="892" y2="892"/>
-<text x="1975" y="897" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
-<line class="pin" x1="1938" x2="1968" y1="915" y2="915"/>
-<text x="1975" y="920" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<g id="Q2" data-mpn="PMV88ENEA,215"><rect x="1928" y="901" width="445" height="133" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="923" class="ref">Q2 PMV88ENEA,215</text>
+<text x="1938" y="944">Series PG disconnect; G1/S2/D3; does not inter…</text>
+<line class="pin" x1="1938" x2="1968" y1="961" y2="961"/>
+<text x="1975" y="966" data-pin="1" data-net="PG_GATE"> 1 — PG_GATE</text>
+<line class="pin" x1="1938" x2="1968" y1="984" y2="984"/>
+<text x="1975" y="989" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<line class="pin" x1="1938" x2="1968" y1="1007" y2="1007"/>
+<text x="1975" y="1012" data-pin="3" data-net="SINK_RET"> 3 — SINK_RET</text>
 </g>
-<g id="C9" data-mpn="C340C225K5R5TA"><rect x="1928" y="954" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="976" class="ref">C9 C340C225K5R5TA</text>
-<text x="1938" y="997">2.2e-06</text>
-<line class="pin" x1="1938" x2="1968" y1="1014" y2="1014"/>
-<text x="1975" y="1019" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
-<line class="pin" x1="1938" x2="1968" y1="1037" y2="1037"/>
-<text x="1975" y="1042" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<g id="U7" data-mpn="SN74LVC1G74DCUR"><rect x="1928" y="1046" width="445" height="248" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="1068" class="ref">U7 SN74LVC1G74DCUR</text>
+<text x="1938" y="1089">VSSOP8; Q=ARMED; asynchronous clear has priori…</text>
+<line class="pin" x1="1938" x2="1968" y1="1106" y2="1106"/>
+<text x="1975" y="1111" data-pin="1" data-net="ARM_CLK"> 1 — ARM_CLK</text>
+<line class="pin" x1="1938" x2="1968" y1="1129" y2="1129"/>
+<text x="1975" y="1134" data-pin="2" data-net="ARM_DATA"> 2 — ARM_DATA</text>
+<line class="pin" x1="1938" x2="1968" y1="1152" y2="1152"/>
+<text x="1975" y="1157" data-pin="3" data-net="LOCKED"> 3 — LOCKED</text>
+<line class="pin" x1="1938" x2="1968" y1="1175" y2="1175"/>
+<text x="1975" y="1180" data-pin="4" data-net="GND_F"> 4 — GND_F</text>
+<line class="pin" x1="1938" x2="1968" y1="1198" y2="1198"/>
+<text x="1975" y="1203" data-pin="5" data-net="ARMED"> 5 — ARMED</text>
+<line class="pin" x1="1938" x2="1968" y1="1221" y2="1221"/>
+<text x="1975" y="1226" data-pin="6" data-net="CLR_N"> 6 — CLR_N</text>
+<line class="pin" x1="1938" x2="1968" y1="1244" y2="1244"/>
+<text x="1975" y="1249" data-pin="7" data-net="V5_F"> 7 — V5_F</text>
+<line class="pin" x1="1938" x2="1968" y1="1267" y2="1267"/>
+<text x="1975" y="1272" data-pin="8" data-net="V5_F"> 8 — V5_F</text>
 </g>
-<g id="C10" data-mpn="C315C222J5G5TA"><rect x="1928" y="1076" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="1098" class="ref">C10 C315C222J5G5TA</text>
-<text x="1938" y="1119">2.2e-09</text>
-<line class="pin" x1="1938" x2="1968" y1="1136" y2="1136"/>
-<text x="1975" y="1141" data-pin="1" data-net="GATE"> 1 — GATE</text>
-<line class="pin" x1="1938" x2="1968" y1="1159" y2="1159"/>
-<text x="1975" y="1164" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<g id="U10" data-mpn="SN74LVC1G04DBVR"><rect x="1928" y="1306" width="445" height="179" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="1328" class="ref">U10 SN74LVC1G04DBVR</text>
+<text x="1938" y="1349">DBV5; PG inversion</text>
+<line class="pin" x1="1938" x2="1968" y1="1366" y2="1366"/>
+<text x="1975" y="1371" data-pin="1" data-net="NC_U10_1"> 1 — NC_U10_1</text>
+<line class="pin" x1="1938" x2="1968" y1="1389" y2="1389"/>
+<text x="1975" y="1394" data-pin="2" data-net="PG_CLEAN"> 2 — PG_CLEAN</text>
+<line class="pin" x1="1938" x2="1968" y1="1412" y2="1412"/>
+<text x="1975" y="1417" data-pin="3" data-net="GND_F"> 3 — GND_F</text>
+<line class="pin" x1="1938" x2="1968" y1="1435" y2="1435"/>
+<text x="1975" y="1440" data-pin="4" data-net="NOT_PG"> 4 — NOT_PG</text>
+<line class="pin" x1="1938" x2="1968" y1="1458" y2="1458"/>
+<text x="1975" y="1463" data-pin="5" data-net="V5_F"> 5 — V5_F</text>
 </g>
-<g id="J2" data-mpn="project-field-pads"><rect x="1928" y="1198" width="445" height="133" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="1220" class="ref">J2 project-field-pads</text>
-<text x="1938" y="1241">Functional labels only; third pad not routed</text>
-<line class="pin" x1="1938" x2="1968" y1="1258" y2="1258"/>
-<text x="1975" y="1263" data-pin="1" data-net="ECU_DATA"> 1 — ECU_DATA</text>
-<line class="pin" x1="1938" x2="1968" y1="1281" y2="1281"/>
-<text x="1975" y="1286" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
-<line class="pin" x1="1938" x2="1968" y1="1304" y2="1304"/>
-<text x="1975" y="1309" data-pin="3" data-net="VEHICLE_POWER_NC"> 3 — VEHICLE_POWER_NC</text>
+<g id="U12" data-mpn="SN74LVC1G17DBVR"><rect x="1928" y="1497" width="445" height="179" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="1519" class="ref">U12 SN74LVC1G17DBVR</text>
+<text x="1938" y="1540">DBV5; cleans slow PG edge for logic; Q2 driven…</text>
+<line class="pin" x1="1938" x2="1968" y1="1557" y2="1557"/>
+<text x="1975" y="1562" data-pin="1" data-net="NC_U12_1"> 1 — NC_U12_1</text>
+<line class="pin" x1="1938" x2="1968" y1="1580" y2="1580"/>
+<text x="1975" y="1585" data-pin="2" data-net="PG_F"> 2 — PG_F</text>
+<line class="pin" x1="1938" x2="1968" y1="1603" y2="1603"/>
+<text x="1975" y="1608" data-pin="3" data-net="GND_F"> 3 — GND_F</text>
+<line class="pin" x1="1938" x2="1968" y1="1626" y2="1626"/>
+<text x="1975" y="1631" data-pin="4" data-net="PG_CLEAN"> 4 — PG_CLEAN</text>
+<line class="pin" x1="1938" x2="1968" y1="1649" y2="1649"/>
+<text x="1975" y="1654" data-pin="5" data-net="V5_F"> 5 — V5_F</text>
 </g>
-<g id="J3" data-mpn="project-battery-pads"><rect x="1928" y="1343" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="1365" class="ref">J3 project-battery-pads</text>
-<text x="1938" y="1386">Battery disconnected to switch OFF</text>
-<line class="pin" x1="1938" x2="1968" y1="1403" y2="1403"/>
-<text x="1975" y="1408" data-pin="1" data-net="BAT_PLUS"> 1 — BAT_PLUS</text>
-<line class="pin" x1="1938" x2="1968" y1="1426" y2="1426"/>
-<text x="1975" y="1431" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<g id="U17" data-mpn="LTC6994IS6-1#TRPBF"><rect x="1928" y="1688" width="445" height="202" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="1710" class="ref">U17 LTC6994IS6-1#TRPBF</text>
+<text x="1938" y="1731">TSOT23-6; post-PG released-button/inactive-TX …</text>
+<line class="pin" x1="1938" x2="1968" y1="1748" y2="1748"/>
+<text x="1975" y="1753" data-pin="1" data-net="READY_REQ"> 1 — READY_REQ</text>
+<line class="pin" x1="1938" x2="1968" y1="1771" y2="1771"/>
+<text x="1975" y="1776" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<line class="pin" x1="1938" x2="1968" y1="1794" y2="1794"/>
+<text x="1975" y="1799" data-pin="3" data-net="READY_SET"> 3 — READY_SET</text>
+<line class="pin" x1="1938" x2="1968" y1="1817" y2="1817"/>
+<text x="1975" y="1822" data-pin="4" data-net="READY_DIV"> 4 — READY_DIV</text>
+<line class="pin" x1="1938" x2="1968" y1="1840" y2="1840"/>
+<text x="1975" y="1845" data-pin="5" data-net="V5_F"> 5 — V5_F</text>
+<line class="pin" x1="1938" x2="1968" y1="1863" y2="1863"/>
+<text x="1975" y="1868" data-pin="6" data-net="READY_QUAL"> 6 — READY_QUAL</text>
 </g>
-<g id="B1" data-mpn="522"><rect x="1928" y="1465" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="1487" class="ref">B1 522</text>
-<text x="1938" y="1508">External removable 9V alkaline; accept measured 8…</text>
-<line class="pin" x1="1938" x2="1968" y1="1525" y2="1525"/>
-<text x="1975" y="1530" data-pin="+" data-net="BAT_PLUS"> + — BAT_PLUS</text>
-<line class="pin" x1="1938" x2="1968" y1="1548" y2="1548"/>
-<text x="1975" y="1553" data-pin="-" data-net="GND_F"> - — GND_F</text>
+<g id="U20" data-mpn="SN74LVC2G08DCUR"><rect x="1928" y="1902" width="445" height="248" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="1924" class="ref">U20 SN74LVC2G08DCUR</text>
+<text x="1938" y="1945">VSSOP8; release/inactive qualifier and readine…</text>
+<line class="pin" x1="1938" x2="1968" y1="1962" y2="1962"/>
+<text x="1975" y="1967" data-pin="1" data-net="RELEASE_OK"> 1 — RELEASE_OK</text>
+<line class="pin" x1="1938" x2="1968" y1="1985" y2="1985"/>
+<text x="1975" y="1990" data-pin="2" data-net="IDLE_OK"> 2 — IDLE_OK</text>
+<line class="pin" x1="1938" x2="1968" y1="2008" y2="2008"/>
+<text x="1975" y="2013" data-pin="3" data-net="ARM_DATA"> 3 — ARM_DATA</text>
+<line class="pin" x1="1938" x2="1968" y1="2031" y2="2031"/>
+<text x="1975" y="2036" data-pin="4" data-net="GND_F"> 4 — GND_F</text>
+<line class="pin" x1="1938" x2="1968" y1="2054" y2="2054"/>
+<text x="1975" y="2059" data-pin="5" data-net="ARM_SAFE"> 5 — ARM_SAFE</text>
+<line class="pin" x1="1938" x2="1968" y1="2077" y2="2077"/>
+<text x="1975" y="2082" data-pin="6" data-net="REARM_READY"> 6 — REARM_READY</text>
+<line class="pin" x1="1938" x2="1968" y1="2100" y2="2100"/>
+<text x="1975" y="2105" data-pin="7" data-net="READY_REQ"> 7 — READY_REQ</text>
+<line class="pin" x1="1938" x2="1968" y1="2123" y2="2123"/>
+<text x="1975" y="2128" data-pin="8" data-net="V5_F"> 8 — V5_F</text>
 </g>
-<g id="TP3" data-mpn="project-test-pad"><rect x="1928" y="1587" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="1609" class="ref">TP3 project-test-pad</text>
-<text x="1938" y="1630">ECU_DATA</text>
-<line class="pin" x1="1938" x2="1968" y1="1647" y2="1647"/>
-<text x="1975" y="1652" data-pin="1" data-net="ECU_DATA"> 1 — ECU_DATA</text>
+<g id="D3P" data-mpn="SS16-M3/IA"><rect x="1928" y="2162" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="2184" class="ref">D3P SS16-M3/IA</text>
+<text x="1938" y="2205">Battery reverse protection; band=K</text>
+<line class="pin" x1="1938" x2="1968" y1="2222" y2="2222"/>
+<text x="1975" y="2227" data-pin="A" data-net="BAT_LIMITED"> A — BAT_LIMITED</text>
+<line class="pin" x1="1938" x2="1968" y1="2245" y2="2245"/>
+<text x="1975" y="2250" data-pin="K" data-net="LDO_IN"> K — LDO_IN</text>
 </g>
-<g id="TP4" data-mpn="project-test-pad"><rect x="1928" y="1686" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="1708" class="ref">TP4 project-test-pad</text>
-<text x="1938" y="1729">SENSE</text>
-<line class="pin" x1="1938" x2="1968" y1="1746" y2="1746"/>
-<text x="1975" y="1751" data-pin="1" data-net="SENSE"> 1 — SENSE</text>
+<g id="R2" data-mpn="MRS25000C6802FCT00"><rect x="1928" y="2284" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="2306" class="ref">R2 MRS25000C6802FCT00</text>
+<text x="1938" y="2327">68000</text>
+<line class="pin" x1="1938" x2="1968" y1="2344" y2="2344"/>
+<text x="1975" y="2349" data-pin="1" data-net="SENSE"> 1 — SENSE</text>
+<line class="pin" x1="1938" x2="1968" y1="2367" y2="2367"/>
+<text x="1975" y="2372" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="TP5" data-mpn="project-test-pad"><rect x="1928" y="1785" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="1807" class="ref">TP5 project-test-pad</text>
-<text x="1938" y="1828">VREF</text>
-<line class="pin" x1="1938" x2="1968" y1="1845" y2="1845"/>
-<text x="1975" y="1850" data-pin="1" data-net="VREF"> 1 — VREF</text>
+<g id="R5" data-mpn="MRS25000C1002FCT00"><rect x="1928" y="2406" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="2428" class="ref">R5 MRS25000C1002FCT00</text>
+<text x="1938" y="2449">10000</text>
+<line class="pin" x1="1938" x2="1968" y1="2466" y2="2466"/>
+<text x="1975" y="2471" data-pin="1" data-net="VREF"> 1 — VREF</text>
+<line class="pin" x1="1938" x2="1968" y1="2489" y2="2489"/>
+<text x="1975" y="2494" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="TP6" data-mpn="project-test-pad"><rect x="1928" y="1884" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="1906" class="ref">TP6 project-test-pad</text>
-<text x="1938" y="1927">RX_F</text>
-<line class="pin" x1="1938" x2="1968" y1="1944" y2="1944"/>
-<text x="1975" y="1949" data-pin="1" data-net="RX_F"> 1 — RX_F</text>
+<g id="R8" data-mpn="MRS25000C6802FCT00"><rect x="1928" y="2528" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="2550" class="ref">R8 MRS25000C6802FCT00</text>
+<text x="1938" y="2571">68000</text>
+<line class="pin" x1="1938" x2="1968" y1="2588" y2="2588"/>
+<text x="1975" y="2593" data-pin="1" data-net="GATE"> 1 — GATE</text>
+<line class="pin" x1="1938" x2="1968" y1="2611" y2="2611"/>
+<text x="1975" y="2616" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="TP7" data-mpn="project-test-pad"><rect x="1928" y="1983" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="2005" class="ref">TP7 project-test-pad</text>
-<text x="1938" y="2026">GATE</text>
-<line class="pin" x1="1938" x2="1968" y1="2043" y2="2043"/>
-<text x="1975" y="2048" data-pin="1" data-net="GATE"> 1 — GATE</text>
+<g id="R13" data-mpn="AC10000002209JAB00"><rect x="1928" y="2650" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="2672" class="ref">R13 AC10000002209JAB00</text>
+<text x="1938" y="2693">22</text>
+<line class="pin" x1="1938" x2="1968" y1="2710" y2="2710"/>
+<text x="1975" y="2715" data-pin="1" data-net="TX_MID"> 1 — TX_MID</text>
+<line class="pin" x1="1938" x2="1968" y1="2733" y2="2733"/>
+<text x="1975" y="2738" data-pin="2" data-net="DRAIN"> 2 — DRAIN</text>
 </g>
-<g id="TP8" data-mpn="project-test-pad"><rect x="1928" y="2082" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="2104" class="ref">TP8 project-test-pad</text>
-<text x="1938" y="2125">DRAIN</text>
-<line class="pin" x1="1938" x2="1968" y1="2142" y2="2142"/>
-<text x="1975" y="2147" data-pin="1" data-net="DRAIN"> 1 — DRAIN</text>
+<g id="R16" data-mpn="MRS25000C3573FCT00"><rect x="1928" y="2772" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="2794" class="ref">R16 MRS25000C3573FCT00</text>
+<text x="1938" y="2815">357000</text>
+<line class="pin" x1="1938" x2="1968" y1="2832" y2="2832"/>
+<text x="1975" y="2837" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1938" x2="1968" y1="2855" y2="2855"/>
+<text x="1975" y="2860" data-pin="2" data-net="TIMER_DIV"> 2 — TIMER_DIV</text>
 </g>
-<g id="TP9" data-mpn="project-test-pad"><rect x="1928" y="2181" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="2203" class="ref">TP9 project-test-pad</text>
-<text x="1938" y="2224">V5_F</text>
-<line class="pin" x1="1938" x2="1968" y1="2241" y2="2241"/>
-<text x="1975" y="2246" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<g id="R19" data-mpn="MRS25000C2553FCT00"><rect x="1928" y="2894" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="2916" class="ref">R19 MRS25000C2553FCT00</text>
+<text x="1938" y="2937">255000</text>
+<line class="pin" x1="1938" x2="1968" y1="2954" y2="2954"/>
+<text x="1975" y="2959" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1938" x2="1968" y1="2977" y2="2977"/>
+<text x="1975" y="2982" data-pin="2" data-net="ARM_DIV"> 2 — ARM_DIV</text>
 </g>
-<g id="TP10" data-mpn="project-test-pad"><rect x="1928" y="2280" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="2302" class="ref">TP10 project-test-pad</text>
-<text x="1938" y="2323">LDO_IN</text>
-<line class="pin" x1="1938" x2="1968" y1="2340" y2="2340"/>
-<text x="1975" y="2345" data-pin="1" data-net="LDO_IN"> 1 — LDO_IN</text>
+<g id="R22" data-mpn="MRS25000C1002FCT00"><rect x="1928" y="3016" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="3038" class="ref">R22 MRS25000C1002FCT00</text>
+<text x="1938" y="3059">10000</text>
+<line class="pin" x1="1938" x2="1968" y1="3076" y2="3076"/>
+<text x="1975" y="3081" data-pin="1" data-net="ARM_RAW"> 1 — ARM_RAW</text>
+<line class="pin" x1="1938" x2="1968" y1="3099" y2="3099"/>
+<text x="1975" y="3104" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
 </g>
-<g id="TP12" data-mpn="project-test-pad"><rect x="1928" y="2379" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
-<text x="1938" y="2401" class="ref">TP12 project-test-pad</text>
-<text x="1938" y="2422">GND_F</text>
-<line class="pin" x1="1938" x2="1968" y1="2439" y2="2439"/>
-<text x="1975" y="2444" data-pin="1" data-net="GND_F"> 1 — GND_F</text>
+<g id="R25" data-mpn="MRS25000C1005FCT00"><rect x="1928" y="3138" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="3160" class="ref">R25 MRS25000C1005FCT00</text>
+<text x="1938" y="3181">10000000</text>
+<line class="pin" x1="1938" x2="1968" y1="3198" y2="3198"/>
+<text x="1975" y="3203" data-pin="1" data-net="PG_GATE"> 1 — PG_GATE</text>
+<line class="pin" x1="1938" x2="1968" y1="3221" y2="3221"/>
+<text x="1975" y="3226" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="R30" data-mpn="MRS25000C1022FCT00"><rect x="1928" y="3260" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="3282" class="ref">R30 MRS25000C1022FCT00</text>
+<text x="1938" y="3303">10200</text>
+<line class="pin" x1="1938" x2="1968" y1="3320" y2="3320"/>
+<text x="1975" y="3325" data-pin="1" data-net="PG_SENSE_F"> 1 — PG_SENSE_F</text>
+<line class="pin" x1="1938" x2="1968" y1="3343" y2="3343"/>
+<text x="1975" y="3348" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="R35" data-mpn="MRS25000C1003FCT00"><rect x="1928" y="3382" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="3404" class="ref">R35 MRS25000C1003FCT00</text>
+<text x="1938" y="3425">100000</text>
+<line class="pin" x1="1938" x2="1968" y1="3442" y2="3442"/>
+<text x="1975" y="3447" data-pin="1" data-net="READY_DIV"> 1 — READY_DIV</text>
+<line class="pin" x1="1938" x2="1968" y1="3465" y2="3465"/>
+<text x="1975" y="3470" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C4" data-mpn="C315C104K5R5TA"><rect x="1928" y="3504" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="3526" class="ref">C4 C315C104K5R5TA</text>
+<text x="1938" y="3547">1e-07</text>
+<line class="pin" x1="1938" x2="1968" y1="3564" y2="3564"/>
+<text x="1975" y="3569" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1938" x2="1968" y1="3587" y2="3587"/>
+<text x="1975" y="3592" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C7" data-mpn="C340C225K5R5TA"><rect x="1928" y="3626" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="3648" class="ref">C7 C340C225K5R5TA</text>
+<text x="1938" y="3669">2.2e-06</text>
+<line class="pin" x1="1938" x2="1968" y1="3686" y2="3686"/>
+<text x="1975" y="3691" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1938" x2="1968" y1="3709" y2="3709"/>
+<text x="1975" y="3714" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C10" data-mpn="C315C222J5G5TA"><rect x="1928" y="3748" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="3770" class="ref">C10 C315C222J5G5TA</text>
+<text x="1938" y="3791">2.2e-09</text>
+<line class="pin" x1="1938" x2="1968" y1="3808" y2="3808"/>
+<text x="1975" y="3813" data-pin="1" data-net="GATE"> 1 — GATE</text>
+<line class="pin" x1="1938" x2="1968" y1="3831" y2="3831"/>
+<text x="1975" y="3836" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C13" data-mpn="C315C104K5R5TA"><rect x="1928" y="3870" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="3892" class="ref">C13 C315C104K5R5TA</text>
+<text x="1938" y="3913">1e-07</text>
+<line class="pin" x1="1938" x2="1968" y1="3930" y2="3930"/>
+<text x="1975" y="3935" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1938" x2="1968" y1="3953" y2="3953"/>
+<text x="1975" y="3958" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C16" data-mpn="C315C104K5R5TA"><rect x="1928" y="3992" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="4014" class="ref">C16 C315C104K5R5TA</text>
+<text x="1938" y="4035">1e-07</text>
+<line class="pin" x1="1938" x2="1968" y1="4052" y2="4052"/>
+<text x="1975" y="4057" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1938" x2="1968" y1="4075" y2="4075"/>
+<text x="1975" y="4080" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C19" data-mpn="C315C104K5R5TA"><rect x="1928" y="4114" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="4136" class="ref">C19 C315C104K5R5TA</text>
+<text x="1938" y="4157">1e-07</text>
+<line class="pin" x1="1938" x2="1968" y1="4174" y2="4174"/>
+<text x="1975" y="4179" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1938" x2="1968" y1="4197" y2="4197"/>
+<text x="1975" y="4202" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C23" data-mpn="C315C104K5R5TA"><rect x="1928" y="4236" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="4258" class="ref">C23 C315C104K5R5TA</text>
+<text x="1938" y="4279">1e-07</text>
+<line class="pin" x1="1938" x2="1968" y1="4296" y2="4296"/>
+<text x="1975" y="4301" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1938" x2="1968" y1="4319" y2="4319"/>
+<text x="1975" y="4324" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="C26" data-mpn="C315C104K5R5TA"><rect x="1928" y="4358" width="445" height="110" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="4380" class="ref">C26 C315C104K5R5TA</text>
+<text x="1938" y="4401">1e-07</text>
+<line class="pin" x1="1938" x2="1968" y1="4418" y2="4418"/>
+<text x="1975" y="4423" data-pin="1" data-net="V5_F"> 1 — V5_F</text>
+<line class="pin" x1="1938" x2="1968" y1="4441" y2="4441"/>
+<text x="1975" y="4446" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+</g>
+<g id="J2" data-mpn="project-field-pads"><rect x="1928" y="4480" width="445" height="133" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="4502" class="ref">J2 project-field-pads</text>
+<text x="1938" y="4523">Functional labels only; third pad not routed</text>
+<line class="pin" x1="1938" x2="1968" y1="4540" y2="4540"/>
+<text x="1975" y="4545" data-pin="1" data-net="ECU_DATA"> 1 — ECU_DATA</text>
+<line class="pin" x1="1938" x2="1968" y1="4563" y2="4563"/>
+<text x="1975" y="4568" data-pin="2" data-net="GND_F"> 2 — GND_F</text>
+<line class="pin" x1="1938" x2="1968" y1="4586" y2="4586"/>
+<text x="1975" y="4591" data-pin="3" data-net="VEHICLE_POWER_NC"> 3 — VEHICLE_POWER_NC</text>
+</g>
+<g id="TP4" data-mpn="project-test-pad"><rect x="1928" y="4625" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="4647" class="ref">TP4 project-test-pad</text>
+<text x="1938" y="4668">SENSE</text>
+<line class="pin" x1="1938" x2="1968" y1="4685" y2="4685"/>
+<text x="1975" y="4690" data-pin="1" data-net="SENSE"> 1 — SENSE</text>
+</g>
+<g id="TP7" data-mpn="project-test-pad"><rect x="1928" y="4724" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="4746" class="ref">TP7 project-test-pad</text>
+<text x="1938" y="4767">GATE</text>
+<line class="pin" x1="1938" x2="1968" y1="4784" y2="4784"/>
+<text x="1975" y="4789" data-pin="1" data-net="GATE"> 1 — GATE</text>
+</g>
+<g id="TP10" data-mpn="project-test-pad"><rect x="1928" y="4823" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="4845" class="ref">TP10 project-test-pad</text>
+<text x="1938" y="4866">LDO_IN</text>
+<line class="pin" x1="1938" x2="1968" y1="4883" y2="4883"/>
+<text x="1975" y="4888" data-pin="1" data-net="LDO_IN"> 1 — LDO_IN</text>
+</g>
+<g id="TP14" data-mpn="project-test-pad"><rect x="1928" y="4922" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="4944" class="ref">TP14 project-test-pad</text>
+<text x="1938" y="4965">TIMEOUT</text>
+<line class="pin" x1="1938" x2="1968" y1="4982" y2="4982"/>
+<text x="1975" y="4987" data-pin="1" data-net="TIMEOUT"> 1 — TIMEOUT</text>
+</g>
+<g id="TP17" data-mpn="project-test-pad"><rect x="1928" y="5021" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="5043" class="ref">TP17 project-test-pad</text>
+<text x="1938" y="5064">ARM_RAW</text>
+<line class="pin" x1="1938" x2="1968" y1="5081" y2="5081"/>
+<text x="1975" y="5086" data-pin="1" data-net="ARM_RAW"> 1 — ARM_RAW</text>
+</g>
+<g id="TP20" data-mpn="project-test-pad"><rect x="1928" y="5120" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="5142" class="ref">TP20 project-test-pad</text>
+<text x="1938" y="5163">REARM_READY</text>
+<line class="pin" x1="1938" x2="1968" y1="5180" y2="5180"/>
+<text x="1975" y="5185" data-pin="1" data-net="REARM_READY"> 1 — REARM_READY</text>
+</g>
+<g id="TP23" data-mpn="project-test-pad"><rect x="1928" y="5219" width="445" height="87" rx="5" fill="#e6f3ef" stroke="#8a9bad"/>
+<text x="1938" y="5241" class="ref">TP23 project-test-pad</text>
+<text x="1938" y="5262">USB_BAD</text>
+<line class="pin" x1="1938" x2="1968" y1="5279" y2="5279"/>
+<text x="1975" y="5284" data-pin="1" data-net="USB_BAD"> 1 — USB_BAD</text>
 </g>
 </svg>

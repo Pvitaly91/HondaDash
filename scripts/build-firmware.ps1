@@ -99,6 +99,8 @@ foreach ($cpu in @('atmega328', 'atmega328old')) {
         }
         & $Python (Join-Path $repository 'scripts/analyze-avr-isr.py') (Join-Path $output 'disassembly.txt') --output (Join-Path $output 'isr-timing.json')
         Assert-NativeExit 'AVR static ISR analysis'
+        & $Python (Join-Path $repository 'tests/protected_frontend/avr_gpio_timing.py') (Join-Path $output 'disassembly.txt') --out (Join-Path $output 'gpio-timing.json')
+        Assert-NativeExit 'AVR constrained GPIO timing analysis'
     }
     if (($symbols -join "`n") -cmatch '(?m)\s(?:malloc|calloc|realloc|_Zn\w*)\s*$') { throw 'Heap allocator linked into firmware.' }
     $compilerText = & $compiler --version

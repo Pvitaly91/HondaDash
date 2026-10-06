@@ -90,6 +90,18 @@ Nano і стенд B без responder/ПК мають різні цілі. Дв�
 PASS. Arbitrary battery faults, load dump, EMC/ESD — поза поточним envelope.
 12V/VIN/ECU у базовому M3a залишаються забороненими.
 
+## M3b.1 — fail-safe revision B / production driver
+
+Кандидат B містить незалежний timer, arm/fault latch, release qualification,
+debounced кнопку, field supervisor та окремий ізольований USB power-good.
+Поява живлення/D3 HIGH/короткий LOW/утримана кнопка не є re-arm. Виправлення
+17ticks stop-settle має baseline контрприклад і production state-machine tests;
+електричні traces та closed-loop feedback перевіряються окремо від AVR static
+instruction paths. Firmware/sketches залишаються чотири, identities/whitelist/
+polling/freshness/200ms unchanged. Ця ревізія готовиться до фізичної перевірки,
+а не PCB виробництва чи ECU session. **Cutoff, реальний обмін, фронти та ізоляція
+NOT VERIFIED. Negative DC/off-state OPEN**, жодного загального protection PASS.
+
 ## M4 — конкретний справжній ECU на стенді
 
 **NOT VERIFIED; вхідні дані ECU невідомі.** [M4_READINESS](M4_READINESS.md)

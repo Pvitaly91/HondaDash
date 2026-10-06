@@ -8,9 +8,9 @@ void increment(uint16_t &value) {
 }
 }
 Driver::Driver()
-    : next_(0), rxStart_(0), completedTxSequence_(0), txHead_(0), txSize_(0), rxHead_(0), rxSize_(0), txByte_(0), rxByte_(0),
+    : next_(0), rxStart_(0), stopEarliestPeer_(0), completedTxSequence_(0), txHead_(0), txSize_(0), rxHead_(0), rxSize_(0), txByte_(0), rxByte_(0),
       phase_(0), pendingError_(NoError), txActive_(false), rxActive_(false), resync_(false), low_(false),
-      fault_(false), stopAnchored_(false) {
+      fault_(false), stopAnchored_(false), startAnchored_(false) {
     memset(&counters_, 0, sizeof counters_);
 }
 void Driver::fail(Error error) {
@@ -39,6 +39,7 @@ void Driver::beginTx(uint32_t now) {
     --txSize_;
     txActive_ = true;
     stopAnchored_ = false;
+    startAnchored_ = false;
     low_ = true; // Start bit. GPIO enables an external open-collector transistor.
     phase_ = 1;
     next_ = now + HalfTicks;
@@ -56,9 +57,14 @@ bool Driver::service(uint32_t now, bool high) {
 }
 void Driver::fallingEdge(uint32_t now) {
     if (txActive_ && captureNeeded()) {
-        if (phase_ == 20 && int32_t(now - next_) >= 0) {
+        // Ideal host tests may omit the GPIO callback: their phase20 next_ is
+        // the unextended nominal deadline. Real HAL uses the release timestamp.
+        const uint32_t peerDeadline = stopAnchored_ ? stopEarliestPeer_ : next_;
+        if (phase_ == 20 && int32_t(now - peerDeadline) >= 0) {
             // The released stop bit and HIGH echo completed before this captured
             // peer start, even if CAPT outranks a pending completion COMPA.
+            // The peer is assumed to honour its own stop duration; this edge
+            // does not shorten our queued TX or claim to measure DATA rise.
             completeTx();
         } else {
             increment(counters_.collisions);
@@ -125,10 +131,15 @@ void Driver::timer(uint32_t now, bool high) {
             completeTx();
             // A complete stop bit elapsed, the bus is already released, and its echo was HIGH.
             if (txSize_)
-                beginTx(next_);
+                beginTx(now); // A late completion must not backdate the next start bit.
             return;
         }
-        low_ = phase_ == 18 ? false : (txByte_ & uint8_t(1u << (phase_ / 2 - 1))) == 0;
+        if (phase_ == 18)
+            low_ = false;
+        else {
+            low_ = (txByte_ & 1u) == 0;
+            txByte_ >>= 1; // Streaming LSB: bounded GPIO path, no variable shift loop.
+        }
         ++phase_;
         next_ += HalfTicks;
         return;

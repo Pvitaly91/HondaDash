@@ -1,0 +1,35 @@
+M3b model usb_brownout_0.0001
+.include "/mnt/d/DEV/CPP/HondaDash/build/m3b1-pre-hold-counterexample/models.cir"
+.include "frontend.cir"
+.param CMP_DELAY=3e-06 CMP_OFFSET=0.004 RX_LEAK=2.05e-06 TX_LEAK=0.0002 FIELD_SET=5
+.param ISO_DELAY=1.7e-08
+.temp 25
+.param TIMER_SCALE=1 TIMER_BYPASS=0 ARM_UNSAFE=0 GATE_REVERSED=0 PG_BYPASS=0 PG_DELAY=0.028 PG_THRESHOLD=0.405 LOW_POWER_TX=1
+Vg gl 0 0
+Vusb usb gl PWL(0 5 0.095 5 0.0951 1.9 0.115 1.9 0.1151 5)
+Vbat bat 0 9
+Vcommand command gl PWL(0 0 0.107 0 0.107001 5)
+Btx tx gl V=min(max(V(command,gl),0),max(V(usb,gl),0))
+Vpeer peer 0 0
+Vbutton button 0 PWL(0 0 0.065 0 0.065001 5 0.09 5 0.090001 0)
+Barm arm 0 V=min(max(V(button),0),max(V(xfe.v5_f),0))
+Xfe usb gl tx rx bus 0 bat arm frontend
+Vpu pu 0 5.25
+Rpu pu bus 1000
+Cline bus 0 4.5000000000000005e-10
+.model PEER_SW SW(Ron=5 Roff=1e12 Vt=2.5 Vh=0)
+Speak bus 0 peer 0 PEER_SW
+Vfault fault 0 0
+Rfault fault bus 1000000000000.0
+.options reltol=1e-4 abstol=1e-10 vntol=1e-6
+.save v(bus) v(rx,gl) v(tx,gl) v(xfe.sense) v(xfe.gate) v(xfe.drain) v(xfe.v5_f) v(xfe.rx_f) v(xfe.vref) v(peer) v(usb,gl) v(xfe.pg_f) v(xfe.armed) v(xfe.timeout) v(xfe.arm_clk) v(xfe.tx_f) v(xfe.pg_gate) v(xfe.usb_bad) v(xfe.clr_n) v(xfe.rearm_ready)
+.param OPTO_CTR=0.8 OPTO_DELAY=5e-05 LOW_POWER_RX=1
+.control
+set wr_singlescale
+set wr_vecnames
+set numdgt=12
+tran .5u 0.17500000000000002 0 .5u uic
+wrdata trace.dat v(bus) v(rx,gl) v(tx,gl) v(xfe.sense) v(xfe.gate) v(xfe.drain) v(xfe.v5_f) v(xfe.rx_f) v(xfe.vref) v(peer) v(usb,gl) v(xfe.pg_f) v(xfe.armed) v(xfe.timeout) v(xfe.arm_clk) v(xfe.tx_f) v(xfe.pg_gate) v(xfe.usb_bad) v(xfe.clr_n) v(xfe.rearm_ready)
+quit
+.endc
+.end

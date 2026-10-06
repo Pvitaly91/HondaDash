@@ -18,6 +18,15 @@ uint32_t clockTicks() {
         ++high;
     return (uint32_t(high) << 16) | low;
 }
+__attribute__((always_inline)) inline uint32_t gpioClockTicks() {
+    // Called only with IRQ excluded. Latch TCNT1 immediately after PORTD;
+    // reading software high afterward is safe because its ISR cannot run here.
+    const uint16_t low = TCNT1;
+    uint16_t high = timerHigh;
+    if ((TIFR1 & _BV(TOV1)) && low < 0x8000u)
+        ++high;
+    return (uint32_t(high) << 16) | low;
+}
 void updateHardware() {
     if (driver.drivingLow())
         PORTD |= _BV(PD3);
@@ -44,6 +53,15 @@ void updateHardware() {
         mask &= uint8_t(~_BV(OCIE1A));
     TIMSK1 = mask;
 }
+void applyTxStart() {
+    // Known successful beginTx: no RX/resync/capture and next compare is52us
+    // ahead. This bounded path avoids the generic HAL's state/overdue branches.
+    PORTD |= _BV(PD3);
+    driver.startOutputApplied(gpioClockTicks());
+    OCR1A = uint16_t(driver.nextEvent());
+    TIFR1 = _BV(OCF1A);
+    TIMSK1 = uint8_t((TIMSK1 & uint8_t(~_BV(ICIE1))) | _BV(OCIE1A));
+}
 }
 ISR(TIMER1_OVF_vect) { ++timerHigh; }
 ISR(TIMER1_CAPT_vect) {
@@ -58,11 +76,15 @@ ISR(TIMER1_COMPA_vect) {
     const bool high = inputHigh();
     const uint32_t now = clockTicks();
     driver.timer(now, high);
-    if (driver.stopNeedsAnchor()) {
-        PORTD &= uint8_t(~_BV(PD3));
-        driver.outputApplied(clockTicks()); // Anchor only after the physical stop edge.
+    if (driver.startNeedsAnchor()) {
+        applyTxStart();
+    } else {
+        if (driver.stopNeedsAnchor()) {
+            PORTD &= uint8_t(~_BV(PD3));
+            driver.outputApplied(gpioClockTicks()); // Anchor after the physical stop edge.
+        }
+        updateHardware();
     }
-    updateHardware();
 }
 namespace hd_onewire {
 void AvrPort::begin() {
@@ -85,8 +107,14 @@ void AvrPort::begin() {
 }
 void AvrPort::service() {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        if (driver.service(clockTicks(), inputHigh()))
-            updateHardware(); // Active frames belong to ISR; never clear/rearm a pending compare here.
+        if (driver.service(clockTicks(), inputHigh())) {
+            // service changed state only by beginning TX (LOW) or failing busy
+            // (released). Avoid redundant phase tests in this atomic main path.
+            if (driver.drivingLow())
+                applyTxStart();
+            else
+                updateHardware();
+        } // Active frames belong to ISR; never clear/rearm a pending compare here.
     }
 }
 bool AvrPort::sendByte(uint8_t byte) {

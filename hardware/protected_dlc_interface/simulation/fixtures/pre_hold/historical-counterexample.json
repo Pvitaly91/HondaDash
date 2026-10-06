@@ -1,0 +1,18 @@
+{
+  "model_sha256": "52e3aa131cca41d2890e173c3cfb976b80e4c30115180cfd0ae31180a8bd8eb6",
+  "frontend_sha256": "f9407d5053125412ddc87745a0b490c9169e56812e4c49f55390069850e3970f",
+  "scenario_sha256": "e850f4f86fd89ba9bd1a0515d37d301728d0c66192d7ff2632c656c06f005501",
+  "physical_status": "NOT VERIFIED",
+  "expected": "No unrequested own gate during unsafe raw USB with healthy field",
+  "criterion_status": "FAIL",
+  "samples": 536,
+  "gate_limit_V": 1.3,
+  "gate_max_V": 4.882766720795,
+  "D3_command_max_V": 0.0,
+  "DATA_min_V": 0.2241600933915,
+  "TX_F_max_V": 5.0,
+  "interval_start_s": 0.09508891991527,
+  "interval_end_s": 0.09512164590948,
+  "interval_duration_s": 3.272599420998945e-05,
+  "reason": "ISO input rail1.7..2.25V undefined sampled HIGH before optical USB health clears latch; restoration-only checks missed transient"
+}

@@ -1,6 +1,13 @@
 # M4 — readiness for one specifically identified ECU
 
 M3b provides a protected-interface **candidate** and isolated lab test package.
+M3b.1 revision B adds independent sustained-TX cutoff, persistent lockout,
+post-power/fault release qualification and a fresh local debounced re-arm action.
+USB recovery commands do not clear this hardware latch; firmware has no dedicated
+latch-feedback signal. Driver echo/line errors do not uniquely identify a timer
+fault. Negative DC−16V/10s and off-state protection remain **OPEN**, even when their
+allocated electrical model passes numerical stress checks. They are unresolved M4
+gates, alongside physical cutoff/timing/isolated-health measurements.
 It does not enable a real ECU in software. M3a physical bring-up, protected-board
 measurements and vehicle-interface qualification are separate gates; currently
 all hardware gates are **NOT VERIFIED**. Do not assume the owner's ECU is P07,

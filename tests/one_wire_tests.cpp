@@ -21,9 +21,9 @@ void allBytesAndEcho() {
         CHECK(line.first.enqueue(uint8_t(byte)));
         line.service();
         CHECK(!line.high());
-        line.advanceTo(Driver::BitTicks * 10 - 1);
+        line.advanceTo(Driver::BitTicks * 10 + Driver::StopSettleTicks - 1);
         CHECK(!line.first.txComplete());
-        line.advanceTo(Driver::BitTicks * 10);
+        line.advanceTo(Driver::BitTicks * 10 + Driver::StopSettleTicks);
         CHECK(line.first.txComplete() && line.high());
         Received received{};
         CHECK(line.second.pop(received) && received.byte == byte);
@@ -37,13 +37,13 @@ void backToBackAndSampling() {
     hd_test::PairLine line;
     for (unsigned byte = 0; byte < Driver::Capacity; ++byte)
         CHECK(line.first.enqueue(uint8_t(byte * 17)));
-    line.advanceTo(Driver::Capacity * 10 * Driver::BitTicks);
+    line.advanceTo(Driver::Capacity * (10 * Driver::BitTicks + Driver::StopSettleTicks));
     CHECK(line.first.txComplete() && line.high());
     CHECK(line.second.rxPending() == Driver::Capacity);
     for (unsigned byte = 0; byte < Driver::Capacity; ++byte) {
         Received received{};
         CHECK(line.second.pop(received) && received.byte == byte * 17);
-        CHECK(received.ticks == byte * 10 * Driver::BitTicks + 9 * Driver::BitTicks + Driver::HalfTicks);
+        CHECK(received.ticks == byte * (10 * Driver::BitTicks + Driver::StopSettleTicks) + 9 * Driver::BitTicks + Driver::HalfTicks);
     }
     hd_test::PairLine pattern;
     CHECK(pattern.first.enqueue(0xa5));
@@ -160,7 +160,7 @@ void overflowAbortAndWrap() {
     hd_test::PairLine rx;
     for (unsigned byte = 0; byte < Driver::Capacity + 1; ++byte) {
         CHECK(rx.first.enqueue(uint8_t(byte)));
-        rx.advanceTo(rx.now() + 10 * Driver::BitTicks);
+        rx.advanceTo(rx.now() + 10 * Driver::BitTicks + Driver::StopSettleTicks);
     }
     CHECK(rx.second.takeError() == hd_onewire::RxOverflow);
     CHECK(rx.second.rxPending() == Driver::Capacity);
@@ -178,7 +178,7 @@ void overflowAbortAndWrap() {
     hd_test::PairLine wrapped(0xfffffe00u);
     const uint32_t start = wrapped.now();
     CHECK(wrapped.first.enqueue(0x69));
-    wrapped.advanceTo(start + 10 * Driver::BitTicks);
+    wrapped.advanceTo(start + 10 * Driver::BitTicks + Driver::StopSettleTicks);
     Received value{};
     CHECK(wrapped.second.pop(value) && value.byte == 0x69);
     CHECK(value.ticks == uint32_t(start + 9 * Driver::BitTicks + Driver::HalfTicks));
@@ -187,6 +187,16 @@ void overflowAbortAndWrap() {
     CHECK(sizeof(Driver) <= 240); // AVR is smaller: host Received padding differs.
 }
 void captureArmingAndDeferredInterrupt() {
+    Driver startApplied;
+    CHECK(startApplied.enqueue(0));
+    CHECK(startApplied.service(100, true));
+    CHECK(startApplied.startNeedsAnchor());
+    startApplied.outputApplied(132); // D3 actually applied16us after request.
+    CHECK(!startApplied.startNeedsAnchor());
+    CHECK(startApplied.nextEvent() == 132 + Driver::HalfTicks);
+    startApplied.timer(startApplied.nextEvent(), false);
+    CHECK(startApplied.nextEvent() == 132 + Driver::BitTicks);
+
     Driver receiver;
     receiver.fallingEdge(0);
     CHECK(!receiver.captureNeeded());
@@ -243,12 +253,27 @@ void captureArmingAndDeferredInterrupt() {
     CHECK(released.stopNeedsAnchor() && !released.drivingLow());
     const uint32_t actualRelease = 9 * Driver::BitTicks + 32; // 16us GPIO/ISR output delay.
     released.outputApplied(actualRelease);
-    CHECK(released.nextEvent() == actualRelease + Driver::HalfTicks);
+    CHECK(released.nextEvent() == actualRelease + Driver::HalfTicks + Driver::StopSettleTicks);
     released.timer(released.nextEvent(), true);
-    released.timer(actualRelease + Driver::BitTicks - 1, true);
+    released.timer(actualRelease + Driver::BitTicks + Driver::StopSettleTicks - 1, true);
     CHECK(!released.txComplete());
-    released.timer(actualRelease + Driver::BitTicks, true);
+    released.timer(actualRelease + Driver::BitTicks + Driver::StopSettleTicks, true);
     CHECK(released.txComplete() && released.completedTxSequence() == 1);
+
+    for (bool early : {false, true}) {
+        Driver peerTurnaround;
+        CHECK(peerTurnaround.enqueue(0));
+        peerTurnaround.service(0, true);
+        while (peerTurnaround.nextEvent() <= 9 * Driver::BitTicks)
+            peerTurnaround.timer(peerTurnaround.nextEvent(), !peerTurnaround.drivingLow());
+        peerTurnaround.outputApplied(9 * Driver::BitTicks);
+        peerTurnaround.timer(peerTurnaround.nextEvent(), true); // stop echo at settle+half-bit
+        CHECK(peerTurnaround.nextEvent() == 10 * Driver::BitTicks + Driver::StopSettleTicks);
+        peerTurnaround.fallingEdge(10 * Driver::BitTicks - (early ? 1 : 0));
+        CHECK(peerTurnaround.takeError() == (early ? hd_onewire::Collision : hd_onewire::NoError));
+        CHECK(peerTurnaround.completedTxSequence() == (early ? 0 : 1));
+        CHECK(!peerTurnaround.drivingLow());
+    }
 }
 }
 int main() {

@@ -1,0 +1,31 @@
+{
+  "fixture_revision": "M3b.1 revision B interim before logic-side hold island",
+  "nature": "Frozen original HondaDash behavioral models/interconnect; not manufacturer models or a physical capture",
+  "physical_status": "NOT VERIFIED",
+  "expected_reproduction_status": "EXPECTED_DESIGN_FAILURE",
+  "files": {
+    "models.cir": "52e3aa131cca41d2890e173c3cfb976b80e4c30115180cfd0ae31180a8bd8eb6",
+    "frontend.cir": "f9407d5053125412ddc87745a0b490c9169e56812e4c49f55390069850e3970f",
+    "scenario.cir": "e850f4f86fd89ba9bd1a0515d37d301728d0c66192d7ff2632c656c06f005501",
+    "original-summary.json": "54a337e3ebc48afbfc84f911331feb6bb4e8130fa6cc29ca13e912c6b3ef7801",
+    "historical-counterexample.json": "853e0025a45be7a0b4f241e44b1dc840e3d73ac26bdce0fb40c1dfe442ba1964"
+  },
+  "historical_post_restore_status": "PASS",
+  "scenario_name": "usb_brownout_0.0001",
+  "transient_end_s": 0.17500000000000002,
+  "portability_relocation": {
+    "original_include": ".include \"/mnt/d/DEV/CPP/HondaDash/build/m3b1-pre-hold-counterexample/models.cir\"",
+    "runtime_include": ".include \"models.cir\"",
+    "scope": "Only this include is relocated in the generated runtime deck; frozen bytes remain unchanged."
+  },
+  "criterion": {
+    "name": "No unrequested positive own-sink current while D3 LOW, field healthy, and raw ISO USB supply undefined",
+    "raw_usb_range_V": [1.7, 2.25],
+    "field_min_V": 4.75,
+    "D3_low_max_V": 0.1,
+    "gate_on_min_V": 1.3,
+    "own_leg_resistance_ohm": 44,
+    "off_current_limit_A": 0.0003,
+    "current_basis": "Positive owned R12+R13 leg current, (DATA-DRAIN)/44; both gates checked. No peer or transistor short in fixture."
+  }
+}
