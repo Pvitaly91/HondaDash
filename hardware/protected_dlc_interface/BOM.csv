@@ -1,0 +1,49 @@
+ref,quantity,manufacturer,part_number,value,domain,pins,source_url,source_revision
+U1,1,Texas Instruments,ISO7721FDWR,DW-16; default LOW; two opposite channels,barrier,"{""1"": ""GND_L"", ""10"": ""NC_U1_10"", ""11"": ""NC_U1_11"", ""12"": ""TX_F"", ""13"": ""RX_F"", ""14"": ""V5_F"", ""15"": ""NC_U1_15"", ""16"": ""GND_F"", ""2"": ""NC_U1_2"", ""3"": ""USB5V"", ""4"": ""D8"", ""5"": ""D3"", ""6"": ""NC_U1_6"", ""7"": ""GND_L"", ""8"": ""NC_U1_8"", ""9"": ""GND_F""}",https://www.ti.com/lit/ds/symlink/iso7721.pdf,"SLLSEP3G; 2024-05; table 5-1, sections 6.3, 6.10, 6.15, 8.4"
+U2,1,Texas Instruments,SN74LVC1G17DBVR,DBV-5; noninverting TX gate buffer,field,"{""1"": ""NC_U2_1"", ""2"": ""TX_F"", ""3"": ""GND_F"", ""4"": ""GATE_DRIVE"", ""5"": ""V5_F""}",https://www.ti.com/lit/ds/symlink/sn74lvc1g17.pdf,"SCES351Y; 2025-10; sections 4, 5.5-5.8"
+U3,1,Texas Instruments,LM393BIDR,SOIC-8; RX Schmitt comparator; spare held LOW,field,"{""1"": ""RX_F"", ""2"": ""VREF"", ""3"": ""SENSE"", ""4"": ""GND_F"", ""5"": ""GND_F"", ""6"": ""VREF"", ""7"": ""NC_U3_7"", ""8"": ""V5_F""}",https://www.ti.com/lit/ds/symlink/lm393.pdf,"SLCS005AH; 2025-04; sections 4, 5.1, 5.5, 5.7, 7.2.2.1"
+U4,1,Texas Instruments,TPS70950DBVR,DBV-5; 5V LDO; EN left open (internal enable),field,"{""1"": ""LDO_IN"", ""2"": ""GND_F"", ""3"": ""NC_U4_EN"", ""4"": ""NC_U4_4"", ""5"": ""V5_F""}",https://www.ti.com/lit/ds/symlink/tps709.pdf,"SBVS186H; 2021-07; table 5-1, sections 6.5, 7.3, 8.2"
+Q1,1,Nexperia,"PMV88ENEA,215",60V NMOS SOT23: 1 gate / 2 source / 3 drain,field,"{""1"": ""GATE"", ""2"": ""GND_F"", ""3"": ""DRAIN""}",https://assets.nexperia.com/documents/data-sheet/PMV88ENEA.pdf,"2026-08-03; tables 2, 5-7, section 10, figures 3, 13"
+D1,1,Vishay,SS16-M3/IA,60V 1A SMA; band=K; drain negative clamp,field,"{""A"": ""GND_F"", ""K"": ""DRAIN""}",https://www.vishay.com/docs/98653/ss16hm3_bia_ss16-m3ia.pdf,"98653; 2025-03-12; pages 1-3, electrical and thermal tables"
+D2,1,Nexperia,"BAT54,215",SOT23: 1=A / 2=NC / 3=K; negative RX clamp,field,"{""1"": ""GND_F"", ""2"": ""NC_D2_2"", ""3"": ""SENSE""}",https://assets.nexperia.com/documents/data-sheet/BAT54.pdf,"2022-07-01; tables 2, 5-7"
+D3P,1,Vishay,SS16-M3/IA,Battery reverse protection; band=K,field,"{""A"": ""BAT_LIMITED"", ""K"": ""LDO_IN""}",https://www.vishay.com/docs/98653/ss16hm3_bia_ss16-m3ia.pdf,"98653; 2025-03-12; pages 1-3, electrical and thermal tables"
+R1,1,Vishay,MRS25000C2203FCT00,220000,field,"{""1"": ""ECU_DATA"", ""2"": ""SENSE""}",https://www.vishay.com/docs/28724/mrs16m25.pdf,28724; 2016-03-07; electrical and ordering tables
+R2,1,Vishay,MRS25000C6802FCT00,68000,field,"{""1"": ""SENSE"", ""2"": ""GND_F""}",https://www.vishay.com/docs/28724/mrs16m25.pdf,28724; 2016-03-07; electrical and ordering tables
+R3,1,Vishay,MRS25000C1004FCT00,1000000,field,"{""1"": ""RX_F"", ""2"": ""SENSE""}",https://www.vishay.com/docs/28724/mrs16m25.pdf,28724; 2016-03-07; electrical and ordering tables
+R4,1,Vishay,MRS25000C7872FCT00,78700,field,"{""1"": ""V5_F"", ""2"": ""VREF""}",https://www.vishay.com/docs/28724/mrs16m25.pdf,28724; 2016-03-07; electrical and ordering tables
+R5,1,Vishay,MRS25000C1002FCT00,10000,field,"{""1"": ""VREF"", ""2"": ""GND_F""}",https://www.vishay.com/docs/28724/mrs16m25.pdf,28724; 2016-03-07; electrical and ordering tables
+R6,1,Vishay,MRS25000C2201FCT00,2200,field,"{""1"": ""V5_F"", ""2"": ""RX_F""}",https://www.vishay.com/docs/28724/mrs16m25.pdf,28724; 2016-03-07; electrical and ordering tables
+R7,1,Vishay,MRS25000C1000FCT00,100,field,"{""1"": ""GATE_DRIVE"", ""2"": ""GATE""}",https://www.vishay.com/docs/28724/mrs16m25.pdf,28724; 2016-03-07; electrical and ordering tables
+R8,1,Vishay,MRS25000C6802FCT00,68000,field,"{""1"": ""GATE"", ""2"": ""GND_F""}",https://www.vishay.com/docs/28724/mrs16m25.pdf,28724; 2016-03-07; electrical and ordering tables
+R9,1,Vishay,MRS25000C4702FCT00,47000,logic,"{""1"": ""D3"", ""2"": ""GND_L""}",https://www.vishay.com/docs/28724/mrs16m25.pdf,28724; 2016-03-07; electrical and ordering tables
+R10,1,Vishay,MRS25000C1002FCT00,10000,logic,"{""1"": ""D8"", ""2"": ""GND_L""}",https://www.vishay.com/docs/28724/mrs16m25.pdf,28724; 2016-03-07; electrical and ordering tables
+R11,1,Vishay,MRS25000C1001FCT00,1000,field,"{""1"": ""V5_F"", ""2"": ""GND_F""}",https://www.vishay.com/docs/28724/mrs16m25.pdf,28724; 2016-03-07; electrical and ordering tables
+R12,1,Vishay,AC10000002209JAB00,22,field,"{""1"": ""ECU_DATA"", ""2"": ""TX_MID""}",https://www.vishay.com/docs/28730/ac_ac-at_ac-ni.pdf,"28730; 2024-12-05; pages 1-4, derating and ordering"
+R13,1,Vishay,AC10000002209JAB00,22,field,"{""1"": ""TX_MID"", ""2"": ""DRAIN""}",https://www.vishay.com/docs/28730/ac_ac-at_ac-ni.pdf,"28730; 2024-12-05; pages 1-4, derating and ordering"
+R14,1,Vishay,AC03000004709JAC00,47,field,"{""1"": ""BAT_PLUS"", ""2"": ""BAT_LIMITED""}",https://www.vishay.com/docs/28730/ac_ac-at_ac-ni.pdf,"28730; 2024-12-05; pages 1-4, derating and ordering"
+C1,1,KEMET,C315C104K5R5TA,1e-07,logic,"{""1"": ""USB5V"", ""2"": ""GND_L""}",https://search.kemet.com/component-documentation/download/specsheet/C315C104K5R5TA,generated per-part specification; retrieved 2026-10-06; specifications
+C2,1,KEMET,C315C104K5R5TA,1e-07,field,"{""1"": ""V5_F"", ""2"": ""GND_F""}",https://search.kemet.com/component-documentation/download/specsheet/C315C104K5R5TA,generated per-part specification; retrieved 2026-10-06; specifications
+C3,1,KEMET,C315C104K5R5TA,1e-07,field,"{""1"": ""V5_F"", ""2"": ""GND_F""}",https://search.kemet.com/component-documentation/download/specsheet/C315C104K5R5TA,generated per-part specification; retrieved 2026-10-06; specifications
+C4,1,KEMET,C315C104K5R5TA,1e-07,field,"{""1"": ""V5_F"", ""2"": ""GND_F""}",https://search.kemet.com/component-documentation/download/specsheet/C315C104K5R5TA,generated per-part specification; retrieved 2026-10-06; specifications
+C5,1,KEMET,C315C103K5R5TA,1e-08,field,"{""1"": ""VREF"", ""2"": ""GND_F""}",https://search.kemet.com/component-documentation/download/specsheet/C315C103K5R5TA,generated 2026-10-06; specifications
+C6,1,KEMET,C340C225K5R5TA,2.2e-06,field,"{""1"": ""LDO_IN"", ""2"": ""GND_F""}",https://search.kemet.com/component-documentation/download/specsheet/C340C225K5R5TA,generated per-part specification; retrieved 2026-10-06; specifications
+C7,1,KEMET,C340C225K5R5TA,2.2e-06,field,"{""1"": ""V5_F"", ""2"": ""GND_F""}",https://search.kemet.com/component-documentation/download/specsheet/C340C225K5R5TA,generated per-part specification; retrieved 2026-10-06; specifications
+C8,1,KEMET,C340C225K5R5TA,2.2e-06,field,"{""1"": ""V5_F"", ""2"": ""GND_F""}",https://search.kemet.com/component-documentation/download/specsheet/C340C225K5R5TA,generated per-part specification; retrieved 2026-10-06; specifications
+C9,1,KEMET,C340C225K5R5TA,2.2e-06,field,"{""1"": ""V5_F"", ""2"": ""GND_F""}",https://search.kemet.com/component-documentation/download/specsheet/C340C225K5R5TA,generated per-part specification; retrieved 2026-10-06; specifications
+C10,1,KEMET,C315C222J5G5TA,2.2e-09,field,"{""1"": ""GATE"", ""2"": ""GND_F""}",https://search.kemet.com/component-documentation/download/specsheet/C315C222J5G5TA,generated 2026-10-06; specifications
+J1,1,HondaDash,project-logic-pads,Nano: USB5V/GND/D3/D8; no VIN,logic,"{""1"": ""USB5V"", ""2"": ""GND_L"", ""3"": ""D3"", ""4"": ""D8""}",SCHEMATIC.md,M3b rev A; functional pads and test points; no vehicle connector pinout
+J2,1,HondaDash,project-field-pads,Functional labels only; third pad not routed,field,"{""1"": ""ECU_DATA"", ""2"": ""GND_F"", ""3"": ""VEHICLE_POWER_NC""}",SCHEMATIC.md,M3b rev A; functional pads and test points; no vehicle connector pinout
+J3,1,HondaDash,project-battery-pads,Battery disconnected to switch OFF,field,"{""1"": ""BAT_PLUS"", ""2"": ""GND_F""}",SCHEMATIC.md,M3b rev A; functional pads and test points; no vehicle connector pinout
+B1,1,Energizer,522,External removable 9V alkaline; accept measured 8.0-9.6V,field,"{""+"": ""BAT_PLUS"", ""-"": ""GND_F""}",https://data.energizer.com/pdfs/522_ap.pdf,Form EBC-1108L; undated; nominal voltage and temperature table
+TP1,1,HondaDash,project-test-pad,D3,logic,"{""1"": ""D3""}",SCHEMATIC.md,M3b rev A; functional pads and test points; no vehicle connector pinout
+TP2,1,HondaDash,project-test-pad,D8,logic,"{""1"": ""D8""}",SCHEMATIC.md,M3b rev A; functional pads and test points; no vehicle connector pinout
+TP3,1,HondaDash,project-test-pad,ECU_DATA,field,"{""1"": ""ECU_DATA""}",SCHEMATIC.md,M3b rev A; functional pads and test points; no vehicle connector pinout
+TP4,1,HondaDash,project-test-pad,SENSE,field,"{""1"": ""SENSE""}",SCHEMATIC.md,M3b rev A; functional pads and test points; no vehicle connector pinout
+TP5,1,HondaDash,project-test-pad,VREF,field,"{""1"": ""VREF""}",SCHEMATIC.md,M3b rev A; functional pads and test points; no vehicle connector pinout
+TP6,1,HondaDash,project-test-pad,RX_F,field,"{""1"": ""RX_F""}",SCHEMATIC.md,M3b rev A; functional pads and test points; no vehicle connector pinout
+TP7,1,HondaDash,project-test-pad,GATE,field,"{""1"": ""GATE""}",SCHEMATIC.md,M3b rev A; functional pads and test points; no vehicle connector pinout
+TP8,1,HondaDash,project-test-pad,DRAIN,field,"{""1"": ""DRAIN""}",SCHEMATIC.md,M3b rev A; functional pads and test points; no vehicle connector pinout
+TP9,1,HondaDash,project-test-pad,V5_F,field,"{""1"": ""V5_F""}",SCHEMATIC.md,M3b rev A; functional pads and test points; no vehicle connector pinout
+TP10,1,HondaDash,project-test-pad,LDO_IN,field,"{""1"": ""LDO_IN""}",SCHEMATIC.md,M3b rev A; functional pads and test points; no vehicle connector pinout
+TP11,1,HondaDash,project-test-pad,GND_L,logic,"{""1"": ""GND_L""}",SCHEMATIC.md,M3b rev A; functional pads and test points; no vehicle connector pinout
+TP12,1,HondaDash,project-test-pad,GND_F,field,"{""1"": ""GND_F""}",SCHEMATIC.md,M3b rev A; functional pads and test points; no vehicle connector pinout

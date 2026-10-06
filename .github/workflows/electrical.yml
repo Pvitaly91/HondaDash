@@ -1,0 +1,70 @@
+name: M3b electrical design and model checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  electrical:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.10'
+      - name: Install separate pinned simulation tool
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ngspice=42+ds-3build1
+          ngspice --version
+          mkdir -p build/electrical/licenses
+          cp /usr/share/doc/ngspice/copyright build/electrical/licenses/ngspice-copyright
+          dpkg-query -W ngspice > build/electrical/package-version.txt
+      - name: Verify diagram, BOM, pins and arithmetic without SPICE
+        run: |
+          python hardware/protected_dlc_interface/design.py --check
+          python hardware/protected_dlc_interface/simulation/run.py --calculations-only --out build/electrical-calculations
+      - name: Run electrical model scenarios and negative controls
+        run: python hardware/protected_dlc_interface/simulation/run.py --out build/electrical
+      - name: Prove deliberately bad circuits return failure to their caller
+        shell: bash
+        run: |
+          set +e
+          python hardware/protected_dlc_interface/simulation/run.py --bad-only --out build/electrical-negative
+          result=$?
+          set -e
+          test "$result" -eq 2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: HondaDash-protected-dlc-interface
+          if-no-files-found: error
+          path: |
+            hardware/protected_dlc_interface/
+            !hardware/protected_dlc_interface/**/__pycache__/
+            docs/M4_READINESS.md
+            docs/TWO_NANO_ACCEPTANCE.md
+            docs/TWO_NANO_BENCH.md
+            docs/ONE_WIRE_DRIVER.md
+            docs/TESTING.md
+            docs/HONDA_DLC_EVIDENCE.md
+            hardware/two_nano_bench/
+            firmware/shared/reference_fixtures.hpp
+            build/electrical/summary.json
+            build/electrical/checks.csv
+            build/electrical/calculations.csv
+            build/electrical/SUMMARY.md
+            build/electrical/engine.txt
+            build/electrical/package-version.txt
+            build/electrical/licenses/
+            build/electrical/*/scenario.cir
+            build/electrical/*/frontend.cir
+            build/electrical/*/engine.log
+            build/electrical-negative/summary.json
+            build/electrical-negative/checks.csv
+            build/electrical-negative/SUMMARY.md

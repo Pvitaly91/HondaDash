@@ -1,4 +1,48 @@
-# Перевірки M0/M1, M2a/M2b/M2c та M3a
+# Перевірки M0/M1, M2a/M2b/M2c, M3a та M3b
+
+## M3b — electrical design/model, 6 жовтня 2026
+
+Застосунок, протоколи, core/session/model, GUI та чотири firmware **не змінені**
+від M3a `e25e9fc930c494160991777d9e90c86ae2e22997`. Python/ngspice належать
+тільки окремим hardware checks; CMake/Qt/SerialPort/AVR залежності незмінні.
+
+Локально виконано Windows x64/MSVC19.34, Qt/SerialPort6.8.3, CMake3.31.6:
+Debug17/17 і Release17/17 CTest PASS, включно GUI smoke та native acceptance.
+Розпакований Windows ZIP також пройшов clean-PATH runtime, native GUI smoke
+при100%/150% і native acceptance; developer Qt paths не використовувались.
+Повний чинний build workflow зберігає Linux Release/PTY acceptance,
+Windows/Linux simulation-only/core-only, clean-path unpacked Windows package,
+і чотири firmware × два Nano FQBN з CLI1.2.2/AVR Boards1.8.6. Факт виконання
+CI для конкретного SHA перевіряється окремо; наявність workflow не є результатом.
+
+Локальний WSL Ubuntu24.04, Python3.12, **ngspice42 (`42+ds-3build1`)**:
+pin/BOM/SVG/netlist agreement PASS,20 arithmetic checks PASS;53 SPICE scenarios:
+50 PASS і3 EXPECTED_REJECTION. Вони охоплюють DC ramps/load, source/RC/supply/
+threshold/leakage/temperature allocations, init і всі current A/B bytes,
+direction changes/echo/clock offsets, defined faults та power sequencing.
+Завідомо погані100R pullup,47k/10nF і48V asserted fault відхиляються за
+чисельними критеріями. Додатково окремо пройшли2 сценарії втрати field/USB
+живлення з утриманою логічною TX-командою (загалом55 сценаріїв у CI-матриці).
+`--bad-only` повинен повернути2, а не успішний код0.
+Model parameters без гарантованих datasheet maxima явно вказані як припущення.
+
+```sh
+python3 hardware/protected_dlc_interface/design.py --check
+python3 hardware/protected_dlc_interface/simulation/run.py --calculations-only
+python3 hardware/protected_dlc_interface/simulation/run.py --out build/electrical
+python3 hardware/protected_dlc_interface/simulation/run.py --bad-only --out build/electrical-negative
+```
+
+`summary.json` зберігає parameters/extrema, `checks.csv` — limits/margins/status,
+`calculations.csv` — арифметику. Окремий `electrical.yml` публікує
+`HondaDash-protected-dlc-interface`: вихідну схему/BOM/docs/calculations/models,
+згенеровані summaries та ngspice notices. Звичайна збірка працює без SPICE.
+Повторення й обмеження: [hardware README](../hardware/protected_dlc_interface/README.md).
+
+M3a physical bring-up, protected-interface measurements, vehicle-interface
+qualification та real ECU — **NOT VERIFIED**. Фізичних вимірювань/USB upload/
+автомобільної сесії цей етап не виконував. Hardware statuses не змінюються
+через PASS software, arithmetic або SPICE.
 
 ## M3a — виконані програмні перевірки, 6 жовтня 2026
 

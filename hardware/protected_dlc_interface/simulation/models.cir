@@ -1,0 +1,71 @@
+* ORIGINAL PROJECT MODELS, not manufacturer models. See MODEL_LIMITS.md.
+* These are finite-impedance electrical approximations; no avalanche, thermal,
+* insulation breakdown, or hidden ideal surge clamp. Time is seconds.
+.param CMP_DELAY=1u CMP_OFFSET=0 RX_LEAK=0 Q_RON=.32 TX_LEAK=200u
+.param SENSE_EXTRA_C=10p CGD=50p CGS=200p FIELD_SET=5
+.param ISO_DELAY=17n
+.param RT_SCALE=1 RB_SCALE=1 RF_SCALE=1 VREF_SCALE=1
+.model SS16_PROJECT D(Is=10n N=1.5 Rs=.02 Bv=60 Ibv=1m)
+.model BAT54_PROJECT D(Is=10n N=1 Rs=1 Bv=30 Ibv=100u Cjo=10p)
+.model QSW SW(Ron={Q_RON} Roff=1e12 Vt=2.3 Vh=0)
+.model CMP_SW SW(Ron=160 Roff=1e12 Vt=2.5 Vh=0)
+.model PWR_SW SW(Ron=2 Roff=1e12 Vt=5.8 Vh=.05)
+
+.subckt ISO7721F_PROJECT g1 n2 v1 outa inb n6 g7 n8 g9 n10 n11 outb ina v2 n15 g16
+* Both supplies required. Default LOW; no galvanic resistive path across barrier.
+* RC 50% delay=17ns, not a transport model at GHz. Aggregate numerical bound 0.3us.
+Btx itx g9 V=V(v2,g9)*((V(v1,g1)>2.25)&&(V(v2,g9)>2.25)&&(V(inb,g1)>2))
+Rtx itx outb 50
+Ctx outb g9 {ISO_DELAY/(50*.69314718056)}
+Brx irx g1 V=V(v1,g1)*((V(v1,g1)>2.25)&&(V(v2,g9)>2.25)&&(V(ina,g9)>2))
+Rrx irx outa 50
+Crx outa g1 {ISO_DELAY/(50*.69314718056)}
+Riq1 v1 g1 2000
+Riq2 v2 g9 2000
+* Cross-barrier capacitance allocation, not guaranteed production capacitance.
+Cbar g1 g9 2p
+.ends
+
+.subckt LVC17_PROJECT nc a g y vcc
+Bdrive drv g V=(V(vcc,g)>.8) ? max(V(vcc,g)-.1,0)*(V(a,g)>2) : 0
+* Driven LOW while powered; high impedance after power loss.
+Boutput y g I=(V(vcc,g)>.8) ? (V(y,g)-V(drv,g))/20 : V(y,g)/1e12
+* Worst positive powered-off leakage allocation flows from local rail only.
+Bleak vcc y I=(V(vcc,g)<.8) ? 10u : 0
+Biq vcc g I=(V(vcc,g)>1) ? 10u : 0
+.ends
+
+.subckt PMV88_PROJECT gate source drain
+* Smooth finite conductance avoids an ideal switch + Miller capacitance numerical
+* discontinuity. This transition is an allocation, not a fitted MOSFET model.
+Bmos drain source I=V(drain,source)*(1e-12+1/({Q_RON}*(1+exp(max(min((2.3-V(gate,source))/.08,40),-40)))))
+Cgd_i gate drain {CGD}
+Cgs_i gate source {CGS}
+* Body diode is secondary to D1; use a separate finite diode equation.
+Dbody source drain BODY_PROJECT
+.model BODY_PROJECT D(Is=1n N=1.8 Rs=.15 Bv=60)
+Bleak drain source I={TX_LEAK}*min(max(V(drain,source),0),1)
+.ends
+
+.subckt LM393B_PROJECT out minus plus g plus2 minus2 out2 vcc
+Bdecision decision g V=(V(plus,g)>V(minus,g)+{CMP_OFFSET}) ? 0 : 5
+Tdelay decision g delayed g Z0=1 TD={CMP_DELAY}
+Rdelay delayed g 1
+* Output saturation bounded by 160 ohms: <.4V at the actual 2.4mA pullup.
+Bcontrol control g V=(V(vcc,g)>2) ? V(delayed,g) : 0
+Sout out g control g CMP_SW
+Rspare out2 g 160
+Isense plus g {RX_LEAK}
+Csense plus g {SENSE_EXTRA_C}
+* Explicit assumed off-state injection, instead of asserting zero backfeed.
+Boff plus vcc I=(V(vcc,g)<2) ? 10u*min(max(V(plus,g),0),1) : 0
+Riq vcc g 6250
+.ends
+
+.subckt TPS709_PROJECT vin g en nc out
+Breg ideal g V=max(min({FIELD_SET},V(vin,g)-.5),0)
+Spower ideal out vin g PWR_SW
+* Input quiescent + conservative functional 20mA load allocation used for droop.
+* Output power is NOT conserved by Breg; do not use this model for LDO efficiency.
+Binput vin g I=(V(vin,g)>2) ? 20m : 0
+.ends

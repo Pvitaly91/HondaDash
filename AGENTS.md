@@ -9,8 +9,19 @@ bridge-lab зберігають свої backend/identity. Обидві identity
 самостійно не очищує peer. M3a metadata: bench_io_enabled=true,
 vehicle_connection_allowed=false, source=simulation; legacy physical DLC
 disabled не можна показувати для активного GPIO стенда. Hardware залишається
-NOT VERIFIED до фактичного запуску. Схема тільки hardware/two_nano_bench;
+NOT VERIFIED до фактичного запуску. Базова схема M3a: hardware/two_nano_bench;
 жодних 12V/VIN/ECU, з'єднання USB5V рейок, auto-upload або пошуку портів.
+
+M3b додає лише проект кандидата в hardware/protected_dlc_interface: схему,
+BOM, розрахунки, окремі ngspice42 model checks та план ізольованої лабораторної
+валідації. Дозволені тільки явно обмежені current-limited fault-стимули за
+FAULT_MATRIX/VALIDATION на окремому інтерфейсі без Nano/responder/ПК/ECU.
+Це вузький виняток для лабораторного проекту, не дозвіл автомобільного 12V/VIN,
+реального ECU, нового live backend чи зміни whitelist/timing. Функціональний
+стенд A використовує старі strict bridge-bench/responder-bench identities;
+дві USB на одному ПК не доводять ізоляцію. Software, calculations, SPICE,
+фізичний M3a, вимірювання protected interface, vehicle qualification і real ECU
+мають окремі статуси; hardware NOT VERIFIED до фактичних вимірювань.
 
 M2c bridge policy: cycle320ms RPM/TPS/ECT/RPM/TPS, desired800/800/1600ms;
 stale/hide RPM/TPS1400/4200ms, ECT2100/6300ms. Policy фіксована для сесії,
@@ -84,7 +95,7 @@ physical_dlc_enabled=false, exact policy1. Це не дозволяє фізич
   Нативні тести компілюють той самий embedded parser/dispatcher.
 - Жодного auto-upload, сканування портів командами, автомобільного Honda DLC,
   SoftwareSerial, EEPROM/fuses/bootloader змін. GPIO дозволено тільки у
-  визначеному вище M3a low-voltage bench, за документованою схемою. Upload тільки явною
+  визначеному вище M3a low-voltage bench (або функціональному M3b стенді A), за документованою схемою. Upload тільки явною
   командою користувача з конкретним портом і варіантом Nano.
 - PTY, host firmware tests і AVR compilation не є фізичним USB тестом.
 

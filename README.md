@@ -1,4 +1,13 @@
-# HondaDash — M3a: стенд двох Nano
+# HondaDash — M3b: проект захищеного інтерфейсу
+
+M3b додає [окремий hardware-пакет](hardware/protected_dlc_interface/README.md):
+ізольований кандидат на ISO7721F з незалежною батареєю, open-drain TX,
+захищеним RX, схемою/BOM, розрахунками, ngspice42 і планом вимірювань.
+**Застосунок і чотири firmware залишаються M3a; live ECU режим не додано.**
+Розрахунки/model checks не підтверджують апаратну безпечність. M3a physical,
+protected-interface measurements, vehicle qualification і real ECU —
+**NOT VERIFIED**. Подальші передумови: [M4 readiness](docs/M4_READINESS.md).
+SPICE є тільки окремою build/test залежністю electrical workflow.
 
 Незалежна настільна панель параметрів двигуна: C++20, Qt 6 Widgets,
 власні прилади й графік через QPainter. Вбудована емуляція працює без
